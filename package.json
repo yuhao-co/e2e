@@ -1,0 +1,24 @@
+{
+  "name": "kiko-midscene-mlx",
+  "version": "0.1.0",
+  "private": true,
+  "description": "E2E tests using Midscene.js with a local MLX-served Qwen2.5-VL model",
+  "scripts": {
+    "mlx:server": "bash scripts/start-mlx-server.sh",
+    "mlx:smoke": "bash scripts/mlx-smoke.sh",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@midscene/android": "^1.7.7",
+    "@midscene/web": "^1.0.0",
+    "@playwright/test": "^1.59.1",
+    "adbkit": "^2.11.1",
+    "dotenv": "^16.4.5",
+    "openai": "^6.35.0",
+    "playwright": "^1.59.1",
+    "sharp": "^0.34.5",
+    "tsx": "^4.21.0"
+  }
+}

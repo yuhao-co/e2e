@@ -1,0 +1,11 @@
+[
+  {
+    "locale": "id-id",
+    "label": "Indonesia (Bahasa Indonesia)",
+    "url": "https://www.traveloka.com/id-id/",
+    "expectedLanguage": "Indonesian",
+    "count": 0,
+    "annotatedImage": "audit-output/i18n/id-id.png",
+    "findings": []
+  }
+]

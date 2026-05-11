@@ -1,0 +1,12 @@
+{
+  "locale": "th-th",
+  "label": "Thailand (Thai)",
+  "url": "https://www.traveloka.com/th-th/",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "expectedLanguage": "Thai",
+  "findings": [],
+  "dropped": []
+}

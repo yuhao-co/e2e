@@ -1,0 +1,12 @@
+{
+  "locale": "vi-vn",
+  "label": "Vietnam (Vietnamese)",
+  "url": "https://www.traveloka.com/vi-vn/",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "expectedLanguage": "Vietnamese",
+  "findings": [],
+  "dropped": []
+}

@@ -1,0 +1,12 @@
+{
+  "locale": {
+    "id": "en",
+    "currencyCode": "SGD",
+    "languageLabel": "English",
+    "expected": "English",
+    "scripts": [
+      "Latin"
+    ]
+  },
+  "untranslated": []
+}

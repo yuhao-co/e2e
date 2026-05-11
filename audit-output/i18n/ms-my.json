@@ -1,0 +1,97 @@
+{
+  "locale": "ms-my",
+  "label": "Malaysia (Bahasa Melayu)",
+  "url": "https://www.traveloka.com/ms-my/",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "expectedLanguage": "Malay",
+  "findings": [
+    {
+      "index": 1,
+      "text": "5.5 EPIC SALE",
+      "language": "en",
+      "bbox": {
+        "x": 228,
+        "y": 596,
+        "width": 163,
+        "height": 94
+      },
+      "reason": "English text"
+    },
+    {
+      "index": 2,
+      "text": "COMING SOON!",
+      "language": "en",
+      "bbox": {
+        "x": 661,
+        "y": 803,
+        "width": 205,
+        "height": 23
+      },
+      "reason": "English text"
+    },
+    {
+      "index": 3,
+      "text": "FLIGHTS FROM RM55",
+      "language": "en",
+      "bbox": {
+        "x": 463,
+        "y": 649,
+        "width": 146,
+        "height": 66
+      },
+      "reason": "English text"
+    },
+    {
+      "index": 4,
+      "text": "RM500 COUPON DROPS",
+      "language": "en",
+      "bbox": {
+        "x": 681,
+        "y": 629,
+        "width": 167,
+        "height": 54
+      },
+      "reason": "English text"
+    },
+    {
+      "index": 5,
+      "text": "50% OFF HOTELS & ATTRACTIONS",
+      "language": "en",
+      "bbox": {
+        "x": 910,
+        "y": 646,
+        "width": 146,
+        "height": 77
+      },
+      "reason": "English text"
+    },
+    {
+      "index": 6,
+      "text": "Check promo",
+      "language": "en",
+      "bbox": {
+        "x": 1133,
+        "y": 679,
+        "width": 122,
+        "height": 21
+      },
+      "reason": "English text"
+    },
+    {
+      "index": 7,
+      "text": "T&Cs apply",
+      "language": "en",
+      "bbox": {
+        "x": 268,
+        "y": 811,
+        "width": 74,
+        "height": 15
+      },
+      "reason": "English text"
+    }
+  ],
+  "dropped": []
+}

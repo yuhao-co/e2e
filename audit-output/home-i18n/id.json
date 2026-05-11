@@ -1,0 +1,12 @@
+{
+  "locale": {
+    "id": "id",
+    "currencyCode": "IDR",
+    "languageLabel": "Indonesia",
+    "expected": "Indonesian",
+    "scripts": [
+      "Latin"
+    ]
+  },
+  "untranslated": []
+}

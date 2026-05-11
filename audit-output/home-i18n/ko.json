@@ -1,0 +1,12 @@
+{
+  "locale": {
+    "id": "ko",
+    "currencyCode": "KRW",
+    "languageLabel": "한국어",
+    "expected": "Korean",
+    "scripts": [
+      "Hangul"
+    ]
+  },
+  "untranslated": []
+}

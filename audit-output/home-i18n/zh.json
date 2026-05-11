@@ -1,0 +1,12 @@
+{
+  "locale": {
+    "id": "zh",
+    "currencyCode": "CNY",
+    "languageLabel": "中文",
+    "expected": "Simplified Chinese",
+    "scripts": [
+      "Han (Chinese)"
+    ]
+  },
+  "untranslated": []
+}

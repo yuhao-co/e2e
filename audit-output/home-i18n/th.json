@@ -1,0 +1,33 @@
+{
+  "locale": {
+    "id": "th",
+    "currencyCode": "THB",
+    "languageLabel": "Thailand",
+    "expected": "Thai",
+    "scripts": [
+      "Thai"
+    ]
+  },
+  "untranslated": [
+    {
+      "text": "Download language?",
+      "reason": "Not in Thai",
+      "severity": "high"
+    },
+    {
+      "text": "This app needs to download any language other than English.",
+      "reason": "Not in Thai",
+      "severity": "high"
+    },
+    {
+      "text": "Use English",
+      "reason": "Not in Thai",
+      "severity": "high"
+    },
+    {
+      "text": "Download",
+      "reason": "Not in Thai",
+      "severity": "high"
+    }
+  ]
+}

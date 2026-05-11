@@ -1,0 +1,14 @@
+{
+  "locale": {
+    "id": "ja",
+    "currencyCode": "JPY",
+    "languageLabel": "日本語",
+    "expected": "Japanese",
+    "scripts": [
+      "Hiragana",
+      "Katakana",
+      "Kanji"
+    ]
+  },
+  "untranslated": []
+}

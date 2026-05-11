@@ -1,0 +1,12 @@
+{
+  "locale": "en-sg",
+  "label": "Singapore (English) — baseline",
+  "url": "https://www.traveloka.com/en-sg/",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "expectedLanguage": "English",
+  "findings": [],
+  "dropped": []
+}

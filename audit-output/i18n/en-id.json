@@ -1,0 +1,12 @@
+{
+  "locale": "en-id",
+  "label": "Indonesia (English) — baseline",
+  "url": "https://www.traveloka.com/en-id/",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "expectedLanguage": "English",
+  "findings": [],
+  "dropped": []
+}
