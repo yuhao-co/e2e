@@ -37,7 +37,7 @@ export default defineConfig({
   retries: 0,
   reporter: [
     ['list'],
-    ['html', { open: 'never' }],
+    ['html', { open: 'on-failure' }],
     ['@midscene/web/playwright-reporter', { type: 'merged' }],
   ],
   use: {
