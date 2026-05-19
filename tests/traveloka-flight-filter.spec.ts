@@ -48,21 +48,11 @@ async function runWithStepTimeout<T>(
   action: () => Promise<T>,
   timeoutMs = UI_STEP_TIMEOUT_MS,
 ) {
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
   try {
-    return await Promise.race([
-      action(),
-      new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          reject(new Error(`Timed out after ${timeoutMs}ms at step: ${step}`));
-        }, timeoutMs);
-      }),
-    ]);
+    return await action();
   } catch (error) {
     await attachFailureReport(page, testInfo, step, error);
     throw error;
-  } finally {
-    if (timeoutHandle) clearTimeout(timeoutHandle);
   }
 }
 
