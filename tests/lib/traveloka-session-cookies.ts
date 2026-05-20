@@ -1,529 +1,66 @@
-import { type Page } from '@playwright/test';
+import { type BrowserContext, type Page } from '@playwright/test';
 
-export const travelokaSessionCookies = [
-  {
-    name: '_gcl_au',
-    value: '1.1.1991310102.1776923157',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_fwb',
-    value: '145YKkpoMlZG3TNQ1vpFgFd.1776923157573',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_tt_enable_cookie',
-    value: '1',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_ttp',
-    value: '01KPWDZ9XEGXD2Q17TQ3MH9WY0_.tt.1',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_fbp',
-    value: 'fb.1.1776923158468.83278911367961688',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_yjsu_yjad',
-    value: '1776923158.124c3554-3234-4f46-82df-3d6441870226',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_kmpid',
-    value: 'km|www.traveloka.com|1776923158649|9f5bb81a-c5f4-4a66-863f-b4fe877145e2',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_kmpid',
-    value: 'km|traveloka.com|1776923158649|9f5bb81a-c5f4-4a66-863f-b4fe877145e2',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_ly_su',
-    value: '1776923158.124c3554-3234-4f46-82df-3d6441870226',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_cs_c',
-    value: '1',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '__lt__cid',
-    value: '80207d1b-8b08-423b-bd04-13b53b9983a4',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_pin_unauth',
-    value: 'dWlkPU4yUmlZek5qWkdFdFl6ZzBPQzAwTTJJNUxUa3hNRGN0TlRreU5HSm1PV0U0TWpJdw',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '__rtbh.uid',
-    value: '%7B%22id%22%3A%22undefined%22%2C%22eventType%22%3A%22uid%22%2C%22expiryDate%22%3A%222027-04-24T03%3A39%3A16.528Z%22%7D',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'tv-repeat-visit',
-    value: 'true',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'tv_cs',
-    value: '1',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'ttcsid_CJ121TRC77UAB941PB10',
-    value: '1778661605879::5QWBGwH4L2wewj1KoqcM.10.1778661608306.1',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'countryCode',
-    value: 'HK',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_gid',
-    value: 'GA1.2.2084599931.1779068910',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_ga_0FHSEKVMZ6',
-    value: 'GS2.1.s1779078275$o3$g1$t1779081484$j47$l0$h0',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'g_state',
-    value: '{"i_l":0,"i_ll":1779084105931,"i_e":{"enable_itp_optimization":0},"i_et":1776923160396}',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'tv_user',
-    value: '{"authorizationLevel":"400","id":"410037803"}',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_gcl_gs',
-    value: '2.1.k1$i1779092367$u196813929',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_gcl_aw',
-    value: 'GCL.1779092380.CjwKCAjw8arQBhB9EiwAfIKdQmxg0rfbvVHAs7aklvJWfV5JvvwuwNC0E_GDZa6P02_54aH2_CJdIxoC5k4QAvD_BwE',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_gac_UA-29776811-12',
-    value: '1.1779092381.CjwKCAjw8arQBhB9EiwAfIKdQmxg0rfbvVHAs7aklvJWfV5JvvwuwNC0E_GDZa6P02_54aH2_CJdIxoC5k4QAvD_BwE',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_cs_cvars',
-    value: '%7B%226%22%3A%5B%22Referrer%22%2C%22https%3A%2F%2Fwww.google.com%2F%22%5D%7D',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'clientSessionId',
-    value: 'T1-web.01KRZC3TYSPHD1E76J1HWF12SP',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '__lt__sid',
-    value: '55d1f256-ed25a26e',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'aws-waf-token',
-    value: '555e2064-8a9b-4747-9598-2580fe9120e6:BgoAvEU5Yk0GAAAA:dkxLZU9KhjGnuyKelDxhi/PzPwQb1daxuRYga+iRaTbpiwpmwuhaMufxnocjCdpQMi0hRkRQOJDAjZuRNcVzDUXRUFsZdZiCNA6IG8BsSL/HQ/I3ZjVJJ0O9+BjLjQt3q8vQg7GW3u5c82cm3jgQK+nV5H37ykia1XHc43RLARWYRg/cLbgk0dx7dXoczE0yFM0',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_flight_search_api_revamp_experiment_web',
-    value: 'CONTROL',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_fl_price_graph_web',
-    value: 'CONTROL',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_fl_autocomplete_revamp_web',
-    value: 'X_N_A',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_flight_fe_exp_web',
-    value: 'X_N_A',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_fl_search_autocomplete_srs_web',
-    value: 'X_N_A',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_fl_bundle_web',
-    value: 'X_N_A',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_flight_fe_prefetch_experiment_web',
-    value: 'X_N_A',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_flight_frontend_exp_web',
-    value: 'CONTROL',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'tv_mcc_id',
-    value: '01KRZMRYE74B6R3J9NWC8VAQXM',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'exp_variant_fl_fe_summary_tray_web',
-    value: 'CONTROL',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_gat_UA-29776811-12',
-    value: '1',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'tv_lt',
-    value: '1779178293367',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_rdt_uuid',
-    value: '1776923159472.0763e689-9be7-4b59-8c08-8596aff73d71',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'datadome',
-    value: 'y7StdQpCwYX7w0RQaeRmkhAD3tHWDEvs2trL09qkCnV94gnmqDkndnYTgvO6~a1FkIkZ3cyCW8BVYj~~lLhQesLuf28rlMM47M4Lg6B7GdhEe49W9vQ9i3JilT5nFIDf',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'amp_f4354c',
-    value: 'GVfJ9uTbAlk5yrlgtocb72...1jovh5evl.1jovkp8p1.0.b.b',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'ttcsid',
-    value: '1779176493107::rmQhBe04pZ-gCq6u6Syu.67.1779178448358.0::0.1941742.1954324::1941723.2.913.506::1940452.1.16',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'ttcsid_CUM82PBC77U4QKJNCRL0',
-    value: '1779174643529::jZMKcFymaUcLdQU3M9T9.62.1779178448358.1',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'wcs_bt',
-    value: 's_2cb982ada97c:1779178448',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '__rtbh.lid',
-    value: '%7B%22eventType%22%3A%22lid%22%2C%22id%22%3A%22KWwAg3ccXp70rcc1dALW%22%2C%22expiryDate%22%3A%222027-05-19T08%3A14%3A08.448Z%22%7D',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_cs_id',
-    value: '167034cc-3542-a17e-babe-61187a70b271.1776923158.71.1779178449.1779174655.1760605804.1811087158902.0.x',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'amp_1a5adb',
-    value: 'ms1PDJt-5CmDYIh4KXeA79...1jovh555i.1jovkpa5b.2gh.b.2gs',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_ga',
-    value: 'GA1.2.1369681186.1776923157',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_cs_s',
-    value: '19.0.U.9.1779180249075',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_ga_RSRSMMBH0X',
-    value: 'GS2.1.s1779174651$o68$g1$t1779178449$j46$l1$h916642617',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'cto_bundle',
-    value: 'ba074V9QOG5MWlJkVEVkSVc4R1l2RFUxMVQ2U292cHpKRE4zNDdIWmxQMTlMaTdsMW9XYjdBNWNKemZnUWtlbk1SZThwMExhVFhYYmthU0EwR1JORVJOUnp3VmpGZ2dWc3hDJTJGaXRIdzV1ODY1S0lrMlFvZG9ZaWFxbG9jbEEybnJqcExGajJhNFh1d0hzMVZ3SE1iZ2Z4ZHVaZCUyQnhITkRJMG9mUHE2b0lYblhDQjQxYkM3N3U0SktLVm1LR1BXT09waDZa',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: '_dd_s',
-    value: 'rum',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-  {
-    name: 'sen_t',
-    value: 'Adt8GUIIYhYvQgA5/e35vrDjT8EbMJdOkGK7AqyzcUz8+AdfwmzC7forYbA0HvD6HLBL3+cB2TVW3enlHT4eve6OzK8KoytIgvw8P/JgKE7BwvAIy7VVBpZHrr4',
-    domain: 'www.traveloka.com',
-    path: '/',
-    secure: true,
-    sameSite: 'Lax' as const,
-  },
-];
+import sessionState from './traveloka-session-state.json';
 
-export const travelokaSessionOrigins = [
-  {
-    origin: 'https://www.traveloka.com',
-    localStorage: [
-      {
-        name: 'cto_bundle',
-        value: 'ba074V9QOG5MWlJkVEVkSVc4R1l2RFUxMVQ2U292cHpKRE4zNDdIWmxQMTlMaTdsMW9XYjdBNWNKemZnUWtlbk1SZThwMExhVFhYYmthU0EwR1JORVJOUnp3VmpGZ2dWc3hDJTJGaXRIdzV1ODY1S0lrMlFvZG9ZaWFxbG9jbEEybnJqcExGajJhNFh1d0hzMVZ3SE1iZ2Z4ZHVaZCUyQnhITkRJMG9mUHE2b0lYblhDQjQxYkM3N3U0SktLVm1LR1BXT09waDZa',
-      },
-      {
-        name: '__lt__cid',
-        value: '80207d1b-8b08-423b-bd04-13b53b9983a4',
-      },
-      {
-        name: 'lastPaxConfig',
-        value: '1.0.0',
-      },
-      {
-        name: 'lastSelectedAirport',
-        value: '[{"code":"SIN","displayName":"Singapore (SIN)","country":"Singapore","airportName":"Changi Intl"},{"code":"JKTA","displayName":"Jakarta (JKTA)","country":"Indonesia","airportName":"Jakarta"}]',
-      },
-      {
-        name: 'lsRecentlySearchInfoV2',
-        value: '{"expiredTime":1779178747548,"results":[{"selectedAirport":[{"code":"SIN","displayName":"Singapore (SIN)","country":"Singapore","areaCode":"SINA","airportName":"Changi Intl"},{"code":"JKTA","displayName":"Jakarta (JKTA)","country":"Indonesia","areaCode":"JKTA","airportName":"Jakarta"}],"departureDate":1779206400000,"returnDate":1779379200000,"roundTrip":true,"passengers":"1.0.0","seatClass":"ECONOMY","flexibility":false,"searchTimestamp":1779178447548,"detailInfo":null,"tripType":"ROUND_TRIP","anchorPrice":{"currencyValue":{"amount":29630,"currency":"SGD","nullOrEmpty":false},"numOfDecimalPoint":2}}]}',
-      },
-      {
-        name: 'lastDepartureDate',
-        value: '"2026-05-19T16:00:00.000Z"',
-      },
-      {
-        name: 'lastReturnDate',
-        value: '"2026-05-21T16:00:00.000Z"',
-      },
-      {
-        name: 'lastSeatClass',
-        value: 'ECONOMY',
-      },
-      {
-        name: 'tvlk-ssg-t',
-        value: 'true',
-      },
-      {
-        name: 'tv_cs',
-        value: '1',
-      },
-      {
-        name: 'tv-repeat-visit',
-        value: 'true',
-      },
-      {
-        name: 'tv:userwhoami',
-        value: '{"loggedIn":true,"id":"410037803","firstName":"Yu Hao","lastName":null,"username":"102063662587164319433","loginMethod":"GM","authorizationLevel":"400","endTime":"17254 hours: 2 minutes: 40 seconds","sessionId":"8f21ffe4-59d0-4ef0-902d-bda31c37022f","photoUrl":null,"userTags":[],"corporateUser":true,"rawClientId":"1865033945797628456","clientId":"16FF63EC254F166DCD47893DEE3765015E067663C68427A0D7E38DEC734DE601","hashedPrimaryPhoneNumber":null,"hashedPrimaryEmail":"cb7026471fba18c7917d36ad1bf4533804dd978f4c32f551a54727746713f564","revoked":false,"identifier":"i8slAuXN2Y0js41CN1nc30rDhUqmQrAaPzA9tMm2D+OoN3EY9xzwxRcbFp4c5JcXoqPSWYJQxKIYlFah9aw5siC8rymmDMY0xyRbUXE3JZ1R1cDmtp7lqTOrdDNi99VC~djAx","devicePlatform":"web","corporateInfo":{"corporate":"TRAVELOKA","corporateLogoUrl":{"normalVersion":null,"liteVersion":null},"hidingPromo":false,"hidingUnsupportedProducts":false,"availableProductTypes":["HOTEL"],"productTravelPolicy":{"flightTravelPolicy":null,"hotelTravelPolicy":null}}}',
-      },
-      {
-        name: 'tv:userwhoami:expireTs',
-        value: '1779783247373',
-      },
-      {
-        name: 'authGH',
-        value: '1',
-      },
-      {
-        name: 'rulm',
-        value: 'GM',
-      },
-    ],
-  },
-];
+type SessionCookie = {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+};
 
-export async function applyTravelokaSessionState(page: import('@playwright/test').Page) {
-  for (const cookie of travelokaSessionCookies) {
-    await page.context().addCookies([cookie]);
-  }
+type SessionStorageItem = {
+  name: string;
+  value: string;
+};
 
-  for (const origin of travelokaSessionOrigins) {
-    for (const item of origin.localStorage) {
-      await page.evaluate(
-        ({ key, value }) => {
-          localStorage.setItem(key, value);
-        },
-        { key: item.name, value: item.value },
-      );
-    }
+type SessionOrigin = {
+  origin: string;
+  localStorage: SessionStorageItem[];
+  sessionStorage?: SessionStorageItem[];
+};
+
+type SessionState = {
+  cookies: SessionCookie[];
+  origins: SessionOrigin[];
+};
+
+const typedSessionState = sessionState as SessionState;
+
+export const travelokaSessionCookies = typedSessionState.cookies.map((cookie) => ({
+  ...cookie,
+  expires: cookie.expires && cookie.expires > 0 ? cookie.expires : undefined,
+}));
+
+export const travelokaSessionOrigins = typedSessionState.origins;
+
+async function seedOriginStorage(page: Page, originState: SessionOrigin) {
+  // Storage APIs are origin-scoped, so each origin must be opened once before
+  // localStorage/sessionStorage can be restored into the browser context.
+  await page.goto(originState.origin, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(({ localStorageItems, sessionStorageItems }) => {
+    localStorageItems.forEach((item) => {
+      localStorage.setItem(item.name, item.value);
+    });
+
+    sessionStorageItems.forEach((item) => {
+      sessionStorage.setItem(item.name, item.value);
+    });
+  }, {
+    localStorageItems: originState.localStorage,
+    sessionStorageItems: originState.sessionStorage ?? [],
+  });
+}
+
+export async function applyTravelokaSessionState(page: Page) {
+  const context: BrowserContext = page.context();
+  await context.addCookies(travelokaSessionCookies);
+
+  for (const originState of travelokaSessionOrigins) {
+    await seedOriginStorage(page, originState);
   }
 }

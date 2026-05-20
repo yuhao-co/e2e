@@ -34,6 +34,10 @@ const modalSelectors = [
 
 export async function dismissBlockingBottomButton(page: Page) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (page.isClosed()) {
+      return;
+    }
+
     const roundTripPricePopup = page.getByText('View your round-trip price immediately');
     const roundTripPriceConfirm = page
       .locator('button, [role="button"], [tabindex="0"], div, span')
@@ -67,12 +71,18 @@ export async function dismissBlockingBottomButton(page: Page) {
 
       if (withinBottomArea || isInsideModal) {
         await candidate.click({ force: true }).catch(() => {});
-        await page.waitForTimeout(500);
+        if (!page.isClosed()) {
+          await page.waitForTimeout(500);
+        }
         return;
       }
     }
 
     if (attempt < 2) {
+      if (page.isClosed()) {
+        return;
+      }
+
       await page.waitForTimeout(400);
     }
   }
