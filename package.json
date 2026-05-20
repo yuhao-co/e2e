@@ -6,6 +6,7 @@
   "scripts": {
     "mlx:server": "bash scripts/start-mlx-server.sh",
     "mlx:smoke": "bash scripts/mlx-smoke.sh",
+    "generate:weekly-diff-cases": "tsx scripts/generate-cases-from-weekly-diff.ts",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "report": "playwright show-report"

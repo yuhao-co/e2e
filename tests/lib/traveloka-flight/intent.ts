@@ -15,11 +15,11 @@ export type NormalizedFlightIntent = {
 };
 
 const concernRules: Array<[FlightConcern, RegExp]> = [
-  ['transit-filter', /transit|stop|layover/i],
-  ['airline-filter', /airline|carrier/i],
-  ['date-flow', /date|calendar|depart|return/i],
-  ['results-list', /result|list|price|fare|sort/i],
-  ['search-form', /search|origin|destination|passenger|round-trip|one-way/i],
+  ['transit-filter', /\b(transit|stop|layover)\b/i],
+  ['airline-filter', /\b(airline|carrier)\b/i],
+  ['date-flow', /\b(date|calendar|depart|return)\b/i],
+  ['results-list', /\b(result|list|price|fare|sort)\b/i],
+  ['search-form', /\b(search|origin|destination|passenger|round-trip|one-way)\b/i],
 ];
 
 const localeRules: Array<[string, RegExp]> = [

@@ -5,6 +5,8 @@ export type FlightCaseTemplateInput = {
   testName: string;
   url: string;
   userIntent: string;
+  importPrefix?: string;
+  extraImportBlock?: string;
   concerns?: FlightConcern[];
   assertionLines?: string[];
   interactionLines?: string[];
@@ -20,6 +22,7 @@ export function createFlightCaseTemplate(input: FlightCaseTemplateInput): string
     url: input.url,
     userIntent: input.userIntent,
   });
+  const importPrefix = input.importPrefix ?? './';
   const concerns = input.concerns?.length ? input.concerns : normalized.concerns;
   const assertions = input.assertionLines?.length
     ? input.assertionLines
@@ -35,21 +38,21 @@ export function createFlightCaseTemplate(input: FlightCaseTemplateInput): string
   const useSearchWorkflow = normalized.surface === 'search-results';
 
   const importBlock = useSearchWorkflow
-    ? `import { expect, test } from './fixture';
+    ? `import { expect, test } from '${importPrefix}fixture';
 import {
   attachFlightWorkflowPlan,
   createFlightWorkflowPlan,
   openFlightSearchTask,
   restoreFlightSession,
-} from './lib/traveloka-flight/workflow';`
-    : `import { expect, test } from './fixture';
+} from '${importPrefix}lib/traveloka-flight/workflow';`
+    : `import { expect, test } from '${importPrefix}fixture';
 import {
   attachFlightWorkflowPlan,
   createFlightWorkflowPlan,
   openFlightResultsPage,
   restoreFlightSession,
   runFlightWorkflow,
-} from './lib/traveloka-flight/workflow';`;
+} from '${importPrefix}lib/traveloka-flight/workflow';`;
 
   const navigationBlock = useSearchWorkflow
     ? `  await restoreFlightSession(page);
@@ -76,6 +79,8 @@ import {
   ]);`;
 
   return `${importBlock}
+${input.extraImportBlock ? `
+${input.extraImportBlock}` : ''}
 
 const TARGET_URL = '${input.url}';
 

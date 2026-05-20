@@ -24,6 +24,9 @@ export type FlightSourceContext = {
   url: string;
 };
 
+export const DEFAULT_FLIGHT_RESULTS_URL =
+  'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';
+
 // Keep Traveloka's public web repo pinned here so future cases can route from
 // a user URL + intent to the most likely owning source module first.
 export const TRAVELOKA_WWW_REPOSITORY = 'https://github.com/traveloka/www';
@@ -72,12 +75,44 @@ const FLIGHT_RESULTS_SOURCE_HINTS: Record<FlightConcern, SourceHint[]> = {
 };
 
 const concernKeywords: Array<[FlightConcern, RegExp]> = [
-  ['transit-filter', /transit|stop|layover/i],
-  ['airline-filter', /airline|carrier/i],
-  ['date-flow', /date|calendar|depart|return/i],
-  ['results-list', /result|flight list|price|sort/i],
-  ['search-form', /search|origin|destination|passenger|round-trip|one-way/i],
+  ['transit-filter', /\b(transit|stop|layover)\b/i],
+  ['airline-filter', /\b(airline|carrier)\b/i],
+  ['date-flow', /\b(date|calendar|depart|return)\b/i],
+  ['results-list', /\b(result|flight list|price|sort)\b/i],
+  ['search-form', /\b(search|origin|destination|passenger|round-trip|one-way)\b/i],
 ];
+
+const resultsPathIndicators = [
+  /fpr-search-result-v2/i,
+  /flightsearchsidebarfilter/i,
+  /filter/i,
+  /result/i,
+  /fare/i,
+  /price/i,
+  /sort/i,
+  /airline/i,
+  /transit/i,
+  /layover/i,
+  /carrier/i,
+];
+
+export function inferFlightCanonicalUrlFromFiles(filePaths: string[]): string {
+  const normalized = filePaths.map((filePath) => filePath.toLowerCase());
+  const pointsToResultsSurface = normalized.some((filePath) =>
+    resultsPathIndicators.some((pattern) => pattern.test(filePath)),
+  );
+
+  if (pointsToResultsSurface) {
+    return DEFAULT_FLIGHT_RESULTS_URL;
+  }
+
+  return DEFAULT_FLIGHT_RESULTS_URL;
+}
+
+export function buildFlightSourceContextFromFiles(filePaths: string[], userIntent = ''): FlightSourceContext {
+  const url = inferFlightCanonicalUrlFromFiles(filePaths);
+  return buildFlightSourceContext(url, userIntent);
+}
 
 export function inferFlightSurface(url: string): FlightSurface {
   const { pathname } = new URL(url);

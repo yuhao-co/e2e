@@ -52,9 +52,27 @@ export async function discoverFlightFilterOptionsInSection(
 
       if (!header) return [];
 
-      const sectionRoot = header.parentElement;
-      const optionsRoot = sectionRoot?.nextElementSibling as HTMLElement | null;
-      if (!sectionRoot || !optionsRoot) return [];
+      let optionsRoot: HTMLElement | null = null;
+      let current: HTMLElement | null = header;
+
+      while (current && current !== sidebarEl) {
+        const sibling = current.nextElementSibling as HTMLElement | null;
+        if (sibling) {
+          const hasPointerDescendant = Array.from(sibling.querySelectorAll('*')).some((node) => {
+            const el = node as HTMLElement;
+            return window.getComputedStyle(el).cursor === 'pointer';
+          });
+
+          if (hasPointerDescendant) {
+            optionsRoot = sibling;
+            break;
+          }
+        }
+
+        current = current.parentElement;
+      }
+
+      if (!optionsRoot) return [];
 
       const rows = Array.from(optionsRoot.querySelectorAll('*')) as HTMLElement[];
       const results: FlightFilterOption[] = [];

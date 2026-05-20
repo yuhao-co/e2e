@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.traveloka.e2e.weekly-diff-generator</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>/Users/yu.hao/Desktop/task/e2e/scripts/run-weekly-diff-case-generator.sh</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>REPO_ROOT</key>
+    <string>/Users/yu.hao/Desktop/task/e2e</string>
+    <key>TARGET_REPO_PATH</key>
+    <string></string>
+    <key>TARGET_REPO_URL</key>
+    <string>https://github.com/traveloka/www</string>
+    <key>TARGET_REPO_CACHE_DIR</key>
+    <string>.cache/weekly-diff-repos</string>
+    <key>BASE_REF</key>
+    <string>origin/master</string>
+    <key>SINCE_DAYS</key>
+    <string>7</string>
+    <key>OUTPUT_DIR</key>
+    <string>generated-cases/weekly-diff</string>
+  </dict>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key>
+    <integer>5</integer>
+    <key>Hour</key>
+    <integer>21</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/yu.hao/Desktop/task/e2e</string>
+
+  <key>StandardOutPath</key>
+  <string>/Users/yu.hao/Desktop/task/e2e/logs/weekly-diff-generator.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/yu.hao/Desktop/task/e2e/logs/weekly-diff-generator.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-05-20T10:03:20.349Z",
+  "files": [
+    {
+      "status": "M",
+      "filePath": "package-lock.json"
+    },
+    {
+      "status": "M",
+      "filePath": "package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "playwright.config.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-flight/intent.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-flight/locators.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-flight/source-map.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-flight/template.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-flight/workflow.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-page.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-session-cookies.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-session-state.json"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/lib/traveloka-session-state.json.bak"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/web/traveloka-flight-filter.spec.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "tests/web/traveloka-flight-random-filter.spec.ts"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "flight-search-weekly",
+      "domain": "flight-search",
+      "title": "Weekly flight search regression coverage",
+      "action": "modify-existing",
+      "reason": "Changed files look related to flight search or results surfaces. Re-check existing search-results tests before adding new ones.",
+      "changedFiles": [
+        "tests/lib/traveloka-flight/intent.ts",
+        "tests/lib/traveloka-flight/locators.ts",
+        "tests/lib/traveloka-flight/source-map.ts",
+        "tests/lib/traveloka-flight/template.ts",
+        "tests/lib/traveloka-flight/workflow.ts",
+        "tests/web/traveloka-flight-filter.spec.ts",
+        "tests/web/traveloka-flight-random-filter.spec.ts"
+      ],
+      "targetTests": [
+        "tests/web/traveloka-flight-filter.spec.ts",
+        "tests/web/traveloka-flight-random-filter.spec.ts"
+      ],
+      "suggestedUserIntent": "Open the desktop Traveloka flight search results page and validate the weekly regression areas touching filter, intent, locators, map, random. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
+      "targetUrl": "https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY",
+      "concerns": [
+        "results-list",
+        "search-form"
+      ],
+      "sourceHints": [
+        {
+          "sourcePath": "packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx",
+          "reason": "Closest verified results-page component discovered for current desktop flight surface."
+        },
+        {
+          "sourcePath": "packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx",
+          "reason": "Desktop flight results filter sidebar component for the current v2 surface."
+        }
+      ],
+      "draftFileName": "traveloka-flight-weekly-generated.spec.ts",
+      "draftContent": "import { expect, test } from './fixture';\nimport {\n  attachFlightWorkflowPlan,\n  createFlightWorkflowPlan,\n  openFlightSearchTask,\n  restoreFlightSession,\n} from './lib/traveloka-flight/workflow';\n\nconst TARGET_URL = 'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';\n\ntest('Traveloka weekly diff generated flight search regression', async ({ page }, testInfo) => {\n  const workflowPlan = createFlightWorkflowPlan({\n    url: TARGET_URL,\n    userIntent: \"Open the desktop Traveloka flight search results page and validate the weekly regression areas touching filter, intent, locators, map, random. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.\",\n    concerns: [\"results-list\",\"search-form\"],\n  });\n\n  await attachFlightWorkflowPlan(testInfo, workflowPlan);\n\n  await restoreFlightSession(page);\n\n  const { sidebar } = await openFlightSearchTask(page, {\n    url: workflowPlan.input.url,\n    userIntent: \"Open the desktop Traveloka flight search results page and validate the weekly regression areas touching filter, intent, locators, map, random. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.\",\n  });\n\n  void sidebar;\n\n  const currentUrl = new URL(page.url());\n  expect(currentUrl.pathname).toBe(new URL(TARGET_URL).pathname);\n\n  // Weekly diff generated candidate: refine this case against the actual changed source files.\n  // Suggested changed files: [\"tests/lib/traveloka-flight/intent.ts\",\"tests/lib/traveloka-flight/locators.ts\",\"tests/lib/traveloka-flight/source-map.ts\",\"tests/lib/traveloka-flight/template.ts\",\"tests/lib/traveloka-flight/workflow.ts\",\"tests/web/traveloka-flight-filter.spec.ts\",\"tests/web/traveloka-flight-random-filter.spec.ts\"]\n  // Source hint: packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx - Closest verified results-page component discovered for current desktop flight surface.\n  // Source hint: packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx - Desktop flight results filter sidebar component for the current v2 surface.\n});\n"
+    }
+  ]
+}
