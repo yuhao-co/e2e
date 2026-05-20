@@ -1,6 +1,6 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
 
-import { dismissBlockingBottomButton } from '../traveloka-page';
+import { dismissBlockingBottomButton, setupPopupDismissHandlers } from '../traveloka-page';
 import { applyTravelokaSessionState } from '../traveloka-session-cookies';
 import { normalizeFlightUserIntent, type NormalizedFlightIntent } from './intent';
 import {
@@ -118,6 +118,9 @@ export async function restoreFlightSession(page: Page) {
 
 export async function openFlightResultsPage(page: Page, url: string) {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
+  // Register persistent popup handlers as early as possible so any overlay
+  // that fires during or after network-idle is caught automatically.
+  await setupPopupDismissHandlers(page);
   await page.waitForLoadState('networkidle').catch(() => {});
   await dismissBlockingBottomButton(page);
 }

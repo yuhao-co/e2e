@@ -1,5 +1,82 @@
 import { type Page } from '@playwright/test';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Known Traveloka popup catalogue (sourced from live pages)
+//
+// ALL pages
+//   "We've got a deal you can't resist!" login modal
+//     → "Browse as a guest"  (primary)  or  "Close"  (fallback)
+//   "Coupon copied!" toast
+//     → "Close"
+//
+// /flight/fullsearch  and  /flight/fulltwosearch
+//   "New! View your round-trip price immediately" round-trip price modal
+//     → "OK"
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Register persistent locator handlers so any of the above popups are
+ * dismissed automatically whenever Playwright is about to perform an action
+ * and the blocking overlay is in the way.
+ *
+ * Call once per page after navigation.
+ */
+export async function setupPopupDismissHandlers(page: Page): Promise<void> {
+  // 1. Login / "deal" modal (all pages)
+  await page
+    .addLocatorHandler(
+      page.getByText(/We've got a deal you can't resist/i).first(),
+      async () => {
+        if (page.isClosed()) return;
+        const browseAsGuest = page.getByRole('button', { name: /Browse as a guest/i });
+        const close = page.getByRole('button', { name: /^Close$/i });
+        if (await browseAsGuest.isVisible().catch(() => false)) {
+          await browseAsGuest.click({ force: true }).catch(() => {});
+        } else if (await close.isVisible().catch(() => false)) {
+          await close.click({ force: true }).catch(() => {});
+        }
+      },
+    )
+    .catch(() => {});
+
+  // 2. Round-trip price announcement (flight results pages)
+  // Button text observed in the wild: "Ok, Got it"
+  await page
+    .addLocatorHandler(
+      page.getByText(/View your round-trip price immediately/i).first(),
+      async () => {
+        if (page.isClosed()) return;
+        // The button label is "Ok, Got it" — match broadly on "ok" to be resilient
+        const ok = page
+          .locator('button, [role="button"]')
+          .filter({ hasText: /ok/i })
+          .first();
+        if (await ok.isVisible().catch(() => false)) {
+          await ok.click({ force: true }).catch(() => {});
+          await page.waitForTimeout(500);
+        }
+      },
+    )
+    .catch(() => {});
+
+  // 3. "Coupon copied!" toast (all pages)
+  await page
+    .addLocatorHandler(
+      page.getByText(/Coupon copied/i).first(),
+      async () => {
+        if (page.isClosed()) return;
+        const close = page
+          .locator('button, [role="button"]')
+          .filter({ hasText: /^Close$/i })
+          .first();
+        if (await close.isVisible().catch(() => false)) {
+          await close.click({ force: true }).catch(() => {});
+        }
+      },
+    )
+    .catch(() => {});
+}
+
 const bottomCtaLabels = [
   'Continue',
   'Got it',
@@ -38,10 +115,10 @@ export async function dismissBlockingBottomButton(page: Page) {
       return;
     }
 
-    const roundTripPricePopup = page.getByText('View your round-trip price immediately');
+    const roundTripPricePopup = page.getByText(/View your round-trip price immediately/i);
     const roundTripPriceConfirm = page
       .locator('button, [role="button"], [tabindex="0"], div, span')
-      .filter({ hasText: /OK,\s*Got it/i })
+      .filter({ hasText: /ok/i })
       .last();
 
     if (
@@ -49,6 +126,18 @@ export async function dismissBlockingBottomButton(page: Page) {
       await roundTripPriceConfirm.isVisible().catch(() => false)
     ) {
       await roundTripPriceConfirm.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(500);
+      return;
+    }
+
+    // Login / "deal" modal
+    const dealModal = page.getByText(/We've got a deal you can't resist/i);
+    const browseAsGuest = page.getByRole('button', { name: /Browse as a guest/i });
+    if (
+      await dealModal.isVisible().catch(() => false) &&
+      await browseAsGuest.isVisible().catch(() => false)
+    ) {
+      await browseAsGuest.click({ force: true }).catch(() => {});
       await page.waitForTimeout(500);
       return;
     }
