@@ -32,28 +32,35 @@ export function createFlightCaseTemplate(input: FlightCaseTemplateInput): string
     : [
         '// Add page-specific interactions here.',
       ];
+  const useSearchWorkflow = normalized.surface === 'search-results';
 
-  return `import { expect, test } from './fixture';
+  const importBlock = useSearchWorkflow
+    ? `import { expect, test } from './fixture';
+import {
+  attachFlightWorkflowPlan,
+  createFlightWorkflowPlan,
+  openFlightSearchTask,
+  restoreFlightSession,
+} from './lib/traveloka-flight/workflow';`
+    : `import { expect, test } from './fixture';
 import {
   attachFlightWorkflowPlan,
   createFlightWorkflowPlan,
   openFlightResultsPage,
   restoreFlightSession,
   runFlightWorkflow,
-} from './lib/traveloka-flight/workflow';
+} from './lib/traveloka-flight/workflow';`;
 
-const TARGET_URL = '${input.url}';
+  const navigationBlock = useSearchWorkflow
+    ? `  await restoreFlightSession(page);
 
-test('${input.testName}', async ({ page }, testInfo) => {
-  const workflowPlan = createFlightWorkflowPlan({
-    url: TARGET_URL,
+  const { sidebar } = await openFlightSearchTask(page, {
+    url: workflowPlan.input.url,
     userIntent: ${JSON.stringify(normalized.rawUserIntent)},
-    concerns: ${JSON.stringify(concerns)},
   });
 
-  await attachFlightWorkflowPlan(testInfo, workflowPlan);
-
-  await runFlightWorkflow(page, testInfo, [
+  void sidebar;`
+    : `  await runFlightWorkflow(page, testInfo, [
     {
       name: 'apply-session-state',
       action: async () => {
@@ -66,7 +73,22 @@ test('${input.testName}', async ({ page }, testInfo) => {
         await openFlightResultsPage(page, workflowPlan.input.url);
       },
     },
-  ]);
+  ]);`;
+
+  return `${importBlock}
+
+const TARGET_URL = '${input.url}';
+
+test('${input.testName}', async ({ page }, testInfo) => {
+  const workflowPlan = createFlightWorkflowPlan({
+    url: TARGET_URL,
+    userIntent: ${JSON.stringify(normalized.rawUserIntent)},
+    concerns: ${JSON.stringify(concerns)},
+  });
+
+  await attachFlightWorkflowPlan(testInfo, workflowPlan);
+
+${navigationBlock}
 
 ${indent(assertions, 2)}
 

@@ -23,43 +23,17 @@
 
 import { expect, test } from '../fixture';
 import {
-  assertFlightSearchCompleted,
-  openFlightResultsPage,
+  openFlightSearchTask,
   throwIfTravelokaRestricted,
-  isTravelokaRestricted,
 } from '../lib/traveloka-flight/workflow';
 import {
-  getFlightSearchSidebar,
-  travelokaFlightSearchResultsSelectors,
+  discoverFlightFilterOptionsInSection,
+  getTaggedFlightResultCards,
+  tagVisibleFlightResultCards,
 } from '../lib/traveloka-flight/locators';
 
 const RESULTS_URL =
   'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * Convert a transit filter label (e.g. "Direct", "1 Transit", "2+ Transit")
- * into a RegExp that should match the stop-count text on a flight card.
- * Returns null if the label is unrecognised (skip verification for that card).
- */
-function transitLabelToStopPattern(label: string): RegExp | null {
-  const n = label.toLowerCase();
-  if (/direct|non.?stop/.test(n)) return /direct|non.?stop/i;
-  if (/\b1\s*(stop|transit)\b/.test(n)) return /\b1\s*(stop|transit)\b/i;
-  if (/\b2\b.*?(stop|transit)|\+.*(stop|transit)|multiple|more/.test(n))
-    return /\b2\+?\s*(stop|transit)\b/i;
-  return null;
-}
-
-type DiscoveredOption = {
-  /** Human-readable label of this filter option (e.g. "Direct", "Singapore Airlines") */
-  labelText: string;
-  /** Heading text of the enclosing section (e.g. "No. of Transit", "Airline") */
-  sectionHeading: string;
-  /** Value of data-filter-option-idx attribute tagged onto the clickable element */
-  filterOptionIdx: number;
-};
 
 // ─── Test ─────────────────────────────────────────────────────────────────────
 
@@ -82,45 +56,16 @@ test.describe('Traveloka flight search – first airline filter verification', (
         await throwIfTravelokaRestricted(page, stage);
       };
 
-      const waitForSidebarReady = async () => {
-        const sidebar = getFlightSearchSidebar(page);
-
-        const deadline = Date.now() + 30_000;
-        while (Date.now() < deadline) {
-          if (await isTravelokaRestricted(page)) {
-            throw new Error('Traveloka blocked the session before the filter sidebar became available.');
-          }
-
-          if (await sidebar.isVisible().catch(() => false)) {
-            return sidebar;
-          }
-
-          await page.waitForTimeout(500);
-        }
-
-        if (await isTravelokaRestricted(page)) {
-          throw new Error('Traveloka blocked the session before the filter sidebar became available.');
-        }
-
-        if (!(await sidebar.isVisible().catch(() => false))) {
-          throw new Error('Flight results loaded, but the filter sidebar never became visible.');
-        }
-
-        return sidebar;
-      };
-
-      // ── 1. Navigate to results page ─────────────────────────────────────────
       console.log('[step] navigating to flight results page');
-      await openFlightResultsPage(page, RESULTS_URL);
-      await expectNotRestricted('after initial navigation');
-
-      // ── 2. Wait for the search to finish loading ────────────────────────────
-      console.log('[step] waiting for flight search to complete');
-      await assertFlightSearchCompleted(page);
-      await expectNotRestricted('after search completed');
-
-      const sidebar = await waitForSidebarReady();
-      await expectNotRestricted('before filter discovery');
+      const { sidebar } = await openFlightSearchTask(page, {
+        url: RESULTS_URL,
+        userIntent:
+          'Open the desktop Traveloka flight search results page, select the first airline filter option, and verify visible search results match that airline.',
+        waitForSidebar: true,
+      });
+      if (!sidebar) {
+        throw new Error('Flight search sidebar was expected but not returned by the shared workflow.');
+      }
 
       // Extra wait so React can finish rendering the full filter list
       await page.waitForTimeout(2000);
@@ -129,91 +74,14 @@ test.describe('Traveloka flight search – first airline filter verification', (
       if (ssLoaded)
         await testInfo.attach('01-loaded.png', { body: ssLoaded, contentType: 'image/png' });
 
-      // ── 3. Discover all filter options via DOM evaluation ──────────────────
-      // Traveloka uses custom-styled cursor:pointer div wrappers — no real
-      // <input type="checkbox"> exists. Strategy:
-      //   a) Walk every element in the sidebar.
-      //   b) Find the outermost cursor:pointer (no cursor:pointer ANCESTOR within sidebar).
-      //   c) Tag each row with data-filter-option-idx so Playwright can find it.
-      //   d) Derive the section heading by walking up for a preceding non-pointer sibling.
-      const discovered: DiscoveredOption[] = await sidebar.evaluate(
-        (sidebarEl: HTMLElement): DiscoveredOption[] => {
-          const results: Array<{
-            labelText: string;
-            sectionHeading: string;
-            filterOptionIdx: number;
-          }> = [];
-
-          // Skip non-filter action buttons by label text
-          const SKIP_RE =
-            /^\s*(reset|clear(\s*all)?|show\s*(all|more|less|fewer)|see\s*(all|more|less|fewer)|apply|load\s*more|filter|sort(\s*by)?)\s*$/i;
-
-          const all = Array.from(sidebarEl.querySelectorAll('*')) as HTMLElement[];
-          let optIdx = 0;
-
-          for (const el of all) {
-            if (window.getComputedStyle(el).cursor !== 'pointer') continue;
-
-            // Skip links — clicking them may navigate away
-            if (el.tagName === 'A' || el.closest('a')) continue;
-
-            // Only take the *outermost* cursor:pointer (no cursor:pointer ancestor within sidebar)
-            let anc = el.parentElement;
-            let isNested = false;
-            while (anc && anc !== sidebarEl) {
-              if (window.getComputedStyle(anc).cursor === 'pointer') {
-                isNested = true;
-                break;
-              }
-              anc = anc.parentElement;
-            }
-            if (isNested) continue;
-
-            const text = (el.innerText ?? '').replace(/\s+/g, ' ').trim();
-            if (!text || text.length > 120) continue;
-            if (SKIP_RE.test(text)) continue;
-
-            // Tag element so Playwright can locate it by attribute
-            el.setAttribute('data-filter-option-idx', String(optIdx));
-
-            // ---- section heading: walk up and look for preceding non-pointer sibling text ----
-            let sectionHeading = '';
-            let ancestor: Element | null = el.parentElement;
-            let depth = 0;
-            while (ancestor && ancestor !== sidebarEl && depth < 20) {
-              const children = Array.from(ancestor.children);
-              const elPos = children.findIndex((c) => c === el || c.contains(el));
-              for (let i = elPos - 1; i >= 0; i--) {
-                const sibling = children[i] as HTMLElement;
-                const sibText = (sibling.innerText ?? '').trim();
-                if (
-                  sibText &&
-                  sibText.length < 60 &&
-                  window.getComputedStyle(sibling).cursor !== 'pointer'
-                ) {
-                  sectionHeading = sibText;
-                  break;
-                }
-              }
-              if (sectionHeading) break;
-              ancestor = ancestor.parentElement;
-              depth++;
-            }
-
-            results.push({
-              labelText: text.slice(0, 100),
-              sectionHeading: sectionHeading.slice(0, 60),
-              filterOptionIdx: optIdx,
-            });
-            optIdx++;
-          }
-
-          return results;
-        },
+      const discovered = await discoverFlightFilterOptionsInSection(
+        sidebar,
+        'Airline',
+        'data-airline-option-idx',
       );
 
       console.log(
-        `[filter] discovered ${discovered.length} filter checkboxes:`,
+        `[filter] discovered ${discovered.length} airline filter option(s):`,
         JSON.stringify(discovered, null, 2),
       );
       await testInfo.attach('discovered-filters.json', {
@@ -221,17 +89,12 @@ test.describe('Traveloka flight search – first airline filter verification', (
         contentType: 'application/json',
       });
 
-      expect(discovered.length, 'Sidebar must contain at least one filter option').toBeGreaterThan(0);
+      expect(discovered.length, 'Sidebar must contain at least one airline filter option').toBeGreaterThan(0);
 
       const humanPause = (min = 1200, max = 2800) =>
         page.waitForTimeout(min + Math.floor(Math.random() * (max - min))).catch(() => {});
 
-      const airlineOptions = discovered.filter(
-        (opt) => /airline|carrier/i.test(opt.sectionHeading),
-      );
-      expect(airlineOptions.length, 'Sidebar must contain at least one airline filter option').toBeGreaterThan(0);
-
-      const chosen = airlineOptions[0];
+      const chosen = discovered[0];
       console.log(
         `[filter] first airline option → clicking "${chosen.labelText}" (filterOptionIdx=${chosen.filterOptionIdx})`,
       );
@@ -242,14 +105,14 @@ test.describe('Traveloka flight search – first airline filter verification', (
       );
       await humanPause(400, 800);
 
-      const target = sidebar.locator(`[data-filter-option-idx="${chosen.filterOptionIdx}"]`);
+      const target = sidebar.locator(`[data-airline-option-idx="${chosen.filterOptionIdx}"]`);
       await target.scrollIntoViewIfNeeded().catch(() => {});
       await humanPause(300, 600);
       await target.click({ force: true });
       await humanPause(2000, 3500);
       await expectNotRestricted(`after clicking ${chosen.labelText}`);
 
-      const applied = [{ section: chosen.sectionHeading || 'airline', labelText: chosen.labelText }];
+      const applied = [{ section: 'airline', labelText: chosen.labelText }];
 
       console.log('[filter] applied filters:', JSON.stringify(applied, null, 2));
       await testInfo.attach('applied-filters.json', {
@@ -268,46 +131,8 @@ test.describe('Traveloka flight search – first airline filter verification', (
           contentType: 'image/png',
         });
 
-      // ── 5. Locate visible flight result cards ───────────────────────────────
-      const cardCandidateSelectors = [
-        '[data-testid="flight-card"]',
-        '[data-testid*="flight-card"]',
-        '[data-testid*="flight-result"]',
-        '[data-testid*="flight-item"]',
-        '[class*="FlightCard"]',
-        '[class*="flight-card"]',
-      ].join(', ');
-
-      let cards = page.locator(cardCandidateSelectors).filter({ hasNot: sidebar });
-      let cardCount = await cards.count().catch(() => 0);
-      const chooseButton = page.getByRole('button', { name: /choose/i });
-
-      if (cardCount) {
-        const actionableCards = cards.filter({
-          has: chooseButton,
-        });
-        const actionableCount = await actionableCards.count().catch(() => 0);
-        if (actionableCount) {
-          cards = actionableCards;
-          cardCount = actionableCount;
-        }
-      }
-
-      const semanticCards = page
-        .locator('article, section, div')
-        .filter({ has: chooseButton })
-        .filter({ hasText: /Flight Details|Fare & Benefits|Refund|Reschedule/i })
-        .filter({ hasNot: sidebar });
-      const semanticCount = await semanticCards.count().catch(() => 0);
-      if (semanticCount) {
-        cards = semanticCards;
-        cardCount = semanticCount;
-      }
-
-      if (!cardCount) {
-        cards = page.locator('[data-testid*="flight"]').filter({ hasNot: sidebar });
-        cardCount = await cards.count().catch(() => 0);
-      }
+      const cardCount = await tagVisibleFlightResultCards(page);
+      const cards = getTaggedFlightResultCards(page);
 
       console.log(`[verify] ${cardCount} flight result card(s) found`);
 
@@ -360,9 +185,9 @@ test.describe('Traveloka flight search – first airline filter verification', (
                   '',
               ),
             )
-            .then((texts) =>
+            .then((texts: string[]) =>
               texts
-                .map((text) => text.replace(/\s+/g, ' ').trim())
+                .map((text: string) => text.replace(/\s+/g, ' ').trim())
                 .filter(Boolean),
             )
             .catch(() => [] as string[]);

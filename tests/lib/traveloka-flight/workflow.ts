@@ -1,7 +1,8 @@
-import { expect, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 import { dismissBlockingBottomButton, setupPopupDismissHandlers } from '../traveloka-page';
 import { applyTravelokaSessionState } from '../traveloka-session-cookies';
+import { getFlightSearchSidebar } from './locators';
 import { normalizeFlightUserIntent, type NormalizedFlightIntent } from './intent';
 import {
   buildFlightSourceContext,
@@ -25,6 +26,16 @@ export type FlightWorkflowStep = {
   name: string;
   critical?: boolean;
   action: () => Promise<void>;
+};
+
+export type FlightSearchTaskInput = FlightWorkflowInput & {
+  waitForSidebar?: boolean;
+  sidebarTimeoutMs?: number;
+};
+
+export type FlightSearchTaskContext = {
+  workflowPlan: FlightWorkflowPlan;
+  sidebar: Locator | null;
 };
 
 export function createFlightWorkflowPlan(input: FlightWorkflowInput): FlightWorkflowPlan {
@@ -117,7 +128,7 @@ export async function restoreFlightSession(page: Page) {
 }
 
 export async function openFlightResultsPage(page: Page, url: string) {
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     // Register persistent popup handlers as early as possible so any overlay
     // that fires during or after network-idle is caught automatically.
@@ -129,8 +140,10 @@ export async function openFlightResultsPage(page: Page, url: string) {
       return;
     }
 
-    if (attempt === 1) {
-      console.log('[step] initial navigation blocked, retrying once');
+    if (attempt < 3) {
+      console.log(`[step] initial navigation blocked, retrying (${attempt + 1}/3)`);
+      await page.goto('about:blank', { waitUntil: 'load' }).catch(() => {});
+      await page.waitForTimeout(1200 * attempt).catch(() => {});
     }
   }
 }
@@ -150,6 +163,64 @@ export async function throwIfTravelokaRestricted(page: Page, stage: string) {
   if (await isTravelokaRestricted(page)) {
     throw new Error(`Traveloka blocked the session at ${stage}.`);
   }
+}
+
+export function isFlightSearchResultsPlan(plan: FlightWorkflowPlan) {
+  if (plan.normalizedIntent.surface === 'search-results') {
+    return true;
+  }
+
+  return plan.normalizedIntent.concerns.some((concern) =>
+    ['results-list', 'transit-filter', 'airline-filter', 'date-flow'].includes(concern),
+  );
+}
+
+export async function waitForFlightSearchSidebar(page: Page, timeoutMs = 30_000) {
+  const sidebar = getFlightSearchSidebar(page);
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (await isTravelokaRestricted(page)) {
+      throw new Error('Traveloka blocked the session before the filter sidebar became available.');
+    }
+
+    if (await sidebar.isVisible().catch(() => false)) {
+      return sidebar;
+    }
+
+    await page.waitForTimeout(500);
+  }
+
+  if (await isTravelokaRestricted(page)) {
+    throw new Error('Traveloka blocked the session before the filter sidebar became available.');
+  }
+
+  throw new Error('Flight results loaded, but the filter sidebar never became visible.');
+}
+
+export async function openFlightSearchTask(
+  page: Page,
+  input: FlightSearchTaskInput,
+): Promise<FlightSearchTaskContext> {
+  const workflowPlan = createFlightWorkflowPlan(input);
+  await openFlightResultsPage(page, workflowPlan.input.url);
+
+  let sidebar: Locator | null = null;
+  if (isFlightSearchResultsPlan(workflowPlan)) {
+    await assertFlightSearchCompleted(page);
+    await throwIfTravelokaRestricted(page, 'after search completed');
+
+    const shouldWaitForSidebar =
+      input.waitForSidebar ??
+      workflowPlan.normalizedIntent.concerns.some((concern) => concern.endsWith('filter'));
+
+    if (shouldWaitForSidebar) {
+      sidebar = await waitForFlightSearchSidebar(page, input.sidebarTimeoutMs);
+      await throwIfTravelokaRestricted(page, 'before filter discovery');
+    }
+  }
+
+  return { workflowPlan, sidebar };
 }
 
 export async function assertFlightSearchCompleted(page: Page) {

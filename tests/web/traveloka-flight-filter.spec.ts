@@ -2,12 +2,10 @@ import { expect, test } from '../fixture';
 import {
   clickTransitCountFilter,
   expectTransitCountFilterChecked,
-  getFlightSearchSidebar,
   getTransitCountSection,
   travelokaFlightSearchResultsSelectors,
 } from '../lib/traveloka-flight/locators';
-import { assertFlightSearchCompleted } from '../lib/traveloka-flight/workflow';
-import { setupPopupDismissHandlers } from '../lib/traveloka-page';
+import { openFlightSearchTask } from '../lib/traveloka-flight/workflow';
 
 const RESULTS_URL =
   'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';
@@ -27,25 +25,20 @@ test.describe('Traveloka flight search filters', () => {
   test('applies the 1-transit filter for the default SIN to JKTA round-trip search', async ({
     page,
   }, testInfo) => {
-    // --- Step 1: go directly to results page, no session restore ---
     console.log('[step] goto results page');
-    await page.goto(RESULTS_URL);
+    const { sidebar } = await openFlightSearchTask(page, {
+      url: RESULTS_URL,
+      userIntent:
+        'Open the desktop Traveloka flight search results page and apply the 1-transit filter in the sidebar.',
+      waitForSidebar: true,
+    });
     console.log('[step] page loaded, url=', page.url());
-
-    // Register persistent popup handlers immediately after navigation
-    await setupPopupDismissHandlers(page);
-    await page.waitForLoadState('networkidle').catch(() => {});
 
     // Attach a screenshot so we can see what landed
     const afterGoto = await page.screenshot({ fullPage: false }).catch(() => null);
     if (afterGoto) {
       await testInfo.attach('after-goto.png', { body: afterGoto, contentType: 'image/png' });
     }
-
-    // --- Step 2: wait for flight search to finish loading ---
-    console.log('[step] waiting for search to complete');
-    await assertFlightSearchCompleted(page);
-    console.log('[step] search completed');
 
     // Attach screenshot after search completes
     const afterSearch = await page.screenshot({ fullPage: false }).catch(() => null);
@@ -57,11 +50,12 @@ test.describe('Traveloka flight search filters', () => {
     await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.filter)).toBeVisible({ timeout: 15000 });
 
     // --- Step 3: apply 1-transit filter ---
-    const sidebarFilter = getFlightSearchSidebar(page);
     const noOfTransitSection = getTransitCountSection(page);
 
     console.log('[step] waiting for sidebar filter to be visible');
-    await expect(sidebarFilter).toBeVisible({ timeout: 30000 });
+    if (!sidebar) {
+      throw new Error('Flight search sidebar was expected but not returned by the shared workflow.');
+    }
     await expect(noOfTransitSection).toBeVisible({ timeout: 30000 });
     console.log('[step] clicking 1-transit filter');
     await clickTransitCountFilter(page, 'ONE_TRANSIT');
