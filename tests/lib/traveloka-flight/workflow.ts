@@ -117,17 +117,37 @@ export async function restoreFlightSession(page: Page) {
 }
 
 export async function openFlightResultsPage(page: Page, url: string) {
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
-  // Register persistent popup handlers as early as possible so any overlay
-  // that fires during or after network-idle is caught automatically.
-  await setupPopupDismissHandlers(page);
-  await page.waitForLoadState('networkidle').catch(() => {});
-  await dismissBlockingBottomButton(page);
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    // Register persistent popup handlers as early as possible so any overlay
+    // that fires during or after network-idle is caught automatically.
+    await setupPopupDismissHandlers(page);
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await dismissBlockingBottomButton(page);
+
+    if (!(await isTravelokaRestricted(page))) {
+      return;
+    }
+
+    if (attempt === 1) {
+      console.log('[step] initial navigation blocked, retrying once');
+    }
+  }
 }
 
-async function throwIfRestricted(page: Page, stage: string) {
-  const restricted = page.getByText(/Access is temporarily restricted/i);
-  if (await restricted.isVisible().catch(() => false)) {
+export async function isTravelokaRestricted(page: Page) {
+  for (const frame of page.frames()) {
+    const restricted = frame.getByText(/Access is temporarily restricted/i).first();
+    if (await restricted.isVisible().catch(() => false)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export async function throwIfTravelokaRestricted(page: Page, stage: string) {
+  if (await isTravelokaRestricted(page)) {
     throw new Error(`Traveloka blocked the session at ${stage}.`);
   }
 }
@@ -137,7 +157,7 @@ export async function assertFlightSearchCompleted(page: Page) {
 
   try {
     await expect(progress).not.toBeVisible({ timeout: 30000 });
-    await throwIfRestricted(page, 'initial search completion');
+    await throwIfTravelokaRestricted(page, 'initial search completion');
     console.log('[step] search completed');
     return;
   } catch (error) {
@@ -151,7 +171,7 @@ export async function assertFlightSearchCompleted(page: Page) {
     }
 
     try {
-      await throwIfRestricted(page, 'initial search loading');
+      await throwIfTravelokaRestricted(page, 'initial search loading');
     } catch (restrictedError) {
       console.log('[step] search blocked by restricted page');
       throw restrictedError;
@@ -165,10 +185,10 @@ export async function assertFlightSearchCompleted(page: Page) {
     await setupPopupDismissHandlers(page).catch(() => {});
     await page.waitForLoadState('networkidle').catch(() => {});
     await dismissBlockingBottomButton(page);
-    await throwIfRestricted(page, 'post-reload');
+    await throwIfTravelokaRestricted(page, 'post-reload');
 
     await expect(progress).not.toBeVisible({ timeout: 30000 });
-    await throwIfRestricted(page, 'post-reload search completion');
+    await throwIfTravelokaRestricted(page, 'post-reload search completion');
     console.log('[step] search completed after reload');
   }
 }

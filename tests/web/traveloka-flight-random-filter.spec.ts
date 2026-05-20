@@ -25,6 +25,8 @@ import { expect, test } from '../fixture';
 import {
   assertFlightSearchCompleted,
   openFlightResultsPage,
+  throwIfTravelokaRestricted,
+  isTravelokaRestricted,
 } from '../lib/traveloka-flight/workflow';
 import {
   getFlightSearchSidebar,
@@ -77,27 +79,30 @@ test.describe('Traveloka flight search – first airline filter verification', (
     'selects the first airline filter option and verifies visible flight results match it',
     async ({ page }, testInfo) => {
       const expectNotRestricted = async (stage: string) => {
-        const restricted = page.getByText(/access is temporarily restricted/i);
-        await expect(
-          restricted,
-          `Traveloka blocked the page at stage: ${stage}`,
-        ).not.toBeVisible({ timeout: 2_000 });
+        await throwIfTravelokaRestricted(page, stage);
       };
 
       const waitForSidebarReady = async () => {
-        const restricted = page.getByText(/access is temporarily restricted/i);
         const sidebar = getFlightSearchSidebar(page);
 
-        const result = await Promise.race([
-          expect(sidebar).toBeVisible({ timeout: 30_000 }).then(() => 'sidebar'),
-          expect(restricted).toBeVisible({ timeout: 30_000 }).then(() => 'restricted'),
-        ]).catch(() => 'timeout');
+        const deadline = Date.now() + 30_000;
+        while (Date.now() < deadline) {
+          if (await isTravelokaRestricted(page)) {
+            throw new Error('Traveloka blocked the session before the filter sidebar became available.');
+          }
 
-        if (result === 'restricted') {
+          if (await sidebar.isVisible().catch(() => false)) {
+            return sidebar;
+          }
+
+          await page.waitForTimeout(500);
+        }
+
+        if (await isTravelokaRestricted(page)) {
           throw new Error('Traveloka blocked the session before the filter sidebar became available.');
         }
 
-        if (result !== 'sidebar') {
+        if (!(await sidebar.isVisible().catch(() => false))) {
           throw new Error('Flight results loaded, but the filter sidebar never became visible.');
         }
 
@@ -275,6 +280,29 @@ test.describe('Traveloka flight search – first airline filter verification', (
 
       let cards = page.locator(cardCandidateSelectors).filter({ hasNot: sidebar });
       let cardCount = await cards.count().catch(() => 0);
+      const chooseButton = page.getByRole('button', { name: /choose/i });
+
+      if (cardCount) {
+        const actionableCards = cards.filter({
+          has: chooseButton,
+        });
+        const actionableCount = await actionableCards.count().catch(() => 0);
+        if (actionableCount) {
+          cards = actionableCards;
+          cardCount = actionableCount;
+        }
+      }
+
+      const semanticCards = page
+        .locator('article, section, div')
+        .filter({ has: chooseButton })
+        .filter({ hasText: /Flight Details|Fare & Benefits|Refund|Reschedule/i })
+        .filter({ hasNot: sidebar });
+      const semanticCount = await semanticCards.count().catch(() => 0);
+      if (semanticCount) {
+        cards = semanticCards;
+        cardCount = semanticCount;
+      }
 
       if (!cardCount) {
         cards = page.locator('[data-testid*="flight"]').filter({ hasNot: sidebar });
@@ -332,13 +360,19 @@ test.describe('Traveloka flight search – first airline filter verification', (
                   '',
               ),
             )
+            .then((texts) =>
+              texts
+                .map((text) => text.replace(/\s+/g, ' ').trim())
+                .filter(Boolean),
+            )
             .catch(() => [] as string[]);
 
-          // Fallback: full card text
+          const cardText = await card
+            .innerText()
+            .catch(async () => (await card.textContent().catch(() => '')) ?? '');
+
           const combined = (
-            airlineTexts.length
-              ? airlineTexts.join(' ')
-              : (await card.textContent().catch(() => '')) ?? ''
+            airlineTexts.length ? `${airlineTexts.join(' ')} ${cardText}` : cardText
           ).toLowerCase();
 
           const matched = combined.includes(airlineName.toLowerCase());
