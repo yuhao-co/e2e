@@ -21,6 +21,7 @@ export const travelokaFlightSearchResultsSelectors = {
     flights: /Your Flights/i,
     filter: /^Filter:/i,
     transit: /No\.\s*of\s*Transit|Transit/i,
+    airline: /^Airline$/i,
   },
   chooseButton: /^Choose$/i,
   selectTicketTypeTitle: /Select ticket type/i,
@@ -250,6 +251,10 @@ export function getTransitCountSection(page: Page): Locator {
   return getFlightFilterSection(page, travelokaFlightSearchResultsSelectors.headings.transit);
 }
 
+export function getAirlineSection(page: Page): Locator {
+  return getFlightFilterSection(page, travelokaFlightSearchResultsSelectors.headings.airline);
+}
+
 export function getTransitCountCheckbox(page: Page, option: TransitCountOption): Locator {
   const section = getTransitCountSection(page);
   const config = transitOptionConfig[option];
@@ -292,4 +297,79 @@ export async function expectTransitCountFilterChecked(page: Page, option: Transi
   if (await checkbox.count().catch(() => 0)) {
     await expect(checkbox).toBeChecked();
   }
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function findTaggedAirlineFilterRow(
+  page: Page,
+  airlineName: string,
+  tagAttribute = 'data-flight-airline-option-idx',
+) {
+  const sidebar = getFlightSearchSidebar(page);
+  const options = await discoverFlightFilterOptionsInSection(sidebar, 'Airline', tagAttribute);
+  const matchedOption = options.find((option) =>
+    new RegExp(escapeRegExp(airlineName), 'i').test(option.labelText),
+  );
+
+  if (!matchedOption) {
+    throw new Error(`Could not rediscover airline filter row for "${airlineName}".`);
+  }
+
+  const row = sidebar.locator(`[${tagAttribute}="${matchedOption.filterOptionIdx}"]`).first();
+  await row.scrollIntoViewIfNeeded().catch(() => {});
+  return row;
+}
+
+export async function clickFirstAirlineFilter(
+  page: Page,
+  tagAttribute = 'data-flight-airline-option-idx',
+) {
+  const sidebar = getFlightSearchSidebar(page);
+  const options = await discoverFlightFilterOptionsInSection(sidebar, 'Airline', tagAttribute);
+  const option = options[0];
+
+  if (!option) {
+    throw new Error('No airline filter option could be discovered in the desktop sidebar.');
+  }
+
+  const row = sidebar.locator(`[${tagAttribute}="${option.filterOptionIdx}"]`).first();
+  const airlineName =
+    (await row.locator('img[alt]').first().getAttribute('alt').catch(() => null)) ??
+    option.labelText.replace(/\s*S\$.*$/i, '').trim();
+  await row.scrollIntoViewIfNeeded().catch(() => {});
+  const checkbox = row.locator('input[type="checkbox"]').first();
+  if (await checkbox.isVisible().catch(() => false)) {
+    await checkbox.click({ force: true });
+  } else {
+    await row.click({ force: true });
+  }
+
+  return airlineName;
+}
+
+export async function expectAirlineFilterChecked(page: Page, airlineName: string) {
+  const row = await findTaggedAirlineFilterRow(page, airlineName);
+
+  const checkbox = row.locator('input[type="checkbox"]').first();
+  if (await checkbox.count().catch(() => 0)) {
+    await expect(checkbox).toBeChecked();
+    return;
+  }
+
+  await expect(row).toHaveAttribute('aria-checked', /true/i);
+}
+
+export async function expectAirlineFilterUnchecked(page: Page, airlineName: string) {
+  const row = await findTaggedAirlineFilterRow(page, airlineName);
+
+  const checkbox = row.locator('input[type="checkbox"]').first();
+  if (await checkbox.count().catch(() => 0)) {
+    await expect(checkbox).not.toBeChecked();
+    return;
+  }
+
+  await expect(row).not.toHaveAttribute('aria-checked', /true/i);
 }

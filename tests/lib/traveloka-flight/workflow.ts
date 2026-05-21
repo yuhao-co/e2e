@@ -74,6 +74,12 @@ export type SearchResultsToBookingInput = {
   sidebarTimeoutMs?: number;
 };
 
+export type ResultsPageSearchChangeInput = {
+  routeHints: string[];
+  destinationQuery: string;
+  destinationOption: RegExp;
+};
+
 export function createFlightWorkflowPlan(input: FlightWorkflowInput): FlightWorkflowPlan {
   const normalizedIntent = normalizeFlightUserIntent({
     url: input.url,
@@ -249,6 +255,61 @@ export async function openBookingPageFromSearchResults(
   ]);
 
   await page.waitForLoadState('domcontentloaded').catch(() => {});
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await dismissBlockingBottomButton(page);
+}
+
+function getResultsPageSearchTrigger(page: Page) {
+  return page
+    .locator('[data-testid="flight-search-header"] [data-id="IcSystemSearch"]')
+    .first();
+}
+
+function getResultsPageSearchModal(page: Page) {
+  return page
+    .locator('[data-testid="flight-search-form"], [data-testid="desktop-default-form"]')
+    .last();
+}
+
+function getResultsPageChangeSearchButton(page: Page) {
+  return page.getByRole('button', { name: /Change search/i }).first();
+}
+
+export async function changeResultsPageRouteViaModal(
+  page: Page,
+  input: ResultsPageSearchChangeInput,
+) {
+  const searchTrigger = getResultsPageSearchTrigger(page);
+  await expect(searchTrigger).toBeVisible({ timeout: 10000 });
+  await searchTrigger.click({ force: true });
+
+  const modal = getResultsPageSearchModal(page);
+  const modalVisibleAfterTrigger = await modal.isVisible().catch(() => false);
+  if (!modalVisibleAfterTrigger) {
+    const changeSearchButton = getResultsPageChangeSearchButton(page);
+    await expect(changeSearchButton).toBeVisible({ timeout: 10000 });
+    await changeSearchButton.click({ force: true });
+  }
+
+  await expect(modal).toBeVisible({ timeout: 15000 });
+
+  const destinationInput = modal.locator('input[placeholder="Destination"]').first();
+  await expect(destinationInput).toBeVisible({ timeout: 10000 });
+  await destinationInput.click({ force: true });
+  await destinationInput.fill(input.destinationQuery);
+
+  const destinationOption = page.getByText(input.destinationOption).first();
+  await expect(destinationOption).toBeVisible({ timeout: 15000 });
+  await destinationOption.click({ force: true });
+
+  const searchButton = modal.getByRole('button', { name: travelokaFlightHomeSelectors.searchButton }).first();
+  await expect(searchButton).toBeVisible({ timeout: 10000 });
+
+  await Promise.all([
+    page.waitForLoadState('domcontentloaded').catch(() => {}),
+    searchButton.click(),
+  ]);
+
   await page.waitForLoadState('networkidle').catch(() => {});
   await dismissBlockingBottomButton(page);
 }
