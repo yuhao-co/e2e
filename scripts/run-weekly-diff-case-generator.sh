@@ -2,8 +2,8 @@
 set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-/Users/yu.hao/Desktop/task/e2e}"
-TARGET_REPO_PATH="${TARGET_REPO_PATH:-$REPO_ROOT}"
-TARGET_REPO_URL="${TARGET_REPO_URL:-}"
+TARGET_REPO_PATH="${TARGET_REPO_PATH:-}"
+TARGET_REPO_URL="${TARGET_REPO_URL:-https://github.com/traveloka/www}"
 TARGET_REPO_CACHE_DIR="${TARGET_REPO_CACHE_DIR:-.cache/weekly-diff-repos}"
 FOCUS_DOMAIN="${FOCUS_DOMAIN:-flight-search}"
 EMIT_WEB_SPEC="${EMIT_WEB_SPEC:-0}"

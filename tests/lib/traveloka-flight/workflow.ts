@@ -2,7 +2,21 @@ import { expect, type Locator, type Page, type TestInfo } from '@playwright/test
 
 import { dismissBlockingBottomButton, setupPopupDismissHandlers } from '../traveloka-page';
 import { applyTravelokaSessionState } from '../traveloka-session-cookies';
-import { getFlightSearchSidebar } from './locators';
+import {
+  getBookingContactEmailConfirmationField,
+  getBookingContactEmailField,
+  getBookingContactMismatchError,
+  getBookingContactRequiredOrConfirmationError,
+  getBookingContactSaveOrContinueButton,
+  getFlightHomeSearchButton,
+  getFlightHomeSearchWidget,
+  getFlightResultChooseButton,
+  getFlightSearchSidebar,
+  getSelectTicketTypeDialog,
+  getTicketTypeSelectButton,
+  travelokaFlightHomeSelectors,
+  travelokaFlightSearchResultsSelectors,
+} from './locators';
 import { normalizeFlightUserIntent, type NormalizedFlightIntent } from './intent';
 import {
   buildFlightSourceContext,
@@ -36,6 +50,22 @@ export type FlightSearchTaskInput = FlightWorkflowInput & {
 export type FlightSearchTaskContext = {
   workflowPlan: FlightWorkflowPlan;
   sidebar: Locator | null;
+};
+
+export type MetasearchBookingContactInput = {
+  url: string;
+  viewport?: { width: number; height: number };
+};
+
+export type MetasearchEmailConfirmationInput = {
+  email: string;
+  mismatchedEmail?: string;
+};
+
+export type SearchResultsToBookingInput = {
+  url: string;
+  viewport?: { width: number; height: number };
+  sidebarTimeoutMs?: number;
 };
 
 export function createFlightWorkflowPlan(input: FlightWorkflowInput): FlightWorkflowPlan {
@@ -146,6 +176,125 @@ export async function openFlightResultsPage(page: Page, url: string) {
       await page.waitForTimeout(1200 * attempt).catch(() => {});
     }
   }
+}
+
+export async function openFlightHomePage(page: Page, url = 'https://www.traveloka.com/en-en/flight') {
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await setupPopupDismissHandlers(page).catch(() => {});
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await dismissBlockingBottomButton(page);
+}
+
+export async function waitForFlightHomeSearchWidget(page: Page, timeoutMs = 30_000) {
+  const searchWidget = getFlightHomeSearchWidget(page);
+  const searchButton = getFlightHomeSearchButton(page);
+
+  await expect(page).toHaveURL(travelokaFlightHomeSelectors.pageUrlPattern, {
+    timeout: timeoutMs,
+  });
+  await expect(searchWidget).toBeVisible({ timeout: timeoutMs });
+  await expect(searchButton).toBeVisible({ timeout: timeoutMs });
+
+  return searchWidget;
+}
+
+export async function openMetasearchBookingContactPage(
+  page: Page,
+  input: MetasearchBookingContactInput,
+) {
+  if (input.viewport) {
+    await page.setViewportSize(input.viewport);
+  }
+
+  await page.goto(input.url, { waitUntil: 'domcontentloaded' });
+  await setupPopupDismissHandlers(page).catch(() => {});
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await dismissBlockingBottomButton(page);
+}
+
+export async function openBookingPageFromSearchResults(
+  page: Page,
+  input: SearchResultsToBookingInput,
+) {
+  // Canonical desktop booking chain discovered from the recorded flow:
+  // fullsearch results -> Choose -> Select ticket type drawer -> Select -> booking.
+  if (input.viewport) {
+    await page.setViewportSize(input.viewport);
+  }
+
+  await openFlightResultsPage(page, input.url);
+  await assertFlightSearchCompleted(page);
+  await waitForFlightSearchSidebar(page, input.sidebarTimeoutMs);
+  await dismissBlockingBottomButton(page);
+
+  const chooseButton = getFlightResultChooseButton(page);
+  await expect(chooseButton, 'Expected at least one visible Choose button on the flight results page.').toBeVisible({ timeout: 20000 });
+  await chooseButton.click();
+
+  const ticketTypeDialog = getSelectTicketTypeDialog(page);
+  await expect(ticketTypeDialog, 'Expected the Select ticket type drawer to appear after clicking Choose.').toBeVisible({ timeout: 20000 });
+
+  const selectButton = getTicketTypeSelectButton(page);
+  await expect(selectButton, 'Expected at least one Select button inside the ticket type drawer.').toBeVisible({ timeout: 20000 });
+
+  await Promise.all([
+    page.waitForURL(travelokaFlightSearchResultsSelectors.bookingUrlPattern, { timeout: 30000 }),
+    selectButton.click(),
+  ]);
+
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await dismissBlockingBottomButton(page);
+}
+
+export async function assertMetasearchEmailConfirmationBehavior(
+  page: Page,
+  input: MetasearchEmailConfirmationInput,
+) {
+  const emailField = getBookingContactEmailField(page);
+  const confirmationField = getBookingContactEmailConfirmationField(page);
+  const saveOrContinueButton = getBookingContactSaveOrContinueButton(page);
+  const mismatchedEmail = input.mismatchedEmail ?? 'qa-metasearch-typo@example.com';
+
+  await expect(
+    emailField,
+    'Primary email field should be present on booking contact form.',
+  ).toBeVisible({ timeout: 15000 });
+
+  const hasConfirmationField = await confirmationField.isVisible().catch(() => false);
+  if (!hasConfirmationField) {
+    throw new Error(
+      [
+        'Booking contact page loaded, but no email confirmation field was rendered.',
+        'This usually means the current booking token is not in the eligible direct-metasearch cohort, or the affiliateId / AB-test gate is off for this route.',
+        `Current URL: ${page.url()}`,
+      ].join(' '),
+    );
+  }
+
+  await expect(saveOrContinueButton).toBeVisible({ timeout: 15000 });
+
+  await emailField.fill(input.email);
+  await confirmationField.fill('');
+  await saveOrContinueButton.click();
+
+  await expect(
+    getBookingContactRequiredOrConfirmationError(page),
+    'Empty confirmation field should surface a required validation error.',
+  ).toBeVisible({ timeout: 15000 });
+
+  await confirmationField.fill(mismatchedEmail);
+  await saveOrContinueButton.click();
+
+  await expect(
+    getBookingContactMismatchError(page),
+    'Mismatched confirmation email should surface a mismatch validation error.',
+  ).toBeVisible({ timeout: 15000 });
+
+  await confirmationField.fill(input.email);
+  await saveOrContinueButton.click();
+
+  await expect(getBookingContactMismatchError(page)).toBeHidden({ timeout: 10000 }).catch(() => {});
 }
 
 export async function isTravelokaRestricted(page: Page) {

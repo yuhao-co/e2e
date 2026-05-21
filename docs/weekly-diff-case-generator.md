@@ -1,17 +1,17 @@
 # Weekly Diff Case Generator
 
-This project can generate candidate test updates from the last 7 days of `origin/master` changes in a local git repository.
+This project can generate candidate test updates from the last 7 days of `origin/master` changes in the target product repository.
 
-The generator is local-first:
+The generator is remote-www-first for this repo:
 
 - it runs on your macOS machine;
-- it can inspect this repository or another local product repository;
-- it can also clone a remote repository URL into a local cache automatically;
-- it writes markdown and JSON summaries plus optional draft spec files under `generated-cases/weekly-diff/`.
+- by default the wrapper inspects `https://github.com/traveloka/www` through a local cache;
+- it can still inspect another local product repository if you explicitly pass `TARGET_REPO_PATH` or `--repo-path`;
+- it writes a structured summary plus optional draft spec files under `generated-cases/weekly-diff/`.
 
 For flight-related changes, the generator now also derives a canonical workflow target URL plus source hints from the changed file paths. This keeps weekly draft cases aligned with the shared Traveloka flight workflow instead of relying on an ad hoc prompt only.
 
-Current working mode for this repo is flight-first. The local wrapper script defaults to `--focus-domain flight-search`, so weekly runs ignore i18n, android, and generic candidates unless you explicitly override that behavior.
+Current working mode for this repo is flight-first. The local wrapper script defaults to `https://github.com/traveloka/www` plus `--focus-domain flight-search`, so weekly runs inspect Traveloka WWW flight changes unless you explicitly override that behavior.
 
 If you also want the generator to materialize an executable Playwright case under `tests/web`, set `EMIT_WEB_SPEC=1` in the wrapper environment or pass `--emit-web-spec` to the script directly.
 
@@ -20,6 +20,7 @@ If you also want the generator to materialize an executable Playwright case unde
 From the e2e repository root:
 
 ```bash
+TARGET_REPO_PATH=/path/to/your/local/product/repo \
 npm run generate:weekly-diff-cases -- \
   --repo-path /path/to/your/local/product/repo \
   --focus-domain flight-search \
@@ -57,8 +58,7 @@ npm run generate:weekly-diff-cases -- \
 
 For each weekly run, the script creates a timestamped folder containing:
 
-- `summary.md`: human-readable review report
-- `summary.json`: structured candidate data
+- `summary.json`: structured candidate data, including a compact markdown summary string
 - draft spec files for supported domains, if available
 - optional executable web spec files under `tests/web/` when `--emit-web-spec` is enabled
 
@@ -78,7 +78,7 @@ The first-pass behavior is intentionally conservative:
 ## Scheduling on macOS
 
 1. Copy `docs/launchd/com.traveloka.e2e.weekly-diff-generator.plist` to `~/Library/LaunchAgents/`.
-2. Either replace `TARGET_REPO_PATH` with the local application repository you want to inspect, or set `TARGET_REPO_URL=https://github.com/traveloka/www` and keep a local cache directory.
+2. By default the wrapper already targets `TARGET_REPO_URL=https://github.com/traveloka/www`. Only replace it with `TARGET_REPO_PATH` when you intentionally want another local product repository.
 3. Leave `FOCUS_DOMAIN=flight-search` as-is if you only want flight weekly generation. Clear or replace it only when you intentionally want another domain.
 4. Adjust the time if needed. The template is set to Friday 21:00 local time.
 5. Load the job:

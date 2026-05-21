@@ -22,10 +22,82 @@ export const travelokaFlightSearchResultsSelectors = {
     filter: /^Filter:/i,
     transit: /No\.\s*of\s*Transit|Transit/i,
   },
+  chooseButton: /^Choose$/i,
+  selectTicketTypeTitle: /Select ticket type/i,
+  selectButton: /^Select$/i,
+  bookingUrlPattern: /\/flight\/booking\?/i,
+};
+
+export const travelokaFlightHomeSelectors = {
+  pageUrlPattern: /\/flight(?:$|\?)/i,
+  searchWidget: 'form, [data-testid*="flight" i], section, div',
+  fromFieldLabel: /^From$/i,
+  toFieldLabel: /^To$/i,
+  departureDateLabel: /^Departure date$/i,
+  returnDateLabel: /^Return Date$|^Return date$/i,
+  searchButton: /Search Flights/i,
+};
+
+export const travelokaFlightBookingContactSelectors = {
+  emailField: 'input[type="email"]',
+  emailConfirmationField: [
+    'input[name*="confirmation" i]',
+    'input[id*="confirmation" i]',
+    'input[aria-label*="confirm" i]',
+    'input[placeholder*="confirm" i]',
+  ].join(', '),
+  saveOrContinueButton: /save|continue|next|book/i,
+  requiredOrConfirmationError: /required|confirmation/i,
+  mismatchError: /match|same email|confirmation/i,
 };
 
 export function getFlightSearchSidebar(page: Page): Locator {
   return page.locator(travelokaFlightSearchResultsSelectors.sidebar);
+}
+
+export function getFlightResultChooseButton(page: Page): Locator {
+  return page.getByRole('button', { name: travelokaFlightSearchResultsSelectors.chooseButton }).first();
+}
+
+export function getSelectTicketTypeDialog(page: Page): Locator {
+  return page.getByText(travelokaFlightSearchResultsSelectors.selectTicketTypeTitle).first();
+}
+
+export function getTicketTypeSelectButton(page: Page): Locator {
+  return page.getByRole('button', { name: travelokaFlightSearchResultsSelectors.selectButton }).first();
+}
+
+export function getFlightHomeSearchButton(page: Page): Locator {
+  return page.getByRole('button', { name: travelokaFlightHomeSelectors.searchButton }).first();
+}
+
+export function getFlightHomeSearchWidget(page: Page): Locator {
+  return page
+    .locator(travelokaFlightHomeSelectors.searchWidget)
+    .filter({ has: getFlightHomeSearchButton(page) })
+    .first();
+}
+
+export function getBookingContactEmailField(page: Page): Locator {
+  return page.locator(travelokaFlightBookingContactSelectors.emailField).first();
+}
+
+export function getBookingContactEmailConfirmationField(page: Page): Locator {
+  return page.locator(travelokaFlightBookingContactSelectors.emailConfirmationField).first();
+}
+
+export function getBookingContactSaveOrContinueButton(page: Page): Locator {
+  return page.getByRole('button', {
+    name: travelokaFlightBookingContactSelectors.saveOrContinueButton,
+  }).first();
+}
+
+export function getBookingContactRequiredOrConfirmationError(page: Page): Locator {
+  return page.getByText(travelokaFlightBookingContactSelectors.requiredOrConfirmationError).first();
+}
+
+export function getBookingContactMismatchError(page: Page): Locator {
+  return page.getByText(travelokaFlightBookingContactSelectors.mismatchError).first();
 }
 
 export async function discoverFlightFilterOptionsInSection(

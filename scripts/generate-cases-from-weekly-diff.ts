@@ -46,6 +46,15 @@ type Candidate = {
     sourcePath: string;
     reason: string;
   }>;
+  sourceCommits?: Array<{
+    sha: string;
+    author: string;
+    subject: string;
+    prNumber?: number;
+    prTitle?: string;
+    prSummary?: string;
+    prTestPlan?: string;
+  }>;
   retrievedEvidence?: Array<{
     kind: 'existing-test' | 'shared-helper';
     path: string;
@@ -82,6 +91,42 @@ type FlightGeneratedPlan = {
   extraImportBlock: string;
   assertionLines: string[];
   interactionLines: string[];
+};
+
+type FlightConcernFocus = {
+  concerns: FlightConcern[];
+  focusedFiles: string[];
+  topScore: number;
+  secondScore: number;
+  isDominant: boolean;
+};
+
+type RelevantCommit = {
+  sha: string;
+  author: string;
+  subject: string;
+  score: number;
+  matchedFiles: string[];
+  index: number;
+  prNumber?: number;
+  prTitle?: string;
+  prSummary?: string;
+  prTestPlan?: string;
+};
+
+type SourceCommitMetadata = {
+  sha: string;
+  author: string;
+  subject: string;
+  prNumber?: number;
+  prTitle?: string;
+  prSummary?: string;
+  prTestPlan?: string;
+};
+
+type GitHubRepoIdentity = {
+  owner: string;
+  name: string;
 };
 
 const DEFAULT_OUTPUT_DIR = 'generated-cases/weekly-diff';
@@ -241,6 +286,189 @@ function getChangedFiles(repoPath: string, startCommit: string, endRef: string):
     );
 }
 
+function collectRelevantCommits(
+  repoPath: string,
+  startCommit: string,
+  endRef: string,
+  changedFiles: string[],
+  limit = 3,
+  fileWeights?: Map<string, number>,
+) {
+  if (!changedFiles.length) {
+    return [];
+  }
+
+  const output = git(repoPath, [
+    'log',
+    '--format=__COMMIT__%n%h%x09%an%x09%s',
+    '--name-only',
+    `${startCommit}..${endRef}`,
+    '--',
+    ...changedFiles,
+  ]);
+
+  if (!output) {
+    return [];
+  }
+
+  const commits: RelevantCommit[] = output
+    .split('__COMMIT__\n')
+    .map((block: string) => block.trim())
+    .filter(Boolean)
+    .map((block: string, index: number) => {
+      const [header = '', ...fileLines] = block.split('\n');
+      const [sha = '', author = '', ...subjectParts] = header.split('\t');
+      const matchedFiles = uniqueStrings(fileLines.map((line) => line.trim()).filter(Boolean));
+      const score = matchedFiles.reduce(
+        (sum, filePath) => sum + (fileWeights?.get(filePath) ?? 1),
+        0,
+      );
+
+      return {
+        sha,
+        author,
+        subject: subjectParts.join('\t'),
+        score,
+        matchedFiles,
+        index,
+      };
+    })
+    .filter(
+      (commit: { sha: string; author: string; subject: string }) =>
+        commit.sha && commit.author && commit.subject,
+    )
+    .sort(
+      (left: RelevantCommit, right: RelevantCommit) =>
+        right.score - left.score ||
+        right.matchedFiles.length - left.matchedFiles.length ||
+        left.index - right.index,
+    );
+
+  const topScore = commits[0]?.score ?? 0;
+
+  return commits
+    .filter((commit: RelevantCommit) => commit.score >= Math.max(2, Math.ceil(topScore * 0.5)))
+    .slice(0, limit)
+    .map(({ sha, author, subject }: RelevantCommit) => ({ sha, author, subject }));
+}
+
+function parseGitHubRepoIdentity(remoteUrl: string): GitHubRepoIdentity | null {
+  const normalized = remoteUrl.trim();
+  const match = normalized.match(/github\.com[/:]([^/]+)\/([^/.]+)(?:\.git)?$/i);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    owner: match[1],
+    name: match[2],
+  };
+}
+
+function getGitHubRepoIdentity(repoPath: string): GitHubRepoIdentity | null {
+  try {
+    const remoteUrl = git(repoPath, ['remote', 'get-url', 'origin']);
+    return parseGitHubRepoIdentity(remoteUrl);
+  } catch {
+    return null;
+  }
+}
+
+function extractPullRequestNumber(subject: string) {
+  const match = subject.match(/\(#(\d+)\)\s*$/);
+  return match ? Number(match[1]) : null;
+}
+
+function normalizePullRequestSection(text: string | undefined) {
+  if (!text) {
+    return null;
+  }
+
+  const normalized = text.replace(/\r/g, '').replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const placeholderPatterns = [
+    /describe the big picture of your changes here/i,
+    /describe how the reviewer should test your changes/i,
+    /if it's covered using automated tests say so/i,
+  ];
+
+  if (placeholderPatterns.some((pattern) => pattern.test(normalized))) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function extractPullRequestBodySection(body: string, heading: string) {
+  const normalizedBody = body.replace(/\r/g, '');
+  const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`^##\\s+${escapedHeading}\\s*\\n([\\s\\S]*?)(?=^##\\s+|$)`, 'im');
+  const match = normalizedBody.match(pattern);
+  return normalizePullRequestSection(match?.[1]);
+}
+
+function fetchPullRequestContext(repoPath: string, prNumber: number) {
+  const repoIdentity = getGitHubRepoIdentity(repoPath);
+  const githubToken = process.env.GITHUB_TOKEN;
+
+  if (!repoIdentity || !githubToken) {
+    return null;
+  }
+
+  try {
+    const response = execFileSync(
+      'curl',
+      [
+        '-fsSL',
+        '-H', `Authorization: Bearer ${githubToken}`,
+        '-H', 'Accept: application/vnd.github+json',
+        `https://api.github.com/repos/${repoIdentity.owner}/${repoIdentity.name}/pulls/${prNumber}`,
+      ],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+    const payload = JSON.parse(response) as { title?: string; body?: string };
+    const body = payload.body ?? '';
+    const summary = extractPullRequestBodySection(body, 'Summary');
+    const testPlan = extractPullRequestBodySection(body, 'Test Plan');
+
+    return {
+      title: payload.title?.trim() || null,
+      summary,
+      testPlan,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function enrichRelevantCommitsWithPullRequestContext(
+  repoPath: string,
+  commits: Array<{ sha: string; author: string; subject: string }>,
+): SourceCommitMetadata[] {
+  return commits.map((commit) => {
+    const prNumber = extractPullRequestNumber(commit.subject);
+    if (!prNumber) {
+      return commit;
+    }
+
+    const pullRequestContext = fetchPullRequestContext(repoPath, prNumber);
+    if (!pullRequestContext) {
+      return { ...commit, prNumber };
+    }
+
+    return {
+      ...commit,
+      prNumber,
+      prTitle: pullRequestContext.title ?? undefined,
+      prSummary: pullRequestContext.summary ?? undefined,
+      prTestPlan: pullRequestContext.testPlan ?? undefined,
+    };
+  });
+}
+
 function readWorkspaceFile(workspaceRoot: string, relativePath: string) {
   const absolutePath = path.join(workspaceRoot, relativePath);
   if (!fs.existsSync(absolutePath)) {
@@ -356,6 +584,7 @@ function buildFlightGeneratedPlan(
   concerns: FlightConcern[],
   retrievedEvidence: NonNullable<Candidate['retrievedEvidence']>,
   changedFiles: string[],
+  fileWeights?: Map<string, number>,
 ): FlightGeneratedPlan {
   const importLines = new Set<string>();
   const assertionLines = [
@@ -370,9 +599,20 @@ function buildFlightGeneratedPlan(
   const targetTests = retrievedEvidence
     .filter((evidence) => evidence.kind === 'existing-test')
     .map((evidence) => evidence.path);
+  const highlightedChangedFiles = changedFiles
+    .slice()
+    .sort((left, right) => {
+      const scoreDiff = (fileWeights?.get(right) ?? 0) - (fileWeights?.get(left) ?? 0);
+      return scoreDiff || left.localeCompare(right);
+    })
+    .slice(0, 10);
+  const omittedChangedFileCount = Math.max(0, changedFiles.length - highlightedChangedFiles.length);
   const evidenceCommentLines = [
     '// Weekly diff generated candidate: refine this case against the actual changed source files.',
-    '// Suggested changed files: ' + JSON.stringify(changedFiles),
+    `// Suggested changed files (top ${highlightedChangedFiles.length}${omittedChangedFileCount ? ` of ${changedFiles.length}` : ''}): ${JSON.stringify(highlightedChangedFiles)}`,
+    ...(omittedChangedFileCount
+      ? [`// Omitted additional changed files: ${omittedChangedFileCount}`]
+      : []),
     ...retrievedEvidence.map(
       (evidence) => `// Retrieved ${evidence.kind}: ${evidence.path} - ${evidence.summary}`,
     ),
@@ -537,19 +777,221 @@ function hasStrongFlightEvidence(changedFiles: string[]) {
   });
 }
 
-function buildFlightCandidate(changedFiles: string[], workspaceRoot: string): Candidate {
-  const keywords = summarizeKeywords(changedFiles);
-  const phrase = keywords.length ? keywords.join(', ') : 'search results and filters';
+function isSearchResultsOwnedFile(filePath: string) {
+  const value = filePath.toLowerCase();
+  return (
+    /^packages\/flight\/fpr-search-result(?:-v2|-components|-ssr-components)?\//.test(value) ||
+    /^packages\/flight\/app-desktop\/(?:__tests__\/)?pages\/flight\/(fullsearch|fulltwosearch)/.test(value) ||
+    /^packages\/flight\/app-mobile\/(?:__tests__\/)?pages\/flight\/(fullsearch|fulltwosearch)/.test(value) ||
+    /^packages\/flight\/app-mobile\/(?:__tests__\/)?pages\/tiket-pesawat\//.test(value) ||
+    /^packages\/flight\/fpr-seo-search-form\//.test(value) ||
+    /^packages\/flight\/fpr-servo-components\/searchform\//.test(value) ||
+    /^packages\/flight\/fpr-servo\/usecases\/useservosearchsubmit/.test(value)
+  );
+}
+
+function scoreFlightConcernFile(filePath: string) {
+  const value = filePath.toLowerCase();
+  const scores: Partial<Record<FlightConcern, number>> = {};
+  const add = (concern: FlightConcern, score: number) => {
+    scores[concern] = (scores[concern] ?? 0) + score;
+  };
+
+  if (!isSearchResultsOwnedFile(filePath)) {
+    return scores;
+  }
+
+  if (/fpr-search-result|search-result-ssr-components|flightsearchsidebarfilter|filtermenu|recentfilters|searchfilter|sortpersistence|filterpersistence|fullsearch|fulltwosearch/.test(value)) {
+    add('results-list', 3);
+  }
+
+  if (/airline|filterairlineoption|carrier/.test(value)) {
+    add('airline-filter', 5);
+    add('results-list', 1);
+  }
+
+  if (/transit|layover|stop/.test(value)) {
+    add('transit-filter', 5);
+    add('results-list', 1);
+  }
+
+  if (/searchform|usedoflightsearch|useservosearchsubmit|servo-components\/searchform|fullsearch|fulltwosearch/.test(value)) {
+    add('search-form', 4);
+  }
+
+  if (/date|calendar|depart|return/.test(value)) {
+    add('date-flow', 4);
+    add('results-list', 1);
+  }
+
+  return scores;
+}
+
+function selectDominantFlightConcernFocus(changedFiles: string[]): FlightConcernFocus {
+  const buckets = new Map<FlightConcern, { score: number; files: string[] }>();
+  const concerns: FlightConcern[] = [
+    'results-list',
+    'search-form',
+    'transit-filter',
+    'airline-filter',
+    'date-flow',
+  ];
+
+  for (const concern of concerns) {
+    buckets.set(concern, { score: 0, files: [] });
+  }
+
+  for (const filePath of changedFiles) {
+    const scores = scoreFlightConcernFile(filePath);
+    for (const concern of concerns) {
+      const score = scores[concern] ?? 0;
+      if (!score) continue;
+      const bucket = buckets.get(concern);
+      if (!bucket) continue;
+      bucket.score += score;
+      bucket.files.push(filePath);
+    }
+  }
+
+  const ranked = concerns
+    .map((concern) => ({ concern, ...(buckets.get(concern) ?? { score: 0, files: [] }) }))
+    .filter((bucket) => bucket.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  if (!ranked.length) {
+    return {
+      concerns: ['results-list', 'search-form'],
+      focusedFiles: changedFiles,
+      topScore: 0,
+      secondScore: 0,
+      isDominant: false,
+    };
+  }
+
+  const topScore = ranked[0].score;
+  const secondScore = ranked[1]?.score ?? 0;
+  const selectedConcerns = ranked
+    .filter((bucket) => bucket.score >= Math.max(4, Math.ceil(topScore * 0.6)))
+    .map((bucket) => bucket.concern);
+
+  if (
+    selectedConcerns.some((concern) => ['airline-filter', 'transit-filter', 'date-flow'].includes(concern)) &&
+    !selectedConcerns.includes('results-list')
+  ) {
+    selectedConcerns.unshift('results-list');
+  }
+
+  const focusedFiles = uniqueStrings(
+    selectedConcerns.flatMap((concern) => buckets.get(concern)?.files ?? []),
+  );
+
+  const isDominant = secondScore === 0 ? topScore >= 6 : topScore >= Math.max(6, Math.ceil(secondScore * 1.35));
+
+  return {
+    concerns: selectedConcerns.length ? selectedConcerns : ['results-list', 'search-form'],
+    focusedFiles: focusedFiles.length ? focusedFiles : changedFiles,
+    topScore,
+    secondScore,
+    isDominant,
+  };
+}
+
+function describeFlightConcernPurpose(concern: FlightConcern) {
+  switch (concern) {
+    case 'results-list':
+      return 'results-list behavior';
+    case 'search-form':
+      return 'search landing behavior';
+    case 'transit-filter':
+      return 'transit filter behavior';
+    case 'airline-filter':
+      return 'airline filter behavior';
+    case 'date-flow':
+      return 'date-related result flow';
+  }
+}
+
+function describeFlightIntentPhrase(concerns: FlightConcern[]) {
+  const concernKey = concerns.join('|');
+
+  switch (concernKey) {
+    case 'results-list':
+      return 'results-list rendering and sidebar filter readiness';
+    case 'search-form':
+      return 'search landing and result-page readiness';
+    case 'results-list|search-form':
+    case 'search-form|results-list':
+      return 'search landing and results-list readiness';
+    case 'results-list|airline-filter':
+    case 'airline-filter|results-list':
+      return 'airline filter behavior and visible result-card consistency';
+    case 'results-list|transit-filter':
+    case 'transit-filter|results-list':
+      return 'transit filter behavior and visible result-card consistency';
+    case 'results-list|date-flow':
+    case 'date-flow|results-list':
+      return 'date-related result refresh and results-list readiness';
+    default:
+      return concerns.map(describeFlightConcernPurpose).join(', ');
+  }
+}
+
+function buildFlightFocusFileWeights(focusedFiles: string[]) {
+  const weights = new Map<string, number>();
+
+  for (const filePath of focusedFiles) {
+    const value = filePath.toLowerCase();
+    let score = 1;
+
+    if (/fpr-search-result-v2|fpr-search-result-ssr-components/.test(value)) {
+      score += 5;
+    }
+    if (/flightsearchsidebarfilter|filtermenu|filterairlineoption|transitfiltermenu|filtersection/.test(value)) {
+      score += 4;
+    }
+    if (/fpr-search-result-components/.test(value)) {
+      score += 3;
+    }
+    if (/fullsearch|fulltwosearch/.test(value)) {
+      score += 1;
+    }
+
+    weights.set(filePath, score);
+  }
+
+  return weights;
+}
+
+function buildFlightCandidate(
+  changedFiles: string[],
+  workspaceRoot: string,
+  repoPath: string,
+  startCommit: string,
+  endRef: string,
+): Candidate {
+  const focus = selectDominantFlightConcernFocus(changedFiles);
+  const phrase = describeFlightIntentPhrase(focus.concerns);
+  const fileWeights = buildFlightFocusFileWeights(focus.focusedFiles);
   const suggestedUserIntent =
-    `Open the desktop Traveloka flight search results page and validate the weekly regression areas touching ${phrase}. ` +
+    `Open the desktop Traveloka flight search results page and validate the weekly regression areas covering ${phrase}. ` +
     'Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.';
-  const sourceContext = buildFlightSourceContextFromFiles(changedFiles, suggestedUserIntent);
+  const sourceContext = buildFlightSourceContextFromFiles(focus.focusedFiles, suggestedUserIntent);
+  sourceContext.concerns = focus.concerns;
   const hasStrongEvidence = hasStrongFlightEvidence(changedFiles);
-  const retrievedEvidence = collectFlightRetrievedEvidence(workspaceRoot, sourceContext.concerns) ?? [];
+  const canEmitRunnableSpec = hasStrongEvidence && focus.isDominant;
+  const sourceCommits = collectRelevantCommits(repoPath, startCommit, endRef, focus.focusedFiles, 3, fileWeights);
+  const enrichedSourceCommits = enrichRelevantCommitsWithPullRequestContext(repoPath, sourceCommits);
+  const sourceSummaryLines = uniqueStrings(
+    enrichedSourceCommits
+      .flatMap((commit: SourceCommitMetadata) => [commit.prSummary, commit.prTestPlan])
+      .filter((value): value is string => Boolean(value)),
+  ).slice(0, 2);
+  const retrievedEvidence = collectFlightRetrievedEvidence(workspaceRoot, focus.concerns) ?? [];
   const generatedPlan = buildFlightGeneratedPlan(
-    sourceContext.concerns as FlightConcern[],
+    focus.concerns,
     retrievedEvidence,
-    changedFiles,
+    focus.focusedFiles,
+    fileWeights,
   );
   const webSpecFileName = 'traveloka-flight-weekly-diff-generated.spec.ts';
   const webSpecContent = createFlightCaseTemplate({
@@ -559,6 +1001,11 @@ function buildFlightCandidate(changedFiles: string[], workspaceRoot: string): Ca
     importPrefix: '../',
     extraImportBlock: generatedPlan.extraImportBlock,
     concerns: generatedPlan.concerns,
+    sourceCommitLines: enrichedSourceCommits.map(
+      (commit: { sha: string; author: string; subject: string }) =>
+        `${commit.sha} by ${commit.author}: ${commit.subject}`,
+    ),
+    sourceSummaryLines,
     assertionLines: generatedPlan.assertionLines,
     interactionLines: [
       ...generatedPlan.interactionLines,
@@ -571,20 +1018,26 @@ function buildFlightCandidate(changedFiles: string[], workspaceRoot: string): Ca
   return {
     id: 'flight-search-weekly',
     domain: 'flight-search',
-    confidence: hasStrongEvidence ? 'high' : 'low',
+    confidence: canEmitRunnableSpec ? 'high' : hasStrongEvidence ? 'medium' : 'low',
     title: 'Weekly flight search regression coverage',
     action: 'modify-existing',
     reason:
-      hasStrongEvidence
-        ? 'Changed files map to verified flight search/result surfaces. Re-check existing search-results tests before adding new ones.'
+      canEmitRunnableSpec
+        ? 'Changed files map to a dominant verified flight concern cluster. Re-check the nearest search-results tests before adding new ones.'
+        : hasStrongEvidence
+        ? 'Changed files map to flight search surfaces, but the dominant concern cluster is not clear enough for a safe runnable weekly spec. Keep this candidate as summary-first manual review.'
         : 'Changed files weakly suggest flight behavior, but direct source evidence is missing. Keep this as manual-review guidance instead of auto-emitting a runnable spec.',
-    solution: hasStrongEvidence
+    solution: canEmitRunnableSpec
       ? 'Prioritize existing flight regression tests, then emit a runnable weekly spec because verified flight source evidence exists.'
+      : hasStrongEvidence
+      ? 'Keep the weekly output as summary-only until one concern cluster clearly dominates the www flight diff.'
       : 'Limit this candidate to a draft and require manual review before creating a runnable spec.',
-    howToSolve: hasStrongEvidence
+    howToSolve: canEmitRunnableSpec
       ? 'Use packages/flight and traveloka-flight helper evidence to route the candidate, then emit the generated web spec through the shared workflow template.'
+      : hasStrongEvidence
+      ? 'Keep the target URL and routed source hints, but suppress web spec emission when the strongest concern does not clearly separate from the next cluster.'
       : 'Keep the target URL and source hints, but suppress web spec emission until a packages/flight or traveloka-flight source file is present in the diff.',
-    changedFiles,
+    changedFiles: focus.focusedFiles,
     targetTests: generatedPlan.targetTests.length
       ? generatedPlan.targetTests
       : [
@@ -593,11 +1046,12 @@ function buildFlightCandidate(changedFiles: string[], workspaceRoot: string): Ca
         ],
     suggestedUserIntent,
     targetUrl: sourceContext.url,
-    concerns: sourceContext.concerns,
+    concerns: focus.concerns,
     sourceHints: sourceContext.sourceHints,
+    sourceCommits: enrichedSourceCommits,
     retrievedEvidence,
-    webSpecFileName: hasStrongEvidence ? webSpecFileName : undefined,
-    webSpecContent: hasStrongEvidence ? webSpecContent : undefined,
+    webSpecFileName: canEmitRunnableSpec ? webSpecFileName : undefined,
+    webSpecContent: canEmitRunnableSpec ? webSpecContent : undefined,
   };
 }
 
@@ -665,7 +1119,13 @@ function buildGenericWebCandidate(changedFiles: string[]): Candidate {
   };
 }
 
-function routeCandidates(files: DiffFile[], workspaceRoot: string): Candidate[] {
+function routeCandidates(
+  files: DiffFile[],
+  workspaceRoot: string,
+  repoPath: string,
+  startCommit: string,
+  endRef: string,
+): Candidate[] {
   const buckets: Record<'flight-search' | 'web-i18n' | 'android-home' | 'generic-web', DomainBucket> = {
     'flight-search': { files: [], score: 0, strongHits: 0 },
     'web-i18n': { files: [], score: 0, strongHits: 0 },
@@ -693,7 +1153,15 @@ function routeCandidates(files: DiffFile[], workspaceRoot: string): Candidate[] 
 
   const candidates: Candidate[] = [];
   if (buckets['flight-search'].strongHits > 0) {
-    candidates.push(buildFlightCandidate(buckets['flight-search'].files, workspaceRoot));
+    candidates.push(
+      buildFlightCandidate(
+        buckets['flight-search'].files,
+        workspaceRoot,
+        repoPath,
+        startCommit,
+        endRef,
+      ),
+    );
   }
   if (buckets['web-i18n'].files.length && buckets['web-i18n'].score >= 3) {
     candidates.push(buildI18nCandidate(buckets['web-i18n'].files));
@@ -757,6 +1225,9 @@ function renderMarkdown(args: Args, startCommit: string, endRef: string, files: 
     }
     if (candidate.concerns?.length) {
       lines.push(`- Workflow concerns: ${candidate.concerns.join(', ')}`);
+    }
+    if (candidate.sourceCommits?.length) {
+      lines.push(`- Source commits: ${candidate.sourceCommits.map((commit) => `${commit.sha} by ${commit.author}`).join('; ')}`);
     }
     if (candidate.targetTests.length) {
       lines.push(`- Existing tests to review: ${candidate.targetTests.join(', ')}`);
@@ -827,6 +1298,11 @@ function writeArtifacts(rootDir: string, markdown: string, candidates: Candidate
   }
 }
 
+function resetOutputDir(rootDir: string) {
+  fs.rmSync(rootDir, { recursive: true, force: true });
+  fs.mkdirSync(rootDir, { recursive: true });
+}
+
 function writeWebSpecs(workspaceRoot: string, candidates: Candidate[]) {
   const webDir = path.join(workspaceRoot, 'tests/web');
 
@@ -851,7 +1327,13 @@ function main() {
 
   const startCommit = getStartCommit(repoPath, args.baseRef, args.sinceDays);
   const changedFiles = getChangedFiles(repoPath, startCommit, args.baseRef);
-  const routedCandidates = routeCandidates(changedFiles, process.cwd());
+  const routedCandidates = routeCandidates(
+    changedFiles,
+    process.cwd(),
+    repoPath,
+    startCommit,
+    args.baseRef,
+  );
   const candidates = filterCandidatesByFocus(routedCandidates, args.focusDomain);
   const resolvedArgs = { ...args, repoPath };
   const markdown = renderMarkdown(resolvedArgs, startCommit, args.baseRef, changedFiles, candidates);
@@ -863,8 +1345,7 @@ function main() {
     candidates,
   );
 
-  const timestamp = new Date().toISOString().replace(/[:]/g, '-');
-  const outputRoot = path.resolve(process.cwd(), args.outputDir, timestamp);
+  const outputRoot = path.resolve(process.cwd(), args.outputDir, 'latest');
 
   if (args.dryRun) {
     console.log(consoleSummary);
@@ -873,6 +1354,7 @@ function main() {
     return;
   }
 
+  resetOutputDir(outputRoot);
   writeArtifacts(outputRoot, markdown, candidates, changedFiles);
   if (args.emitWebSpec) {
     writeWebSpecs(process.cwd(), candidates);
