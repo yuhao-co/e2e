@@ -23,6 +23,9 @@ Do not start from class names, deep DOM chains, or `nth()/last()/first()` unless
 - For sidebar filters, locate the section first, then the row, then the checkbox. Do not click a global checkbox selector.
 - For repeated UI like cards, drawers, and modals, require one visible match before clicking. If there are multiple matches, fail with candidate summaries instead of silently picking the first one.
 - Known desktop form anchors already trained for this repo: `airport-autocomplete-container-departure`, `oneway-roundtrip-tab`, `item_nimbus-autocomplete-airport-cgk`, `passengers-container`, `passengers-stepper-minus-adult`, `passengers-stepper-plus-adult`, `passengers-row-child`, `passengers-row-infant`, `departure-date-input`, `date-cell-2026-6-1`, `IcTransportSeatClass`, `desktop-default-search-button`.
+- For desktop results filters, start from the runtime sidebar contract `flight-search-sidebar-filter`, then prefer explicit runtime filter ids such as `airline-filter-collapsible-list`, `airline-filter-collapsible-item-<label>`, `view_filter_departureTime`, `view_filter_arrivalTime`, `view_filter_flightDuration`, and `flight-general-filter-option-<title>` before any text fallback.
+
+See `docs/traveloka-flight-filter-structure.md` for the current sidebar filter component tree and runtime id patterns derived from `traveloka/www`.
 
 ## Preferred patterns
 

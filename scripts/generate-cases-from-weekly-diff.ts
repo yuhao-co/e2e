@@ -575,6 +575,14 @@ function collectFlightRetrievedEvidence(
   const specs: Array<{ path: string; reason: string }> = [];
   const helpers: Array<{ path: string; reason: string }> = [
     {
+      path: 'docs/traveloka-flight-locator-guideline.md',
+      reason: 'Shared Traveloka flight locator policy that generated cases should follow.',
+    },
+    {
+      path: 'docs/traveloka-flight-filter-structure.md',
+      reason: 'Shared Traveloka desktop filter structure and runtime id taxonomy for generated cases.',
+    },
+    {
       path: 'tests/lib/traveloka-flight/workflow.ts',
       reason: 'Shared flight search workflow used by generated flight specs.',
     },
