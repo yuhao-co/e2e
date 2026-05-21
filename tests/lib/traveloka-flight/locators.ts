@@ -6,6 +6,11 @@ export type FlightFilterOption = {
   filterOptionIdx: number;
 };
 
+type UniqueVisibleLocatorOptions = {
+  timeoutMs?: number;
+  sampleSize?: number;
+};
+
 const transitOptionConfig: Record<
   TransitCountOption,
   { label: RegExp; fallbackIndex: number }
@@ -99,6 +104,62 @@ export function getBookingContactRequiredOrConfirmationError(page: Page): Locato
 
 export function getBookingContactMismatchError(page: Page): Locator {
   return page.getByText(travelokaFlightBookingContactSelectors.mismatchError).first();
+}
+
+async function summarizeLocatorMatches(locator: Locator, sampleSize: number) {
+  return locator.evaluateAll(
+    (elements: Element[], limit: number) =>
+      elements.slice(0, limit).map((element) => {
+        const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+        const html = element instanceof HTMLElement ? element.outerHTML.slice(0, 160) : '';
+        return {
+          text,
+          html,
+        };
+      }),
+    sampleSize,
+  ).catch(() => [] as Array<{ text: string; html: string }>);
+}
+
+export async function requireUniqueVisibleLocator(
+  locator: Locator,
+  description: string,
+  options?: UniqueVisibleLocatorOptions,
+) {
+  const timeoutMs = options?.timeoutMs ?? 10_000;
+  const sampleSize = options?.sampleSize ?? 3;
+  const visible = locator.filter({ visible: true });
+
+  try {
+    await expect(visible).toHaveCount(1, { timeout: timeoutMs });
+  } catch {
+    const [allCount, visibleCount, samples] = await Promise.all([
+      locator.count().catch(() => 0),
+      visible.count().catch(() => 0),
+      summarizeLocatorMatches(visible, sampleSize),
+    ]);
+
+    const sampleSummary = samples.length
+      ? samples
+          .map((sample, index) => {
+            const text = sample.text || '(no text)';
+            const html = sample.html || '(no html snippet)';
+            return `${index + 1}. text="${text}" html="${html}"`;
+          })
+          .join(' | ')
+      : 'No visible candidates could be summarized.';
+
+    throw new Error(
+      [
+        `Expected exactly one visible match for ${description}.`,
+        `Total matches: ${allCount}.`,
+        `Visible matches: ${visibleCount}.`,
+        `Visible candidate samples: ${sampleSummary}`,
+      ].join(' '),
+    );
+  }
+
+  return visible.first();
 }
 
 export async function discoverFlightFilterOptionsInSection(

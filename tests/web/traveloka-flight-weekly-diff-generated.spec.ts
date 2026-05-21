@@ -190,6 +190,7 @@ test.describe('Traveloka weekly diff generated desktop carry-over coverage', () 
       routeHints: ['Singapore', 'Jakarta'],
       destinationQuery: 'Denpasar',
       destinationOption: /Denpasar|DPS/i,
+      destinationAirportCode: 'dps',
     });
 
     await assertFlightSearchCompleted(page);

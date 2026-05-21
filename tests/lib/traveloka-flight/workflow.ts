@@ -11,6 +11,7 @@ import {
   getFlightHomeSearchButton,
   getFlightHomeSearchWidget,
   getFlightResultChooseButton,
+  requireUniqueVisibleLocator,
   getFlightSearchSidebar,
   getSelectTicketTypeDialog,
   getTicketTypeSelectButton,
@@ -78,6 +79,7 @@ export type ResultsPageSearchChangeInput = {
   routeHints: string[];
   destinationQuery: string;
   destinationOption: RegExp;
+  destinationAirportCode?: string;
 };
 
 export function createFlightWorkflowPlan(input: FlightWorkflowInput): FlightWorkflowPlan {
@@ -260,50 +262,109 @@ export async function openBookingPageFromSearchResults(
 }
 
 function getResultsPageSearchTrigger(page: Page) {
-  return page
-    .locator('[data-testid="flight-search-header"] [data-id="IcSystemSearch"]')
-    .first();
+  return page.locator('[data-testid="flight-search-header"] [data-id="IcSystemSearch"]');
 }
 
 function getResultsPageSearchModal(page: Page) {
-  return page
-    .locator('[data-testid="flight-search-form"], [data-testid="desktop-default-form"]')
-    .last();
+  return page.locator('[data-testid="desktop-default-form"]');
+}
+
+function getResultsPageSearchModalFallback(page: Page) {
+  return page.locator('[data-testid="flight-search-form"]');
+}
+
+function getResultsPageFormControlByDataId(modal: Locator, dataId: string) {
+  return modal.locator(`[data-id="${dataId}"]`);
+}
+
+function getResultsPageReturnDateContainer(modal: Locator) {
+  return getResultsPageFormControlByDataId(modal, 'return-date-container');
+}
+
+function getResultsPageDepartureDateContainer(modal: Locator) {
+  return getResultsPageFormControlByDataId(modal, 'departure-date-container');
+}
+
+function getResultsPageAirportAutocompleteItems(page: Page) {
+  return page.locator('[data-testid^="item_nimbus-autocomplete-airport-"]');
+}
+
+function getResultsPageAirportAutocompleteItem(
+  page: Page,
+  destinationOption: RegExp,
+  airportCode?: string,
+) {
+  if (airportCode) {
+    return page.locator(
+      `[data-testid="item_nimbus-autocomplete-airport-${airportCode.toLowerCase()}"]`,
+    );
+  }
+
+  return getResultsPageAirportAutocompleteItems(page).filter({ hasText: destinationOption });
 }
 
 function getResultsPageChangeSearchButton(page: Page) {
-  return page.getByRole('button', { name: /Change search/i }).first();
+  return page.getByRole('button', { name: /Change search/i });
 }
 
 export async function changeResultsPageRouteViaModal(
   page: Page,
   input: ResultsPageSearchChangeInput,
 ) {
-  const searchTrigger = getResultsPageSearchTrigger(page);
-  await expect(searchTrigger).toBeVisible({ timeout: 10000 });
+  const searchTrigger = await requireUniqueVisibleLocator(
+    getResultsPageSearchTrigger(page),
+    'desktop results-page search trigger',
+  );
   await searchTrigger.click({ force: true });
 
-  const modal = getResultsPageSearchModal(page);
+  let modal = getResultsPageSearchModal(page);
   const modalVisibleAfterTrigger = await modal.isVisible().catch(() => false);
   if (!modalVisibleAfterTrigger) {
-    const changeSearchButton = getResultsPageChangeSearchButton(page);
-    await expect(changeSearchButton).toBeVisible({ timeout: 10000 });
+    const changeSearchButton = await requireUniqueVisibleLocator(
+      getResultsPageChangeSearchButton(page),
+      'desktop results-page change-search button',
+    );
     await changeSearchButton.click({ force: true });
   }
 
-  await expect(modal).toBeVisible({ timeout: 15000 });
+  const desktopDefaultFormVisible = await getResultsPageSearchModal(page)
+    .filter({ visible: true })
+    .count()
+    .catch(() => 0);
+  modal = await requireUniqueVisibleLocator(
+    desktopDefaultFormVisible ? getResultsPageSearchModal(page) : getResultsPageSearchModalFallback(page),
+    desktopDefaultFormVisible
+      ? 'desktop results-page search modal form'
+      : 'desktop results-page search modal wrapper',
+    { timeoutMs: 15_000 },
+  );
 
-  const destinationInput = modal.locator('input[placeholder="Destination"]').first();
-  await expect(destinationInput).toBeVisible({ timeout: 10000 });
+  const destinationInput = await requireUniqueVisibleLocator(
+    modal.locator('input[placeholder="Destination"]'),
+    'desktop results-page destination input',
+  );
   await destinationInput.click({ force: true });
   await destinationInput.fill(input.destinationQuery);
 
-  const destinationOption = page.getByText(input.destinationOption).first();
-  await expect(destinationOption).toBeVisible({ timeout: 15000 });
+  const destinationOption = await requireUniqueVisibleLocator(
+    getResultsPageAirportAutocompleteItem(page, input.destinationOption, input.destinationAirportCode),
+    input.destinationAirportCode
+      ? `destination airport item ${input.destinationAirportCode.toLowerCase()}`
+      : `destination airport item matching ${String(input.destinationOption)}`,
+    { timeoutMs: 15_000 },
+  );
   await destinationOption.click({ force: true });
 
-  const searchButton = modal.getByRole('button', { name: travelokaFlightHomeSelectors.searchButton }).first();
-  await expect(searchButton).toBeVisible({ timeout: 10000 });
+  // Desktop default form keeps date pickers as clickable containers under data-id
+  // instead of raw inputs. Keep explicit helpers so future route/date mutations
+  // can target the real controls instead of guessing by text order.
+  await getResultsPageDepartureDateContainer(modal).count().catch(() => 0);
+  await getResultsPageReturnDateContainer(modal).count().catch(() => 0);
+
+  const searchButton = await requireUniqueVisibleLocator(
+    modal.getByRole('button', { name: travelokaFlightHomeSelectors.searchButton }),
+    'desktop results-page search flights button',
+  );
 
   await Promise.all([
     page.waitForLoadState('domcontentloaded').catch(() => {}),
