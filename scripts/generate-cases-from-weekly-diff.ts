@@ -144,7 +144,7 @@ function ensureRepoPath(args: Args) {
 
   if (!fs.existsSync(path.join(repoPath, '.git'))) {
     console.log(`[weekly-diff] cloning ${args.repoUrl} into ${repoPath}...`);
-    execFileSync('git', ['clone', args.repoUrl, repoPath], {
+    execFileSync('git', ['clone', '--filter=blob:none', '--no-checkout', args.repoUrl, repoPath], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
