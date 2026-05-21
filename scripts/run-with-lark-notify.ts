@@ -7,6 +7,33 @@ type RunResult = {
   outputLines: string[];
 };
 
+type RunInsights = {
+  target: string;
+  passed: string;
+  failed: string;
+  changedFiles: string;
+  candidates: string;
+  highlight: string;
+};
+
+type LarkCardPayload = {
+  msg_type: 'interactive';
+  card: {
+    config: {
+      wide_screen_mode: boolean;
+      enable_forward: boolean;
+    };
+    header: {
+      template: string;
+      title: {
+        tag: 'plain_text';
+        content: string;
+      };
+    };
+    elements: Array<Record<string, unknown>>;
+  };
+};
+
 function parseArgs(argv: string[]) {
   let label = 'Command run';
   const commandIndex = argv.indexOf('--');
@@ -40,6 +67,216 @@ function formatDuration(durationMs: number) {
 
 function tailLines(lines: string[], count: number) {
   return lines.slice(-count);
+}
+
+function truncateText(text: string, maxLength: number) {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, Math.max(0, maxLength - 3))}...`;
+}
+
+function escapeLarkText(text: string) {
+  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
+function extractMetric(lines: string[], pattern: RegExp) {
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const match = lines[index]?.match(pattern);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+
+  return '--';
+}
+
+function detectTarget(command: string) {
+  const pathMatch = command.match(/(tests\/[^\s]+\.spec\.ts|scripts\/[^\s]+\.sh|scripts\/[^\s]+\.ts)/);
+  if (pathMatch?.[1]) {
+    return pathMatch[1];
+  }
+
+  if (command.includes('playwright test')) {
+    return 'playwright test';
+  }
+
+  return 'custom command';
+}
+
+function detectHighlight(lines: string[], status: 'SUCCESS' | 'FAILED') {
+  const interestingLine = [...lines]
+    .reverse()
+    .find((line) => /error|failed|passed|candidates:|changed files:|summary/i.test(line));
+
+  if (interestingLine) {
+    return truncateText(interestingLine.trim(), 120);
+  }
+
+  return status === 'SUCCESS' ? 'Run completed successfully' : 'Run finished with errors';
+}
+
+function buildInsights(command: string, outputLines: string[], status: 'SUCCESS' | 'FAILED'): RunInsights {
+  const passed = extractMetric(outputLines, /\b(\d+)\s+passed\b/i);
+  const failed = extractMetric(outputLines, /\b(\d+)\s+failed\b/i);
+  const changedFiles = extractMetric(outputLines, /changed files:\s*(\d+)/i);
+  const candidates = extractMetric(outputLines, /candidates:\s*(\d+)/i);
+
+  return {
+    target: detectTarget(command),
+    passed,
+    failed,
+    changedFiles,
+    candidates,
+    highlight: detectHighlight(outputLines, status),
+  };
+}
+
+function buildLarkCard(params: {
+  label: string;
+  command: string;
+  status: 'SUCCESS' | 'FAILED';
+  exitCode: number;
+  durationText: string;
+  hostname: string;
+  summaryLines: string;
+  insights: RunInsights;
+}): LarkCardPayload {
+  const { label, command, status, exitCode, durationText, hostname, summaryLines, insights } = params;
+  const isSuccess = status === 'SUCCESS';
+  const template = isSuccess ? 'green' : 'red';
+  const statusEmoji = isSuccess ? '🟢' : '🔴';
+  const bannerEmoji = isSuccess ? '✅' : '🚨';
+  const safeSummary = escapeLarkText(truncateText(summaryLines || '<empty>', 1200));
+  const safeCommand = escapeLarkText(truncateText(command, 300));
+  const safeHighlight = escapeLarkText(insights.highlight);
+  const safeTarget = escapeLarkText(insights.target);
+  const safeHost = escapeLarkText(hostname);
+
+  return {
+    msg_type: 'interactive',
+    card: {
+      config: {
+        wide_screen_mode: true,
+        enable_forward: true,
+      },
+      header: {
+        template,
+        title: {
+          tag: 'plain_text',
+          content: `${bannerEmoji} ${label}`,
+        },
+      },
+      elements: [
+        {
+          tag: 'div',
+          text: {
+            tag: 'lark_md',
+            content: `${statusEmoji} **${isSuccess ? 'Passed' : 'Failed'}**\n${safeHighlight}`,
+          },
+        },
+        {
+          tag: 'column_set',
+          columns: [
+            {
+              tag: 'column',
+              width: 'weighted',
+              weight: 1,
+              elements: [
+                {
+                  tag: 'markdown',
+                  content: `**Passed**\n${insights.passed}`,
+                },
+              ],
+            },
+            {
+              tag: 'column',
+              width: 'weighted',
+              weight: 1,
+              elements: [
+                {
+                  tag: 'markdown',
+                  content: `**Failed**\n${insights.failed}`,
+                },
+              ],
+            },
+            {
+              tag: 'column',
+              width: 'weighted',
+              weight: 1,
+              elements: [
+                {
+                  tag: 'markdown',
+                  content: `**Duration**\n${durationText}`,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          tag: 'column_set',
+          columns: [
+            {
+              tag: 'column',
+              width: 'weighted',
+              weight: 1,
+              elements: [
+                {
+                  tag: 'markdown',
+                  content: `**Target**\n${safeTarget}`,
+                },
+              ],
+            },
+            {
+              tag: 'column',
+              width: 'weighted',
+              weight: 1,
+              elements: [
+                {
+                  tag: 'markdown',
+                  content: `**Changed files**\n${insights.changedFiles}`,
+                },
+              ],
+            },
+            {
+              tag: 'column',
+              width: 'weighted',
+              weight: 1,
+              elements: [
+                {
+                  tag: 'markdown',
+                  content: `**Candidates**\n${insights.candidates}`,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          tag: 'hr',
+        },
+        {
+          tag: 'div',
+          fields: [
+            {
+              is_short: false,
+              text: {
+                tag: 'lark_md',
+                content: `**Command**\n\`${safeCommand}\`\n\n**Exit code**: ${exitCode}  |  **Host**: ${safeHost}`,
+              },
+            },
+          ],
+        },
+        {
+          tag: 'div',
+          text: {
+            tag: 'lark_md',
+            content: `**Last output**\n\`\`\`\n${safeSummary}\n\`\`\``,
+          },
+        },
+      ],
+    },
+  };
 }
 
 async function runCommand(command: string): Promise<RunResult> {
@@ -97,27 +334,22 @@ async function runCommand(command: string): Promise<RunResult> {
   });
 }
 
-async function postToLark(webhookUrl: string, text: string) {
+async function postToLark(webhookUrl: string, cardPayload: LarkCardPayload) {
   const response = await fetch(webhookUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      msg_type: 'text',
-      content: {
-        text,
-      },
-    }),
+    body: JSON.stringify(cardPayload),
   });
 
   if (!response.ok) {
     throw new Error(`Lark webhook request failed with status ${response.status}`);
   }
 
-  const payload = (await response.json()) as { code?: number; msg?: string };
-  if (payload.code && payload.code !== 0) {
-    throw new Error(`Lark webhook rejected message: ${payload.msg ?? payload.code}`);
+  const responsePayload = (await response.json()) as { code?: number; msg?: string };
+  if (responsePayload.code && responsePayload.code !== 0) {
+    throw new Error(`Lark webhook rejected message: ${responsePayload.msg ?? responsePayload.code}`);
   }
 }
 
@@ -148,19 +380,22 @@ async function main() {
   }
 
   const status = exitCode === 0 && !runError ? 'SUCCESS' : 'FAILED';
+  const insights = buildInsights(command, outputLines, status);
   const summaryLines = tailLines(outputLines, 12)
     .map((line) => line.trimEnd())
     .filter((line) => line.length > 0)
     .join('\n');
 
-  const message = [
-    `[${status}] ${label}`,
-    `Command: ${command}`,
-    `Exit code: ${exitCode}`,
-    `Duration: ${formatDuration(durationMs)}`,
-    `Host: ${hostname}`,
-    summaryLines ? `Last output:\n${summaryLines}` : 'Last output: <empty>',
-  ].join('\n');
+  const message = buildLarkCard({
+    label,
+    command,
+    status,
+    exitCode,
+    durationText: formatDuration(durationMs),
+    hostname,
+    summaryLines,
+    insights,
+  });
 
   try {
     await postToLark(webhookUrl, message);
