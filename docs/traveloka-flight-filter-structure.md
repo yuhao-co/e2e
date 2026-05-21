@@ -101,6 +101,9 @@ Known live sections that map into this general filter family include:
 - refund and reschedule
 - facilities
 - preference
+- price/passenger
+- transit points
+- transit duration
 
 Example:
 
@@ -111,6 +114,32 @@ Practical rule:
 - `flight-general-filter` is generic and can repeat.
 - Do not use the root alone as a unique locator.
 - Scope by sidebar, then by the option title or label text inside the matching general filter block.
+- On desktop card mode, lower `More` groups can be wrapped by `FlightCollapsible` and rendered collapsed by default. Before looking for options like `Baggage`, first expand the matching section header by clicking its right-side chevron contract, scoped as `[data-id="IcSystemChevronDown"]` inside the correct header row.
+- After expansion, treat the option row and the option control separately. For `GeneralFilter`, the row test ids (`flight-general-filter-option-<title>` / `flight-general-filter-option-label-<title>`) wrap a shared `Checkbox.Control` plus label content. Prefer the internal checkbox/control when toggling the option.
+
+### Facilities / Baggage
+
+Source grounding:
+
+- `packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/MoreFilterMenu.tsx`
+- `packages/flight/fpr-search-result-components/src/FilterSort/MoreFilter/variant/GeneralFilter.tsx`
+
+Verified behavior:
+
+- `Facilities` is rendered in card mode under `FlightCollapsible`
+- expansion is controlled by `filterExpandState['facility']`
+- the collapse trigger is the section header chevron, exposed in runtime as `data-id="IcSystemChevronDown"`
+- the `Baggage` option sits inside `flight-general-filter-option-Facilities` after expansion
+- the actual toggle surface is the shared checkbox/control inside that row, not the surrounding wrapper alone
+
+Recommended interaction sequence:
+
+1. scroll inside `flight-search-sidebar-filter` until `Facilities` is visible
+2. locate the `Facilities` header row
+3. click the scoped `[data-id="IcSystemChevronDown"]`
+4. wait for `flight-general-filter-option-Facilities` containing `Baggage`
+5. click the row's internal checkbox/control
+6. verify by result behavior, not only by wrapper DOM state
 
 ## Transit filter
 
@@ -137,10 +166,11 @@ For E2E, always prefer the runtime DOM id that actually exists on the page.
 If a filter control has no dedicated runtime id:
 
 1. scope to `flight-search-sidebar-filter`
-2. locate the section container by its explicit section id if one exists
-3. otherwise locate the section by heading text inside the sidebar
-4. within that section, locate the option container by explicit item id if available
-5. otherwise locate the option by exact label text within the scoped section
+2. scroll inside the sidebar itself until the relevant section becomes visible
+3. locate the section container by its explicit section id if one exists
+4. otherwise locate the section by heading text inside the sidebar
+5. within that section, locate the option container by explicit item id if available
+6. otherwise locate the option by exact label text within the scoped section
 
 Do not use page-wide text matching for filters.
 
@@ -160,3 +190,6 @@ This is the default policy for future Traveloka filter automation in this repo.
 - A checked airline option is not sufficient evidence by itself. For random filter training or generated cases, sampled visible result cards must also contain the same airline name before the test accepts that airline candidate.
 - For route-change training, opening the search panel from `IcSystemSearch` should be treated as a two-step interaction contract: click the icon contract first, then click `Change search` if the modal does not open immediately.
 - Result-card verification must operate on the full card container. A shallow container that only exposes `Flight Details`, `Fare & Benefits`, `Refund`, `Reschedule`, and `Choose` is not a valid verification target.
+- The left sidebar is itself scrollable. Lower filter sections and options may never enter the DOM search window unless the test scrolls `flight-search-sidebar-filter` directly instead of only scrolling the main page.
+- For collapsed `MoreFilterMenu` groups, missing options do not necessarily mean the locator is wrong. The cheaper discriminating check is whether the section's scoped `IcSystemChevronDown` has been clicked yet. Only search for rows like `Baggage` after that expand step.
+- For `Facilities > Baggage`, DOM-only state checks on the outer wrapper are brittle. The stable strategy is to scope to the row/control for the click, then confirm the filtered result set changed as expected.

@@ -6,6 +6,15 @@ export type FlightFilterOption = {
   filterOptionIdx: number;
 };
 
+type SidebarScrollOptions = {
+  maxSteps?: number;
+  resetToTop?: boolean;
+};
+
+type SidebarScrollUntilVisibleOptions = SidebarScrollOptions & {
+  timeoutMs?: number;
+};
+
 type UniqueVisibleLocatorOptions = {
   timeoutMs?: number;
   sampleSize?: number;
@@ -59,6 +68,89 @@ export const travelokaFlightBookingContactSelectors = {
 
 export function getFlightSearchSidebar(page: Page): Locator {
   return page.locator(travelokaFlightSearchResultsSelectors.sidebar);
+}
+
+export async function scrollFlightSearchSidebar(
+  sidebar: Locator,
+  options?: SidebarScrollOptions,
+) {
+  const maxSteps = options?.maxSteps ?? 8;
+  const resetToTop = options?.resetToTop ?? false;
+
+  return sidebar.evaluate(
+    (
+      sidebarEl: HTMLElement,
+      payload: { maxSteps: number; resetToTop: boolean },
+    ) => {
+      const findScrollable = (root: HTMLElement) => {
+        const nodes = [root, ...Array.from(root.querySelectorAll('*')) as HTMLElement[]];
+
+        return nodes.find((node) => node.scrollHeight - node.clientHeight > 24) ?? root;
+      };
+
+      const scrollable = findScrollable(sidebarEl);
+      if (payload.resetToTop) {
+        scrollable.scrollTop = 0;
+      }
+
+      const visitedPositions: number[] = [scrollable.scrollTop];
+      let previousTop = scrollable.scrollTop;
+
+      for (let step = 0; step < payload.maxSteps; step++) {
+        const delta = Math.max(160, Math.floor(scrollable.clientHeight * 0.75));
+        scrollable.scrollTop = Math.min(
+          scrollable.scrollTop + delta,
+          Math.max(0, scrollable.scrollHeight - scrollable.clientHeight),
+        );
+
+        visitedPositions.push(scrollable.scrollTop);
+
+        if (scrollable.scrollTop === previousTop) {
+          break;
+        }
+
+        previousTop = scrollable.scrollTop;
+      }
+
+      return {
+        scrollTop: scrollable.scrollTop,
+        scrollHeight: scrollable.scrollHeight,
+        clientHeight: scrollable.clientHeight,
+        visitedPositions,
+      };
+    },
+    { maxSteps, resetToTop },
+  );
+}
+
+export async function scrollFlightSearchSidebarUntilVisible(
+  sidebar: Locator,
+  target: Locator,
+  options?: SidebarScrollUntilVisibleOptions,
+) {
+  const maxSteps = options?.maxSteps ?? 8;
+  const timeoutMs = options?.timeoutMs ?? 10_000;
+
+  if (options?.resetToTop) {
+    await scrollFlightSearchSidebar(sidebar, { resetToTop: true, maxSteps: 0 });
+  }
+
+  const deadline = Date.now() + timeoutMs;
+  for (let step = 0; step <= maxSteps && Date.now() < deadline; step++) {
+    if (await target.isVisible().catch(() => false)) {
+      return true;
+    }
+
+    const scrollResult = await scrollFlightSearchSidebar(sidebar, { maxSteps: 1 });
+    const lastPosition = scrollResult.visitedPositions[scrollResult.visitedPositions.length - 1];
+    const previousPosition = scrollResult.visitedPositions[scrollResult.visitedPositions.length - 2] ?? lastPosition;
+
+    if (lastPosition === previousPosition) {
+      break;
+    }
+  }
+
+  return target.isVisible().catch(() => false);
 }
 
 export function getFlightResultChooseButton(page: Page): Locator {
@@ -167,7 +259,8 @@ export async function discoverFlightFilterOptionsInSection(
   sectionTitle: string,
   tagAttribute = 'data-flight-filter-option-idx',
 ): Promise<FlightFilterOption[]> {
-  return sidebar.evaluate(
+  const evaluateSection = () =>
+    sidebar.evaluate(
     (
       sidebarEl: HTMLElement,
       payload: { sectionTitle: string; tagAttribute: string },
@@ -246,6 +339,33 @@ export async function discoverFlightFilterOptionsInSection(
     },
     { sectionTitle, tagAttribute },
   );
+
+  let discovered = await evaluateSection();
+  if (discovered.length > 0) {
+    return discovered;
+  }
+
+  await scrollFlightSearchSidebar(sidebar, { resetToTop: true });
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    discovered = await evaluateSection();
+    if (discovered.length > 0) {
+      return discovered;
+    }
+
+    const scrollResult = await scrollFlightSearchSidebar(sidebar, { maxSteps: 1 });
+    if (scrollResult.visitedPositions.length < 2) {
+      break;
+    }
+
+    const lastPosition = scrollResult.visitedPositions[scrollResult.visitedPositions.length - 1];
+    const previousPosition = scrollResult.visitedPositions[scrollResult.visitedPositions.length - 2];
+    if (lastPosition === previousPosition) {
+      break;
+    }
+  }
+
+  return discovered;
 }
 
 export async function tagVisibleFlightResultCards(

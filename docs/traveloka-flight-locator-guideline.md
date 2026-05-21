@@ -24,8 +24,11 @@ Do not start from class names, deep DOM chains, or `nth()/last()/first()` unless
 - For repeated UI like cards, drawers, and modals, require one visible match before clicking. If there are multiple matches, fail with candidate summaries instead of silently picking the first one.
 - Known desktop form anchors already trained for this repo: `airport-autocomplete-container-departure`, `oneway-roundtrip-tab`, `item_nimbus-autocomplete-airport-cgk`, `passengers-container`, `passengers-stepper-minus-adult`, `passengers-stepper-plus-adult`, `passengers-row-child`, `passengers-row-infant`, `departure-date-input`, `date-cell-2026-6-1`, `IcTransportSeatClass`, `desktop-default-search-button`.
 - For desktop results filters, start from the runtime sidebar contract `flight-search-sidebar-filter`, then prefer explicit runtime filter ids such as `airline-filter-collapsible-list`, `airline-filter-collapsible-item-<label>`, `view_filter_departureTime`, `view_filter_arrivalTime`, `view_filter_flightDuration`, and `flight-general-filter-option-<title>` before any text fallback.
+- For desktop results `More` filters rendered as collapsed cards, do not treat the section title as the option container. First expand the section by clicking the right-side chevron contract inside that section header, typically `[data-id="IcSystemChevronDown"]` scoped to the matching header row, then locate the option row inside the expanded content.
+- For `GeneralFilter` options such as `Facilities > Baggage`, prefer the checkbox/control inside the scoped row over clicking the outer wrapper row. Source structure is `Checkbox.Control` plus a separate label/content view, so clicking the wrapper can miss the real state transition.
 - For desktop results-page route changes, treat `IcSystemSearch` as a contract anchor, not as a guaranteed directly clickable header node. Resolve it via `[data-id="IcSystemSearch"], [data-testid="IcSystemSearch"]`, prefer a visible actionable descendant when present, allow a DOM `click()` fallback for overlay-clipped nodes, and wait for either the `Change search` button or the search form to appear before continuing.
 - For result-list verification, never validate filters against a shallow container that only contains `Flight Details`, `Fare & Benefits`, `Refund`, `Reschedule`, and `Choose`. Tag and assert against the full result card that also contains airline, timing, airport, and price signals.
+- Treat the left filter panel as a scrollable region. Before concluding a lower filter section is missing, scroll inside `flight-search-sidebar-filter` itself; page-level scrolling is not a substitute for sidebar scrolling.
 
 See `docs/traveloka-flight-filter-structure.md` for the current sidebar filter component tree and runtime id patterns derived from `traveloka/www`.
 
@@ -59,6 +62,34 @@ await page.waitForTimeout(800).catch(() => {});
 if (!(await page.locator('[data-testid="desktop-default-form"]').isVisible().catch(() => false))) {
   await page.getByRole('button', { name: /Change search/i }).click({ force: true });
 }
+
+### Scroll the sidebar before section discovery
+
+```ts
+const sidebar = page.locator('[data-testid="flight-search-sidebar-filter"]');
+await scrollFlightSearchSidebar(sidebar, { resetToTop: true });
+const options = await discoverFlightFilterOptionsInSection(sidebar, 'Airline');
+```
+
+### Expand a collapsed More-filter section first
+
+```ts
+const sidebar = page.locator('[data-testid="flight-search-sidebar-filter"]');
+const facilitiesHeader = sidebar.locator('div').filter({ hasText: /^Facilities$/i }).first();
+const facilitiesChevron = facilitiesHeader
+  .locator('xpath=ancestor::*[.//*[@data-id="IcSystemChevronDown"]][1]')
+  .locator('[data-id="IcSystemChevronDown"]')
+  .first();
+
+await facilitiesChevron.click({ force: true });
+
+const baggageRow = sidebar
+  .locator('[data-testid="flight-general-filter-option-Facilities"], [data-id="flight-general-filter-option-Facilities"]')
+  .filter({ hasText: /Baggage/i })
+  .first();
+const baggageControl = baggageRow.locator('input[type="checkbox"], [role="checkbox"]').first();
+await baggageControl.click({ force: true });
+```
 ```
 
 ## Anti-patterns
@@ -74,6 +105,9 @@ if (!(await page.locator('[data-testid="desktop-default-form"]').isVisible().cat
 - The `IcSystemSearch` route-change entrypoint is stable as a contract id, but unstable as a single CSS position. Do not bind route-change flows to `[data-testid="flight-search-header"] [data-id="IcSystemSearch"]` only.
 - If a random airline filter is considered "selected," require two checks before trusting it in a test: the sidebar option must look checked, and sampled visible result cards must actually contain that airline.
 - When verifying filtered results, tag the full card container first; otherwise card text can collapse to tabs-only content and produce false failures or false passes.
+- Lower filter groups can live below the initially visible sidebar viewport. If section discovery does not scroll the left filter container, tests will systematically miss the bottom filters and produce false "not found" failures.
+- `Facilities`, `Price/passenger`, `Flight Preference`, and similar `MoreFilterMenu` card sections can be collapsed by default. For these groups, the required interaction order is: scroll sidebar -> find section header -> click the section's right-side `IcSystemChevronDown` -> wait for option rows -> click the row's checkbox/control.
+- `Facilities > Baggage` is not a plain text row interaction. The reliable locator path is the scoped `flight-general-filter-option-Facilities` row plus its internal checkbox/control. Clicking only the label or outer wrapper can leave the result set unchanged while the test thinks it acted.
 
 ## Debugging workflow
 
