@@ -54,6 +54,7 @@ type Candidate = {
     prTitle?: string;
     prSummary?: string;
     prTestPlan?: string;
+    prdLinks?: string[];
   }>;
   retrievedEvidence?: Array<{
     kind: 'existing-test' | 'shared-helper';
@@ -112,6 +113,7 @@ type RelevantCommit = {
   prTitle?: string;
   prSummary?: string;
   prTestPlan?: string;
+  prdLinks?: string[];
 };
 
 type SourceCommitMetadata = {
@@ -122,6 +124,7 @@ type SourceCommitMetadata = {
   prTitle?: string;
   prSummary?: string;
   prTestPlan?: string;
+  prdLinks?: string[];
 };
 
 type GitHubRepoIdentity = {
@@ -410,6 +413,60 @@ function extractPullRequestBodySection(body: string, heading: string) {
   return normalizePullRequestSection(match?.[1]);
 }
 
+function extractLarkPrdLinks(body: string) {
+  return Array.from(
+    new Set(
+      Array.from(
+        body.matchAll(/https:\/\/traveloka\.sg\.larksuite\.com\/wiki\/[A-Za-z0-9]+/g),
+      ).map((match) => match[0]),
+    ),
+  );
+}
+
+function isSpecificPullRequestText(text: string | undefined) {
+  if (!text) {
+    return false;
+  }
+
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return false;
+  }
+
+  const alnumCount = (normalized.match(/[A-Za-z0-9]/g) ?? []).length;
+  const hasSentenceLikeStructure = /[.:;,-]/.test(normalized);
+  const hasMeaningfulLength = normalized.length >= 40;
+  const notJustLinks = normalized.replace(/https?:\/\/\S+/g, '').trim().length >= 20;
+
+  return alnumCount >= 20 && hasMeaningfulLength && (hasSentenceLikeStructure || notJustLinks);
+}
+
+function prioritizePullRequestContextLines(commits: SourceCommitMetadata[]) {
+  const rankedLines = commits.flatMap((commit) => {
+    const prdLines = (commit.prdLinks ?? []).map((link) => ({
+      line: `PRD: ${link}`,
+      priority: 3,
+    }));
+    const summaryLines = [commit.prSummary, commit.prTestPlan]
+      .filter((value): value is string => Boolean(value))
+      .map((line) => ({
+        line,
+        priority: isSpecificPullRequestText(line) ? 2 : 0,
+      }));
+
+    return [...prdLines, ...summaryLines];
+  });
+
+  return Array.from(
+    new Map(
+      rankedLines
+        .filter((item) => item.priority > 0)
+        .sort((left, right) => right.priority - left.priority)
+        .map((item) => [item.line, item]),
+    ).values(),
+  ).map((item) => item.line);
+}
+
 function fetchPullRequestContext(repoPath: string, prNumber: number) {
   const repoIdentity = getGitHubRepoIdentity(repoPath);
   const githubToken = process.env.GITHUB_TOKEN;
@@ -433,11 +490,13 @@ function fetchPullRequestContext(repoPath: string, prNumber: number) {
     const body = payload.body ?? '';
     const summary = extractPullRequestBodySection(body, 'Summary');
     const testPlan = extractPullRequestBodySection(body, 'Test Plan');
+    const prdLinks = extractLarkPrdLinks(body);
 
     return {
       title: payload.title?.trim() || null,
       summary,
       testPlan,
+      prdLinks,
     };
   } catch {
     return null;
@@ -465,6 +524,7 @@ function enrichRelevantCommitsWithPullRequestContext(
       prTitle: pullRequestContext.title ?? undefined,
       prSummary: pullRequestContext.summary ?? undefined,
       prTestPlan: pullRequestContext.testPlan ?? undefined,
+      prdLinks: pullRequestContext.prdLinks?.length ? pullRequestContext.prdLinks : undefined,
     };
   });
 }
@@ -981,11 +1041,7 @@ function buildFlightCandidate(
   const canEmitRunnableSpec = hasStrongEvidence && focus.isDominant;
   const sourceCommits = collectRelevantCommits(repoPath, startCommit, endRef, focus.focusedFiles, 3, fileWeights);
   const enrichedSourceCommits = enrichRelevantCommitsWithPullRequestContext(repoPath, sourceCommits);
-  const sourceSummaryLines = uniqueStrings(
-    enrichedSourceCommits
-      .flatMap((commit: SourceCommitMetadata) => [commit.prSummary, commit.prTestPlan])
-      .filter((value): value is string => Boolean(value)),
-  ).slice(0, 2);
+  const sourceSummaryLines = prioritizePullRequestContextLines(enrichedSourceCommits).slice(0, 2);
   const retrievedEvidence = collectFlightRetrievedEvidence(workspaceRoot, focus.concerns) ?? [];
   const generatedPlan = buildFlightGeneratedPlan(
     focus.concerns,
