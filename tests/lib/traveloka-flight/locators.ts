@@ -254,6 +254,15 @@ export async function tagVisibleFlightResultCards(
 ) {
   return page.evaluate((payload: { tagAttribute: string }) => {
     const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
+    const hasResultTabs = (text: string) =>
+      /flight details/i.test(text) &&
+      /fare\s*&\s*benefits/i.test(text) &&
+      /refund/i.test(text) &&
+      /reschedule/i.test(text);
+    const hasCardSignals = (text: string) =>
+      /round-trip price|\/pax|\b\d{1,2}:\d{2}\b/i.test(text) ||
+      /\b[A-Z]{3}\b/.test(text) ||
+      /\b(direct|stop|stops|transit|layover)\b/i.test(text);
     const { tagAttribute } = payload;
 
     document.querySelectorAll(`[${tagAttribute}]`).forEach((node) => {
@@ -269,22 +278,33 @@ export async function tagVisibleFlightResultCards(
 
     for (const control of chooseControls) {
       let ancestor = (control as HTMLElement).parentElement;
+      let candidate: HTMLElement | null = null;
       while (ancestor) {
         const text = normalize(ancestor.innerText ?? '');
-        if (
-          /flight details/i.test(text) &&
-          /fare\s*&\s*benefits/i.test(text) &&
-          /refund/i.test(text) &&
-          /reschedule/i.test(text)
-        ) {
-          if (!tagged.includes(ancestor)) {
-            ancestor.setAttribute(tagAttribute, String(idx));
-            tagged.push(ancestor);
-            idx++;
+        if (hasResultTabs(text)) {
+          candidate = ancestor;
+
+          let expanded = ancestor.parentElement;
+          while (expanded) {
+            const expandedText = normalize(expanded.innerText ?? '');
+            if (!hasResultTabs(expandedText)) {
+              break;
+            }
+            if (hasCardSignals(expandedText)) {
+              candidate = expanded;
+            }
+            expanded = expanded.parentElement;
           }
+
           break;
         }
         ancestor = ancestor.parentElement;
+      }
+
+      if (candidate && !tagged.includes(candidate)) {
+        candidate.setAttribute(tagAttribute, String(idx));
+        tagged.push(candidate);
+        idx++;
       }
     }
 

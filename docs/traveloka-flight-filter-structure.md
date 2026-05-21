@@ -154,3 +154,9 @@ Use this priority for desktop results filters:
 4. scoped text inside the already narrowed section only when no explicit runtime id exists
 
 This is the default policy for future Traveloka filter automation in this repo.
+
+## Validation lessons
+
+- A checked airline option is not sufficient evidence by itself. For random filter training or generated cases, sampled visible result cards must also contain the same airline name before the test accepts that airline candidate.
+- For route-change training, opening the search panel from `IcSystemSearch` should be treated as a two-step interaction contract: click the icon contract first, then click `Change search` if the modal does not open immediately.
+- Result-card verification must operate on the full card container. A shallow container that only exposes `Flight Details`, `Fare & Benefits`, `Refund`, `Reschedule`, and `Choose` is not a valid verification target.

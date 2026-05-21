@@ -24,6 +24,8 @@ Do not start from class names, deep DOM chains, or `nth()/last()/first()` unless
 - For repeated UI like cards, drawers, and modals, require one visible match before clicking. If there are multiple matches, fail with candidate summaries instead of silently picking the first one.
 - Known desktop form anchors already trained for this repo: `airport-autocomplete-container-departure`, `oneway-roundtrip-tab`, `item_nimbus-autocomplete-airport-cgk`, `passengers-container`, `passengers-stepper-minus-adult`, `passengers-stepper-plus-adult`, `passengers-row-child`, `passengers-row-infant`, `departure-date-input`, `date-cell-2026-6-1`, `IcTransportSeatClass`, `desktop-default-search-button`.
 - For desktop results filters, start from the runtime sidebar contract `flight-search-sidebar-filter`, then prefer explicit runtime filter ids such as `airline-filter-collapsible-list`, `airline-filter-collapsible-item-<label>`, `view_filter_departureTime`, `view_filter_arrivalTime`, `view_filter_flightDuration`, and `flight-general-filter-option-<title>` before any text fallback.
+- For desktop results-page route changes, treat `IcSystemSearch` as a contract anchor, not as a guaranteed directly clickable header node. Resolve it via `[data-id="IcSystemSearch"], [data-testid="IcSystemSearch"]`, prefer a visible actionable descendant when present, allow a DOM `click()` fallback for overlay-clipped nodes, and wait for either the `Change search` button or the search form to appear before continuing.
+- For result-list verification, never validate filters against a shallow container that only contains `Flight Details`, `Fare & Benefits`, `Refund`, `Reschedule`, and `Choose`. Tag and assert against the full result card that also contains airline, timing, airport, and price signals.
 
 See `docs/traveloka-flight-filter-structure.md` for the current sidebar filter component tree and runtime id patterns derived from `traveloka/www`.
 
@@ -48,10 +50,15 @@ const airlineRow = sidebar
 
 ```ts
 const trigger = await requireUniqueVisibleLocator(
-  page.locator('[data-testid="flight-search-header"] [data-id="IcSystemSearch"]'),
+  page.locator('[data-id="IcSystemSearch"], [data-testid="IcSystemSearch"]'),
   'desktop results-page search trigger',
 );
-await trigger.click();
+await trigger.click({ force: true });
+await page.waitForTimeout(800).catch(() => {});
+
+if (!(await page.locator('[data-testid="desktop-default-form"]').isVisible().catch(() => false))) {
+  await page.getByRole('button', { name: /Change search/i }).click({ force: true });
+}
 ```
 
 ## Anti-patterns
@@ -60,6 +67,13 @@ await trigger.click();
 - `page.locator('button').nth(3)` when the button meaning is user-visible
 - global `getByText()` on highly repeated strings without first scoping to a section
 - using video review as the main way to discover a locator when trace/codegen/DOM summary can answer it faster
+- tagging a result card from the first ancestor that contains `Flight Details` / `Choose` without verifying the same container also contains airline, airport, time, or price text
+
+## Recent lessons
+
+- The `IcSystemSearch` route-change entrypoint is stable as a contract id, but unstable as a single CSS position. Do not bind route-change flows to `[data-testid="flight-search-header"] [data-id="IcSystemSearch"]` only.
+- If a random airline filter is considered "selected," require two checks before trusting it in a test: the sidebar option must look checked, and sampled visible result cards must actually contain that airline.
+- When verifying filtered results, tag the full card container first; otherwise card text can collapse to tabs-only content and produce false failures or false passes.
 
 ## Debugging workflow
 

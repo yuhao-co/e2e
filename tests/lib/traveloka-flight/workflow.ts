@@ -65,8 +65,61 @@ export type MetasearchEmailConfirmationInput = {
   mismatchErrorText?: string;
 };
 
+type LocatorRoot = Page | Locator;
+
 function escapeRegExp(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function byControlId(root: LocatorRoot, id: string) {
+  return root.locator(`[data-id="${id}"], [data-testid="${id}"]`);
+}
+
+async function getActionableControlById(
+  root: LocatorRoot,
+  id: string,
+  description: string,
+) {
+  const contract = byControlId(root, id);
+  const visibleContract = contract.filter({ visible: true });
+
+  const visibleCount = await visibleContract.count().catch(() => 0);
+  if (visibleCount >= 1) {
+    const directActionable = visibleContract
+      .locator('button, [role="button"], [role="tab"], input, label, div, span')
+      .filter({ visible: true });
+    if ((await directActionable.count().catch(() => 0)) >= 1) {
+      return directActionable.first();
+    }
+
+    return visibleContract.first();
+  }
+
+  return requireUniqueVisibleLocator(contract, description);
+}
+
+async function clickActionableControlById(
+  root: LocatorRoot,
+  id: string,
+  description: string,
+) {
+  const control = await getActionableControlById(root, id, description);
+  await control.scrollIntoViewIfNeeded().catch(() => {});
+
+  try {
+    await control.click({ force: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/outside of the viewport|intercepts pointer events|not visible|not receive pointer events/i.test(message)) {
+      throw error;
+    }
+
+    await control.evaluate((element: Element) => {
+      (element as HTMLElement).click();
+    });
+  }
+
+  return control;
 }
 
 export type SearchResultsToBookingInput = {
@@ -262,7 +315,7 @@ export async function openBookingPageFromSearchResults(
 }
 
 function getResultsPageSearchTrigger(page: Page) {
-  return page.locator('[data-testid="flight-search-header"] [data-id="IcSystemSearch"]');
+  return byControlId(page, 'IcSystemSearch');
 }
 
 function getResultsPageSearchModal(page: Page) {
@@ -311,18 +364,33 @@ export async function changeResultsPageRouteViaModal(
   page: Page,
   input: ResultsPageSearchChangeInput,
 ) {
-  const searchTrigger = await requireUniqueVisibleLocator(
-    getResultsPageSearchTrigger(page),
+  await clickActionableControlById(
+    page,
+    'IcSystemSearch',
     'desktop results-page search trigger',
   );
-  await searchTrigger.click({ force: true });
 
   let modal = getResultsPageSearchModal(page);
+  await page.waitForTimeout(800).catch(() => {});
   const modalVisibleAfterTrigger = await modal.isVisible().catch(() => false);
+  const changeSearchVisibleAfterTrigger = await getResultsPageChangeSearchButton(page)
+    .isVisible()
+    .catch(() => false);
+
   if (!modalVisibleAfterTrigger) {
+    if (!changeSearchVisibleAfterTrigger) {
+      await clickActionableControlById(
+        page,
+        'IcSystemSearch',
+        'desktop results-page search trigger retry',
+      );
+      await page.waitForTimeout(800).catch(() => {});
+    }
+
     const changeSearchButton = await requireUniqueVisibleLocator(
       getResultsPageChangeSearchButton(page),
       'desktop results-page change-search button',
+      { timeoutMs: 15_000 },
     );
     await changeSearchButton.click({ force: true });
   }
