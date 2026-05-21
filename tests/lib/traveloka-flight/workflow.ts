@@ -212,7 +212,9 @@ export async function openFlightSearchTask(
 
     const shouldWaitForSidebar =
       input.waitForSidebar ??
-      workflowPlan.normalizedIntent.concerns.some((concern) => concern.endsWith('filter'));
+      workflowPlan.sourceContext.concerns.some(
+        (concern) => concern === 'results-list' || concern.endsWith('filter'),
+      );
 
     if (shouldWaitForSidebar) {
       sidebar = await waitForFlightSearchSidebar(page, input.sidebarTimeoutMs);

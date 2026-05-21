@@ -4,7 +4,10 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-import { buildFlightSourceContextFromFiles } from '../tests/lib/traveloka-flight/source-map';
+import {
+  buildFlightSourceContextFromFiles,
+  type FlightConcern,
+} from '../tests/lib/traveloka-flight/source-map';
 import { createFlightCaseTemplate } from '../tests/lib/traveloka-flight/template';
 
 type Args = {
@@ -28,9 +31,12 @@ type DiffFile = {
 type Candidate = {
   id: string;
   domain: 'flight-search' | 'web-i18n' | 'android-home' | 'generic-web';
+  confidence: 'high' | 'medium' | 'low';
   title: string;
   action: 'modify-existing' | 'create-new';
   reason: string;
+  solution?: string;
+  howToSolve?: string;
   changedFiles: string[];
   targetTests: string[];
   suggestedUserIntent: string;
@@ -40,10 +46,42 @@ type Candidate = {
     sourcePath: string;
     reason: string;
   }>;
+  retrievedEvidence?: Array<{
+    kind: 'existing-test' | 'shared-helper';
+    path: string;
+    reason: string;
+    summary: string;
+  }>;
   draftFileName?: string;
   draftContent?: string;
   webSpecFileName?: string;
   webSpecContent?: string;
+};
+
+type DomainBucket = {
+  files: string[];
+  score: number;
+  strongHits: number;
+};
+
+type DomainSignal = {
+  domain: Candidate['domain'];
+  score: number;
+  strong: boolean;
+};
+
+const GENERATED_DIFF_IGNORE_PATTERNS = [
+  /^generated-cases\//,
+  /^tests\/web\/traveloka-flight-weekly-generated\.spec\.ts$/,
+  /^tests\/web\/traveloka-flight-weekly-diff-generated\.spec\.ts$/,
+];
+
+type FlightGeneratedPlan = {
+  concerns: FlightConcern[];
+  targetTests: string[];
+  extraImportBlock: string;
+  assertionLines: string[];
+  interactionLines: string[];
 };
 
 const DEFAULT_OUTPUT_DIR = 'generated-cases/weekly-diff';
@@ -192,67 +230,338 @@ function getChangedFiles(repoPath: string, startCommit: string, endRef: string):
 
   return raw
     .split('\n')
-    .map((line) => line.trim())
+    .map((line: string) => line.trim())
     .filter(Boolean)
-    .map((line) => {
+    .map((line: string) => {
       const [status, ...rest] = line.split(/\s+/g);
       return { status, filePath: rest[rest.length - 1] };
-    });
+    })
+    .filter((file: DiffFile) =>
+      !GENERATED_DIFF_IGNORE_PATTERNS.some((pattern) => pattern.test(file.filePath)),
+    );
 }
 
-function buildFlightCandidate(changedFiles: string[]): Candidate {
-  const keywords = summarizeKeywords(changedFiles);
-  const phrase = keywords.length ? keywords.join(', ') : 'search results and filters';
-  const suggestedUserIntent =
-    `Open the desktop Traveloka flight search results page and validate the weekly regression areas touching ${phrase}. ` +
-    'Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.';
-  const sourceContext = buildFlightSourceContextFromFiles(changedFiles, suggestedUserIntent);
-  const webSpecFileName = 'traveloka-flight-weekly-diff-generated.spec.ts';
-  const webSpecContent = createFlightCaseTemplate({
-    testName: 'Traveloka weekly diff generated flight results coverage',
-    url: sourceContext.url,
-    userIntent:
-      'Open the desktop Traveloka flight search results page and validate the weekly regression areas for sidebar handling, airline filter discovery, and visible result-card tagging.',
-    importPrefix: '../',
-    extraImportBlock: `import {
-  discoverFlightFilterOptionsInSection,
-  getTaggedFlightResultCards,
-  tagVisibleFlightResultCards,
-  travelokaFlightSearchResultsSelectors,
-} from '../lib/traveloka-flight/locators';`,
-    concerns: ['results-list', 'airline-filter'],
-    assertionLines: [
-      'const currentUrl = new URL(page.url());',
-      'expect(currentUrl.pathname).toBe(new URL(TARGET_URL).pathname);',
-      "expect(workflowPlan.sourceContext.surface).toBe('search-results');",
-      "if (!sidebar) {",
-      "  throw new Error('Flight search sidebar was expected but not returned by the shared workflow.');",
-      '}',
-      'await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.flights)).toBeVisible({ timeout: 15000 });',
-      'await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.filter)).toBeVisible({ timeout: 15000 });',
-    ],
-    interactionLines: [
+function readWorkspaceFile(workspaceRoot: string, relativePath: string) {
+  const absolutePath = path.join(workspaceRoot, relativePath);
+  if (!fs.existsSync(absolutePath)) {
+    return null;
+  }
+
+  return fs.readFileSync(absolutePath, 'utf8');
+}
+
+function summarizeEvidenceFile(relativePath: string, content: string) {
+  if (/\.spec\./.test(relativePath)) {
+    const titles = Array.from(content.matchAll(/test\s*\(\s*(['"`])([\s\S]*?)\1/g))
+      .map((match) => match[2].replace(/\s+/g, ' ').trim())
+      .slice(0, 2);
+
+    if (titles.length) {
+      return `Covers: ${titles.join(' | ')}`;
+    }
+  }
+
+  const exportedFunctions = Array.from(content.matchAll(/export function\s+([A-Za-z0-9_]+)/g))
+    .map((match) => match[1])
+    .slice(0, 4);
+
+  if (exportedFunctions.length) {
+    return `Exports: ${exportedFunctions.join(', ')}`;
+  }
+
+  const exportedTypes = Array.from(content.matchAll(/export type\s+([A-Za-z0-9_]+)/g))
+    .map((match) => match[1])
+    .slice(0, 4);
+
+  if (exportedTypes.length) {
+    return `Types: ${exportedTypes.join(', ')}`;
+  }
+
+  return 'Relevant local evidence file for weekly diff generation.';
+}
+
+function collectFlightRetrievedEvidence(
+  workspaceRoot: string,
+  concerns: string[],
+): Candidate['retrievedEvidence'] {
+  const specs: Array<{ path: string; reason: string }> = [];
+  const helpers: Array<{ path: string; reason: string }> = [
+    {
+      path: 'tests/lib/traveloka-flight/workflow.ts',
+      reason: 'Shared flight search workflow used by generated flight specs.',
+    },
+    {
+      path: 'tests/lib/traveloka-flight/locators.ts',
+      reason: 'Shared locator contract for sidebar filters and result cards.',
+    },
+    {
+      path: 'tests/lib/traveloka-flight/source-map.ts',
+      reason: 'Canonical flight surface routing and source-hint mapping.',
+    },
+    {
+      path: 'tests/lib/traveloka-flight/template.ts',
+      reason: 'Template used to emit generated flight regression cases.',
+    },
+  ];
+
+  if (concerns.includes('transit-filter')) {
+    specs.push({
+      path: 'tests/web/traveloka-flight-filter.spec.ts',
+      reason: 'Existing transit filter regression case for search results.',
+    });
+  }
+
+  if (concerns.includes('airline-filter')) {
+    specs.push({
+      path: 'tests/web/traveloka-flight-random-filter.spec.ts',
+      reason: 'Existing airline filter verification case for visible result cards.',
+    });
+  }
+
+  if (!specs.length) {
+    specs.push(
+      {
+        path: 'tests/web/traveloka-flight-filter.spec.ts',
+        reason: 'Baseline flight sidebar filter regression case.',
+      },
+      {
+        path: 'tests/web/traveloka-flight-random-filter.spec.ts',
+        reason: 'Baseline airline verification regression case.',
+      },
+    );
+  }
+
+  return [...specs, ...helpers]
+    .map((item) => {
+      const content = readWorkspaceFile(workspaceRoot, item.path);
+      if (!content) {
+        return null;
+      }
+
+      return {
+        kind: /\.spec\./.test(item.path) ? 'existing-test' : 'shared-helper',
+        path: item.path,
+        reason: item.reason,
+        summary: summarizeEvidenceFile(item.path, content),
+      };
+    })
+    .filter(Boolean) as Candidate['retrievedEvidence'];
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values));
+}
+
+function buildFlightGeneratedPlan(
+  concerns: FlightConcern[],
+  retrievedEvidence: NonNullable<Candidate['retrievedEvidence']>,
+  changedFiles: string[],
+): FlightGeneratedPlan {
+  const importLines = new Set<string>();
+  const assertionLines = [
+    'const currentUrl = new URL(page.url());',
+    'expect(currentUrl.pathname).toBe(new URL(TARGET_URL).pathname);',
+    "expect(workflowPlan.sourceContext.surface).toBe('search-results');",
+    'if (!sidebar) {',
+    "  throw new Error('Flight search sidebar was expected but not returned by the shared workflow.');",
+    '}',
+  ];
+  const interactionLines: string[] = [];
+  const targetTests = retrievedEvidence
+    .filter((evidence) => evidence.kind === 'existing-test')
+    .map((evidence) => evidence.path);
+  const evidenceCommentLines = [
+    '// Weekly diff generated candidate: refine this case against the actual changed source files.',
+    '// Suggested changed files: ' + JSON.stringify(changedFiles),
+    ...retrievedEvidence.map(
+      (evidence) => `// Retrieved ${evidence.kind}: ${evidence.path} - ${evidence.summary}`,
+    ),
+  ];
+
+  importLines.add('import { travelokaFlightSearchResultsSelectors } from ../lib/traveloka-flight/locators;');
+  assertionLines.push(
+    'await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.flights)).toBeVisible({ timeout: 15000 });',
+    'await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.filter)).toBeVisible({ timeout: 15000 });',
+  );
+
+  if (concerns.includes('transit-filter')) {
+    importLines.add('import { clickTransitCountFilter, expectTransitCountFilterChecked, getTransitCountSection } from ../lib/traveloka-flight/locators;');
+    assertionLines.push('await expect(getTransitCountSection(page)).toBeVisible({ timeout: 30000 });');
+    interactionLines.push(
+      "await clickTransitCountFilter(page, 'ONE_TRANSIT');",
+      "await page.waitForLoadState('networkidle').catch(() => {});",
+      "await expectTransitCountFilterChecked(page, 'ONE_TRANSIT');",
+    );
+  }
+
+  if (concerns.includes('airline-filter')) {
+    importLines.add('import { discoverFlightFilterOptionsInSection, getTaggedFlightResultCards, tagVisibleFlightResultCards } from ../lib/traveloka-flight/locators;');
+    interactionLines.push(
       "const discoveredAirlines = await discoverFlightFilterOptionsInSection(sidebar, 'Airline', 'data-weekly-airline-option-idx');",
       "await testInfo.attach('weekly-discovered-airlines.json', {",
       '  body: Buffer.from(JSON.stringify(discoveredAirlines, null, 2)),',
       "  contentType: 'application/json',",
       '});',
       "expect(discoveredAirlines.length, 'Weekly generated case expects at least one airline filter option in the sidebar.').toBeGreaterThan(0);",
+      'const chosenAirline = discoveredAirlines[0];',
+      'await sidebar.locator(`[data-weekly-airline-option-idx="${chosenAirline.filterOptionIdx}"]`).click({ force: true });',
+      "await page.waitForLoadState('networkidle').catch(() => {});",
+      "const taggedCardCount = await tagVisibleFlightResultCards(page, 'data-weekly-flight-card-idx');",
+      "const cards = getTaggedFlightResultCards(page, 'data-weekly-flight-card-idx');",
+      "expect(taggedCardCount, 'Weekly generated case expects visible flight result cards after selecting the first airline filter.').toBeGreaterThan(0);",
+      'await expect(cards.first()).toBeVisible({ timeout: 15000 });',
+      'const airlineName = chosenAirline.labelText.replace(/\\s*S?\\$\\s*\\d[\\d,]*(?:\\.\\d+)?\\s*$/i, \"\").replace(/\\s*\\(\\d+\\)\\s*$/, \"\").trim();',
+      'const firstCardText = await cards.first().innerText();',
+      'expect(firstCardText.toLowerCase()).toContain(airlineName.toLowerCase());',
+    );
+  } else if (concerns.includes('results-list')) {
+    importLines.add('import { getTaggedFlightResultCards, tagVisibleFlightResultCards } from ../lib/traveloka-flight/locators;');
+    interactionLines.push(
       "const taggedCardCount = await tagVisibleFlightResultCards(page, 'data-weekly-flight-card-idx');",
       "const cards = getTaggedFlightResultCards(page, 'data-weekly-flight-card-idx');",
       "expect(taggedCardCount, 'Weekly generated case expects visible flight result cards.').toBeGreaterThan(0);",
       'await expect(cards.first()).toBeVisible({ timeout: 15000 });',
       'const firstCardText = await cards.first().innerText();',
       "expect(firstCardText).toMatch(/flight details|fare\\s*&\\s*benefits/i);",
-      'const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);',
-      'if (screenshot) {',
-      "  await testInfo.attach('weekly-generated-results.png', {",
-      '    body: screenshot,',
-      "    contentType: 'image/png',",
-      '  });',
-      '}',
-      '// Weekly diff generated candidate: refine this case against the actual changed source files.',
-      '// Suggested changed files: ' + JSON.stringify(changedFiles),
+    );
+  }
+
+  interactionLines.push(
+    'const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);',
+    'if (screenshot) {',
+    "  await testInfo.attach('weekly-generated-results.png', {",
+    '    body: screenshot,',
+    "    contentType: 'image/png',",
+    '  });',
+    '}',
+    ...evidenceCommentLines,
+  );
+
+  return {
+    concerns,
+    targetTests: uniqueStrings(targetTests),
+    extraImportBlock: Array.from(importLines)
+      .map((line) => line.replace('../', "'../").replace(';', "';"))
+      .join('\n'),
+    assertionLines,
+    interactionLines,
+  };
+}
+
+function scoreFlightFile(filePath: string): DomainSignal {
+  const value = filePath.toLowerCase();
+  let score = 0;
+  let strong = false;
+
+  if (/^packages\/flight\//.test(value)) {
+    score += 8;
+    strong = true;
+  }
+  if (/^tests\/(web\/traveloka-flight|lib\/traveloka-flight)\//.test(value)) {
+    score += 7;
+    strong = true;
+  }
+  if (/^packages\/package\/flight-hotel\//.test(value)) {
+    score += 3;
+  }
+  if (/fpr-search-result|flightsearchsidebarfilter|fullsearch|fulltwosearch|tiket-pesawat/.test(value)) {
+    score += 4;
+    strong = true;
+  }
+  if (/\b(airline|carrier|transit|layover|fare)\b/.test(value)) {
+    score += 3;
+  }
+
+  return { domain: 'flight-search', score, strong };
+}
+
+function scoreI18nFile(filePath: string): DomainSignal {
+  const value = filePath.toLowerCase();
+  let score = 0;
+  let strong = false;
+
+  if (/^audit-output\/(home-i18n|i18n)\//.test(value)) {
+    score += 6;
+    strong = true;
+  }
+  if (/^tests\/traveloka-(home-)?i18n/.test(value)) {
+    score += 6;
+    strong = true;
+  }
+  if (/\b(i18n|locale|language|translation|dictionary|copy)\b/.test(value)) {
+    score += 3;
+  }
+
+  return { domain: 'web-i18n', score, strong };
+}
+
+function scoreAndroidFile(filePath: string): DomainSignal {
+  const value = filePath.toLowerCase();
+  let score = 0;
+  let strong = false;
+
+  if (/^tests\/traveloka-android/.test(value)) {
+    score += 6;
+    strong = true;
+  }
+  if (/^apks\//.test(value)) {
+    score += 5;
+    strong = true;
+  }
+  if (/\b(android|mobile app|appentry)\b/.test(value)) {
+    score += 3;
+  }
+  if (/\b(account|home)\b/.test(value)) {
+    score += 1;
+  }
+
+  return { domain: 'android-home', score, strong };
+}
+
+function collectDomainSignals(filePath: string): DomainSignal[] {
+  return [
+    scoreFlightFile(filePath),
+    scoreI18nFile(filePath),
+    scoreAndroidFile(filePath),
+  ];
+}
+
+function hasStrongFlightEvidence(changedFiles: string[]) {
+  return changedFiles.some((filePath) => {
+    const value = filePath.toLowerCase();
+    return (
+      /^packages\/flight\//.test(value) ||
+      /^tests\/(web\/traveloka-flight|lib\/traveloka-flight)\//.test(value) ||
+      /fpr-search-result|flightsearchsidebarfilter|fullsearch|fulltwosearch/.test(value)
+    );
+  });
+}
+
+function buildFlightCandidate(changedFiles: string[], workspaceRoot: string): Candidate {
+  const keywords = summarizeKeywords(changedFiles);
+  const phrase = keywords.length ? keywords.join(', ') : 'search results and filters';
+  const suggestedUserIntent =
+    `Open the desktop Traveloka flight search results page and validate the weekly regression areas touching ${phrase}. ` +
+    'Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.';
+  const sourceContext = buildFlightSourceContextFromFiles(changedFiles, suggestedUserIntent);
+  const hasStrongEvidence = hasStrongFlightEvidence(changedFiles);
+  const retrievedEvidence = collectFlightRetrievedEvidence(workspaceRoot, sourceContext.concerns) ?? [];
+  const generatedPlan = buildFlightGeneratedPlan(
+    sourceContext.concerns as FlightConcern[],
+    retrievedEvidence,
+    changedFiles,
+  );
+  const webSpecFileName = 'traveloka-flight-weekly-diff-generated.spec.ts';
+  const webSpecContent = createFlightCaseTemplate({
+    testName: 'Traveloka weekly diff generated flight results coverage',
+    url: sourceContext.url,
+    userIntent: suggestedUserIntent,
+    importPrefix: '../',
+    extraImportBlock: generatedPlan.extraImportBlock,
+    concerns: generatedPlan.concerns,
+    assertionLines: generatedPlan.assertionLines,
+    interactionLines: [
+      ...generatedPlan.interactionLines,
       ...sourceContext.sourceHints.map(
         (hint) => `// Source hint: ${hint.sourcePath} - ${hint.reason}`,
       ),
@@ -262,35 +571,33 @@ function buildFlightCandidate(changedFiles: string[]): Candidate {
   return {
     id: 'flight-search-weekly',
     domain: 'flight-search',
+    confidence: hasStrongEvidence ? 'high' : 'low',
     title: 'Weekly flight search regression coverage',
     action: 'modify-existing',
     reason:
-      'Changed files look related to flight search or results surfaces. Re-check existing search-results tests before adding new ones.',
+      hasStrongEvidence
+        ? 'Changed files map to verified flight search/result surfaces. Re-check existing search-results tests before adding new ones.'
+        : 'Changed files weakly suggest flight behavior, but direct source evidence is missing. Keep this as manual-review guidance instead of auto-emitting a runnable spec.',
+    solution: hasStrongEvidence
+      ? 'Prioritize existing flight regression tests, then emit a runnable weekly spec because verified flight source evidence exists.'
+      : 'Limit this candidate to a draft and require manual review before creating a runnable spec.',
+    howToSolve: hasStrongEvidence
+      ? 'Use packages/flight and traveloka-flight helper evidence to route the candidate, then emit the generated web spec through the shared workflow template.'
+      : 'Keep the target URL and source hints, but suppress web spec emission until a packages/flight or traveloka-flight source file is present in the diff.',
     changedFiles,
-    targetTests: [
-      'tests/web/traveloka-flight-filter.spec.ts',
-      'tests/web/traveloka-flight-random-filter.spec.ts',
-    ],
+    targetTests: generatedPlan.targetTests.length
+      ? generatedPlan.targetTests
+      : [
+          'tests/web/traveloka-flight-filter.spec.ts',
+          'tests/web/traveloka-flight-random-filter.spec.ts',
+        ],
     suggestedUserIntent,
     targetUrl: sourceContext.url,
     concerns: sourceContext.concerns,
     sourceHints: sourceContext.sourceHints,
-    draftFileName: 'traveloka-flight-weekly-generated.spec.ts',
-    draftContent: createFlightCaseTemplate({
-      testName: 'Traveloka weekly diff generated flight search regression',
-      url: sourceContext.url,
-      userIntent: suggestedUserIntent,
-      concerns: sourceContext.concerns,
-      interactionLines: [
-        '// Weekly diff generated candidate: refine this case against the actual changed source files.',
-        '// Suggested changed files: ' + JSON.stringify(changedFiles),
-        ...sourceContext.sourceHints.map(
-          (hint) => `// Source hint: ${hint.sourcePath} - ${hint.reason}`,
-        ),
-      ],
-    }),
-    webSpecFileName,
-    webSpecContent,
+    retrievedEvidence,
+    webSpecFileName: hasStrongEvidence ? webSpecFileName : undefined,
+    webSpecContent: hasStrongEvidence ? webSpecContent : undefined,
   };
 }
 
@@ -299,10 +606,13 @@ function buildI18nCandidate(changedFiles: string[]): Candidate {
   return {
     id: 'web-i18n-weekly',
     domain: 'web-i18n',
+    confidence: 'medium',
     title: 'Weekly web i18n regression coverage',
     action: 'modify-existing',
     reason:
       'Changed files look related to locale, language, or untranslated strings. Prefer updating existing i18n audit coverage before creating new tests.',
+    solution: 'Update existing locale audit coverage before creating any new spec.',
+    howToSolve: 'Route only locale and translation evidence into the i18n audit templates and reuse current audit cases.',
     changedFiles,
     targetTests: [
       'tests/traveloka-i18n-audit.spec.ts',
@@ -318,10 +628,13 @@ function buildAndroidCandidate(changedFiles: string[]): Candidate {
   return {
     id: 'android-home-weekly',
     domain: 'android-home',
+    confidence: 'medium',
     title: 'Weekly Android home regression coverage',
     action: 'modify-existing',
     reason:
       'Changed files look related to Android home/account flows. Reuse the existing Android audit or smoke specs first.',
+    solution: 'Reuse the current Android audit and smoke coverage first.',
+    howToSolve: 'Only map files with APK, Android, or traveloka-android evidence into the Android candidate.',
     changedFiles,
     targetTests: [
       'tests/traveloka-android.spec.ts',
@@ -338,10 +651,13 @@ function buildGenericWebCandidate(changedFiles: string[]): Candidate {
   return {
     id: 'generic-web-weekly',
     domain: 'generic-web',
+    confidence: 'low',
     title: 'Weekly generic web regression coverage',
     action: 'create-new',
     reason:
       'Changed files do not map cleanly to an existing domain-specific template. Produce a manual review candidate and decide whether to add a new spec.',
+    solution: 'Hold as a manual-review candidate instead of auto-generating a runnable spec.',
+    howToSolve: 'Ask for stronger ownership evidence or build a new domain-specific template before generating executable tests.',
     changedFiles,
     targetTests: [],
     suggestedUserIntent:
@@ -349,33 +665,44 @@ function buildGenericWebCandidate(changedFiles: string[]): Candidate {
   };
 }
 
-function routeCandidates(files: DiffFile[]): Candidate[] {
-  const buckets = {
-    flight: [] as string[],
-    i18n: [] as string[],
-    android: [] as string[],
-    generic: [] as string[],
+function routeCandidates(files: DiffFile[], workspaceRoot: string): Candidate[] {
+  const buckets: Record<'flight-search' | 'web-i18n' | 'android-home' | 'generic-web', DomainBucket> = {
+    'flight-search': { files: [], score: 0, strongHits: 0 },
+    'web-i18n': { files: [], score: 0, strongHits: 0 },
+    'android-home': { files: [], score: 0, strongHits: 0 },
+    'generic-web': { files: [], score: 0, strongHits: 0 },
   };
 
   for (const file of files) {
-    const value = file.filePath.toLowerCase();
-    if (/flight|airline|transit|fare|booking|search/.test(value)) {
-      buckets.flight.push(file.filePath);
-    } else if (/i18n|locale|language|translation|copy|dictionary/.test(value)) {
-      buckets.i18n.push(file.filePath);
-    } else if (/android|mobile|appentry|account|home/.test(value)) {
-      buckets.android.push(file.filePath);
-    } else {
-      buckets.generic.push(file.filePath);
+    const signals = collectDomainSignals(file.filePath)
+      .filter((signal) => signal.score > 0)
+      .sort((left, right) => right.score - left.score);
+
+    if (!signals.length) {
+      buckets['generic-web'].files.push(file.filePath);
+      continue;
+    }
+
+    const best = signals[0];
+    buckets[best.domain].files.push(file.filePath);
+    buckets[best.domain].score += best.score;
+    if (best.strong) {
+      buckets[best.domain].strongHits += 1;
     }
   }
 
   const candidates: Candidate[] = [];
-  if (buckets.flight.length) candidates.push(buildFlightCandidate(buckets.flight));
-  if (buckets.i18n.length) candidates.push(buildI18nCandidate(buckets.i18n));
-  if (buckets.android.length) candidates.push(buildAndroidCandidate(buckets.android));
-  if (!candidates.length && buckets.generic.length) {
-    candidates.push(buildGenericWebCandidate(buckets.generic));
+  if (buckets['flight-search'].strongHits > 0) {
+    candidates.push(buildFlightCandidate(buckets['flight-search'].files, workspaceRoot));
+  }
+  if (buckets['web-i18n'].files.length && buckets['web-i18n'].score >= 3) {
+    candidates.push(buildI18nCandidate(buckets['web-i18n'].files));
+  }
+  if (buckets['android-home'].files.length && buckets['android-home'].score >= 3) {
+    candidates.push(buildAndroidCandidate(buckets['android-home'].files));
+  }
+  if (!candidates.length && buckets['generic-web'].files.length) {
+    candidates.push(buildGenericWebCandidate(buckets['generic-web'].files));
   }
 
   return candidates;
@@ -415,8 +742,15 @@ function renderMarkdown(args: Args, startCommit: string, endRef: string, files: 
     lines.push(`### ${candidate.title}`);
     lines.push('');
     lines.push(`- Domain: ${candidate.domain}`);
+    lines.push(`- Confidence: ${candidate.confidence}`);
     lines.push(`- Action: ${candidate.action}`);
     lines.push(`- Reason: ${candidate.reason}`);
+    if (candidate.solution) {
+      lines.push(`- Solution: ${candidate.solution}`);
+    }
+    if (candidate.howToSolve) {
+      lines.push(`- How to solve: ${candidate.howToSolve}`);
+    }
     lines.push(`- Suggested intent: ${candidate.suggestedUserIntent}`);
     if (candidate.targetUrl) {
       lines.push(`- Canonical target URL: ${candidate.targetUrl}`);
@@ -434,16 +768,46 @@ function renderMarkdown(args: Args, startCommit: string, endRef: string, files: 
       lines.push(`- Generated web spec file: tests/web/${candidate.webSpecFileName}`);
     }
     if (candidate.sourceHints?.length) {
-      lines.push('- Source hints:');
-      for (const hint of candidate.sourceHints) {
-        lines.push(`  - ${hint.sourcePath}: ${hint.reason}`);
-      }
+      lines.push(`- Source hints: ${candidate.sourceHints.length} tracked in summary.json`);
     }
-    lines.push('- Changed files:');
-    for (const filePath of candidate.changedFiles) {
-      lines.push(`  - ${filePath}`);
+    if (candidate.retrievedEvidence?.length) {
+      lines.push(`- Retrieved evidence: ${candidate.retrievedEvidence.length} tracked in summary.json`);
     }
+    lines.push(`- Changed files: ${candidate.changedFiles.length} tracked in summary.json`);
     lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function renderConsoleSummary(
+  args: Args,
+  startCommit: string,
+  endRef: string,
+  files: DiffFile[],
+  candidates: Candidate[],
+) {
+  const lines: string[] = [];
+  lines.push('[weekly-diff] summary');
+  lines.push(`- repo: ${args.repoPath}`);
+  lines.push(`- range: ${startCommit}..${endRef}`);
+  lines.push(`- changed files: ${files.length}`);
+
+  if (!candidates.length) {
+    lines.push('- candidates: none');
+    return lines.join('\n');
+  }
+
+  lines.push(`- candidates: ${candidates.length}`);
+  for (const candidate of candidates) {
+    lines.push(
+      `  - ${candidate.domain} | ${candidate.confidence} | ${candidate.action} | ${candidate.title}`,
+    );
+    if (candidate.webSpecFileName) {
+      lines.push(`    web spec: tests/web/${candidate.webSpecFileName}`);
+    } else if (candidate.draftFileName) {
+      lines.push(`    draft: ${candidate.draftFileName}`);
+    }
   }
 
   return lines.join('\n');
@@ -451,10 +815,9 @@ function renderMarkdown(args: Args, startCommit: string, endRef: string, files: 
 
 function writeArtifacts(rootDir: string, markdown: string, candidates: Candidate[], files: DiffFile[]) {
   fs.mkdirSync(rootDir, { recursive: true });
-  fs.writeFileSync(path.join(rootDir, 'summary.md'), markdown);
   fs.writeFileSync(
     path.join(rootDir, 'summary.json'),
-    JSON.stringify({ generatedAt: new Date().toISOString(), files, candidates }, null, 2),
+    JSON.stringify({ generatedAt: new Date().toISOString(), markdownSummary: markdown, files, candidates }, null, 2),
   );
 
   for (const candidate of candidates) {
@@ -488,16 +851,23 @@ function main() {
 
   const startCommit = getStartCommit(repoPath, args.baseRef, args.sinceDays);
   const changedFiles = getChangedFiles(repoPath, startCommit, args.baseRef);
-  const routedCandidates = routeCandidates(changedFiles);
+  const routedCandidates = routeCandidates(changedFiles, process.cwd());
   const candidates = filterCandidatesByFocus(routedCandidates, args.focusDomain);
   const resolvedArgs = { ...args, repoPath };
   const markdown = renderMarkdown(resolvedArgs, startCommit, args.baseRef, changedFiles, candidates);
+  const consoleSummary = renderConsoleSummary(
+    resolvedArgs,
+    startCommit,
+    args.baseRef,
+    changedFiles,
+    candidates,
+  );
 
   const timestamp = new Date().toISOString().replace(/[:]/g, '-');
   const outputRoot = path.resolve(process.cwd(), args.outputDir, timestamp);
 
   if (args.dryRun) {
-    console.log(markdown);
+    console.log(consoleSummary);
     console.log('');
     console.log(`[weekly-diff] dry-run only; no files written to ${outputRoot}`);
     return;
@@ -507,7 +877,7 @@ function main() {
   if (args.emitWebSpec) {
     writeWebSpecs(process.cwd(), candidates);
   }
-  console.log(markdown);
+  console.log(consoleSummary);
   console.log('');
   console.log(`[weekly-diff] wrote artifacts to ${outputRoot}`);
   if (args.emitWebSpec) {
