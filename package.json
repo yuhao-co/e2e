@@ -7,8 +7,11 @@
     "mlx:server": "bash scripts/start-mlx-server.sh",
     "mlx:smoke": "bash scripts/mlx-smoke.sh",
     "generate:weekly-diff-cases": "tsx scripts/generate-cases-from-weekly-diff.ts",
+    "notify:run": "tsx scripts/run-with-lark-notify.ts",
     "test": "playwright test",
+    "test:lark": "npm run notify:run -- --label \"Playwright test\" -- npx playwright test",
     "test:headed": "playwright test --headed",
+    "weekly-diff:lark": "npm run notify:run -- --label \"Weekly diff case generation\" -- /bin/zsh scripts/run-weekly-diff-case-generator.sh",
     "report": "playwright show-report"
   },
   "devDependencies": {
