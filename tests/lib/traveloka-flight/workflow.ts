@@ -60,7 +60,13 @@ export type MetasearchBookingContactInput = {
 export type MetasearchEmailConfirmationInput = {
   email: string;
   mismatchedEmail?: string;
+  requiredErrorText?: string;
+  mismatchErrorText?: string;
 };
+
+function escapeRegExp(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export type SearchResultsToBookingInput = {
   url: string;
@@ -255,6 +261,8 @@ export async function assertMetasearchEmailConfirmationBehavior(
   const confirmationField = getBookingContactEmailConfirmationField(page);
   const saveOrContinueButton = getBookingContactSaveOrContinueButton(page);
   const mismatchedEmail = input.mismatchedEmail ?? 'qa-metasearch-typo@example.com';
+  const requiredErrorText = input.requiredErrorText ?? 'Please re-enter your email';
+  const mismatchErrorText = input.mismatchErrorText ?? 'Please input the same email address';
 
   await expect(
     emailField,
@@ -279,22 +287,24 @@ export async function assertMetasearchEmailConfirmationBehavior(
   await saveOrContinueButton.click();
 
   await expect(
-    getBookingContactRequiredOrConfirmationError(page),
-    'Empty confirmation field should surface a required validation error.',
+    page.getByText(new RegExp(escapeRegExp(requiredErrorText), 'i')).first(),
+    `Empty confirmation field should surface the PRD error: ${requiredErrorText}`,
   ).toBeVisible({ timeout: 15000 });
 
   await confirmationField.fill(mismatchedEmail);
   await saveOrContinueButton.click();
 
   await expect(
-    getBookingContactMismatchError(page),
-    'Mismatched confirmation email should surface a mismatch validation error.',
+    page.getByText(new RegExp(escapeRegExp(mismatchErrorText), 'i')).first(),
+    `Mismatched confirmation email should surface the PRD error: ${mismatchErrorText}`,
   ).toBeVisible({ timeout: 15000 });
 
   await confirmationField.fill(input.email);
   await saveOrContinueButton.click();
 
-  await expect(getBookingContactMismatchError(page)).toBeHidden({ timeout: 10000 }).catch(() => {});
+  await expect(
+    page.getByText(new RegExp(escapeRegExp(mismatchErrorText), 'i')).first(),
+  ).toBeHidden({ timeout: 10000 }).catch(() => {});
 }
 
 export async function isTravelokaRestricted(page: Page) {
