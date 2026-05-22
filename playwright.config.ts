@@ -151,6 +151,8 @@ const stealthInitScript = `
 })();
 `;
 
+const weeklyRun = process.env.WEEKLY_NOTIFY === '1' || process.env.CI === '1';
+
 export default defineConfig({
   testDir: './tests',
   // Local Qwen2.5-VL-7B-4bit inference is slow per call; keep generous budgets.
@@ -159,11 +161,16 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  reporter: [
-    ['list'],
-    ['html', { open: 'on-failure', outputFolder: 'playwright-report' }],
-    ['@midscene/web/playwright-reporter', { type: 'merged' }],
-  ],
+  reporter: weeklyRun
+    ? [
+        ['list'],
+        ['@midscene/web/playwright-reporter', { type: 'merged' }],
+      ]
+    : [
+        ['list'],
+        ['html', { open: 'on-failure', outputFolder: 'playwright-report' }],
+        ['@midscene/web/playwright-reporter', { type: 'merged' }],
+      ],
   use: {
     baseURL: 'https://www.traveloka.com',
     // Run real (system) Chrome instead of bundled Chromium — much friendlier

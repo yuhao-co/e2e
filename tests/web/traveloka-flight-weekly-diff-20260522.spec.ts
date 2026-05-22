@@ -82,7 +82,7 @@ test('Traveloka weekly diff generated flight results coverage (20260522)', async
   // Retrieved shared-helper: docs/traveloka-flight-locator-guideline.md - Relevant local evidence file for weekly diff generation.
   // Retrieved shared-helper: docs/traveloka-flight-filter-structure.md - Relevant local evidence file for weekly diff generation.
   // Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - Exports: createFlightWorkflowPlan, isFlightSearchResultsPlan
-  // Retrieved shared-helper: tests/lib/traveloka-flight/locators.ts - Exports: getFlightSearchSidebar, getFlightResultChooseButton, getSelectTicketTypeDialog, getTicketTypeSelectButton
+  // Retrieved shared-helper: tests/lib/traveloka-flight/locators.ts - Exports: getFlightSearchSidebar, getFlightResultChooseButton, getFlightInventoryCardButton, getSelectTicketTypeDialog
   // Retrieved shared-helper: tests/lib/traveloka-flight/source-map.ts - Exports: inferFlightCanonicalUrlFromFiles, buildFlightSourceContextFromFiles, inferFlightSurface, buildFlightSourceContext
   // Retrieved shared-helper: tests/lib/traveloka-flight/template.ts - Exports: createFlightCaseTemplate
   // Source hint: packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx - Closest verified results-page component discovered for current desktop flight surface.

@@ -2,8 +2,7 @@ import { expect, test } from '../fixture';
 import {
   attachFlightWorkflowPlan,
   createFlightWorkflowPlan,
-  openBookingPageFromSearchResults,
-  openMetasearchBookingContactPage,
+  openFlightSearchTask,
 } from '../lib/traveloka-flight/workflow';
 
 
@@ -11,9 +10,9 @@ const TARGET_URL = 'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DP
 
 /**
  * EN Purpose: Open the desktop Traveloka flight booking page and validate booking contact form fields, including email, email confirmation, mobile number, and passenger name. Verify required-field errors and mismatch-email validation are rendered correctly.
- * 中文目的: 验证本周 flight 改动在 booking 场景下是否仍然满足既有回归预期。
- * EN Surface: booking
- * 中文范围: booking 页面。
+ * 中文目的: 验证本周 flight 改动在 search-results 场景下是否仍然满足既有回归预期。
+ * EN Surface: search-results
+ * 中文范围: search-results 页面。
  * EN Concerns: booking-contact
  * 中文关注点: booking-contact
  * EN Main checks: booking contact form field rendering and validation.
@@ -44,21 +43,35 @@ test('Traveloka weekly diff booking contact coverage (20260522)', async ({ page 
 
   await attachFlightWorkflowPlan(testInfo, workflowPlan);
 
+  const { sidebar } = await openFlightSearchTask(page, {
+    url: workflowPlan.input.url,
+    userIntent: "Open the desktop Traveloka flight booking page and validate booking contact form fields, including email, email confirmation, mobile number, and passenger name. Verify required-field errors and mismatch-email validation are rendered correctly.",
+    concerns: ["booking-contact"],
+    waitForSidebar: false,
+  });
+
+  void sidebar;
+
+  const bookingPath = new URL(page.url()).pathname;
+  expect(bookingPath).toMatch(/\/flight\/booking/);
+
   // Booking contact form validation coverage.
   // If TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL is set, navigate directly to the booking page.
   // Otherwise use the canonical desktop booking chain from the search results entry URL.
   const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;
   if (directBookingUrl) {
-    await openMetasearchBookingContactPage(page, {
-      url: directBookingUrl,
-      viewport: { width: 1440, height: 900 },
-    });
+    await page.goto(directBookingUrl, { waitUntil: 'domcontentloaded' });
   } else {
-    await openBookingPageFromSearchResults(page, {
-      url: TARGET_URL,
-      viewport: { width: 1440, height: 900 },
-    });
+    // Fall back to the canonical booking chain: search results -> Choose -> Select ticket type.
+    await page.goto("https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY", { waitUntil: 'domcontentloaded' });
+    const chooseButton = page.locator('[data-testid*="choose"], button').filter({ hasText: /choose/i }).first();
+    await chooseButton.waitFor({ state: 'visible', timeout: 30000 });
+    await chooseButton.click();
+    const selectButton = page.locator('button').filter({ hasText: /^select$/i }).first();
+    await selectButton.waitFor({ state: 'visible', timeout: 15000 });
+    await selectButton.click();
   }
+  await page.waitForURL(/\/flight\/booking/, { timeout: 30000 }).catch(() => {});
   const bookingUrl = new URL(page.url());
   expect(bookingUrl.pathname).toMatch(/\/flight\/booking/);
   const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);

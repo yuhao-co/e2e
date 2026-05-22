@@ -62,7 +62,7 @@ if (( ${#WEEKLY_SPECS[@]} == 0 )); then
   exit 0
 fi
 
-TEST_CMD=(npx playwright test "${WEEKLY_SPECS[@]}")
+TEST_CMD=(env CI=1 npx playwright test --reporter=list "${WEEKLY_SPECS[@]}")
 
 echo "[weekly-diff] running accumulated weekly flight specs: ${#WEEKLY_SPECS[@]}"
 printf ' - %s\n' "${WEEKLY_SPECS[@]}"
