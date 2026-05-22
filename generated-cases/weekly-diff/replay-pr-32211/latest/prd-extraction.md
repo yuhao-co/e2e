@@ -1,46 +1,45 @@
 # PRD Extraction
 
 ## Retrieval Method
-Content retrieved exclusively via the MCP Lark document raw-content command path using document token `XT84wK4x8ig9NKk0rIelDoB6gkg`.
+Content retrieved exclusively via MCP Lark document raw-content command path using document token `XT84wK4x8ig9NKk0rIelDoB6gkg`.
 
 ## Source URL
 `https://traveloka.sg.larksuite.com/wiki/XT84wK4x8ig9NKk0rIelDoB6gkg`
 
 ## Access Status
-Success. MCP Lark raw-content returned readable PRD content.
+Success. MCP Lark raw-content returned readable PRD content for `[2026-01] Retention Dropoff` / `Booking Form Dropoff Retention Popup`.
 
 ## Key Requirements
-- Goal: reduce unintentional exits and improve Booking Form to Payment conversion.
-- Scope includes Old SBF and SBF 5.0.
-- Backend adds nullable `retentionPopupDisplay` data in `v2/trip/booking-v3/bookingPage` and `v2/trip/booking/bookingPage`.
-- Backend controls experiment and feature logic.
-- Popup content fields come from backend: image URL, title, description, primary button text, secondary button text.
-- Title and description support HTML, including response-driven text colors.
-- Only show retention behavior when `retentionPopupDisplay` is not null.
-- Show retention popup only once; if either native-browser or Traveloka popup has appeared, do not show it again.
-- App retention should show on back button, native back gesture, and Old SBF back-to-home action; not on login navigation, API back-action dialogs, or successful next-page navigation.
-- Mobile web should use Traveloka retention on nav-bar back only; no reliable native browser retention.
-- Desktop web should use Traveloka retention on Traveloka-logo exit and native browser retention on browser/tab/window exit behaviors.
-- Tracking required for popup show, primary click, secondary click, and back-to-previous-page, with native browser popup limited in click tracking support.
+- Goal: reduce unintentional exits and improve Booking Form to Payment conversion for Old SBF and SBF 5.0.
+- Backend adds nullable `retentionPopupDisplay` data to `v2/trip/booking-v3/bookingPage` and `v2/trip/booking/bookingPage`.
+- Popup content includes image, title, description, primary button text, and secondary button text.
+- Title and description support HTML; some text colors come from backend response.
+- Only show retention popup when `retentionPopupDisplay` is not null.
+- Popup must be shown only once; if either native browser or Traveloka popup has already shown, do not show again.
+- App leave triggers showing popup: nav-bar back, native back gesture, and Old SBF home navigation via three-dot menu.
+- App leave triggers not showing popup: login navigation, booking/create-booking back-action modals, successful next-page navigation.
+- Mobile web: use only Traveloka retention on nav-bar back; no dependable native browser retention. iOS unsupported, Android partial.
+- Desktop web: Traveloka retention on Traveloka logo click; native browser retention on native exit behaviors like back, tab close, browser close, `Cmd/Ctrl+W`.
+- Tracking required for popup show, primary click, secondary click, and back-to-previous-page; native browser popup cannot track click events.
 
 ## Risks
-- Browser-native retention support is inconsistent, especially on mobile web and unsupported on iOS mobile web.
-- One-time display logic across native and Traveloka popups may be easy to regress.
-- HTML rendering from backend content introduces rendering and styling consistency risk.
-- Tracking parity differs between Traveloka popup and native browser popup.
-- Some FE-BE contract details were marked TBD or finalized later in MoM notes.
+- Browser support differs by platform, especially mobile web and native `beforeunload` behavior.
+- HTML rendering in title/description may create formatting or sanitization inconsistencies.
+- One-time display logic must stay consistent across Traveloka popup and native browser popup.
+- Tracking parity is incomplete because native browser popup click events are not trackable.
+- Behavior matrix differs across apps, mobile web, desktop web, Old SBF, and SBF 5.0.
 
 ## Test Implications
-- Validate nullable and non-null `retentionPopupDisplay` responses for both Old SBF and SBF 5.0 paths.
-- Verify exact leave conditions per platform: apps, mobile web, desktop web.
-- Verify one-time display behavior across both popup types in the same session/flow.
-- Verify HTML title/description rendering, including colored text.
-- Verify backend-driven content mapping for image and button texts.
-- Verify native-browser retention only where supported, and absence where unsupported.
-- Verify analytics for show/back events on all supported surfaces and click events only for Traveloka popup.
+- Validate null vs non-null `retentionPopupDisplay` behavior.
+- Verify one-time popup suppression after any retention popup has been shown.
+- Cover platform-specific exit conditions for apps, mobile web, and desktop web.
+- Verify desktop native exit scenarios separately from Traveloka-triggered popup scenarios.
+- Check HTML rendering and styled text handling in title/description.
+- Validate analytics emission for show, primary click, secondary click, and back-to-previous-page where supported.
+- Confirm no popup on excluded navigations such as login, API back-action dialogs, and successful booking continuation.
 
 ## Open Questions
-- Exact FE-BE contract details for image/button fields should be confirmed against the latest backend documentation.
-- Expected behavior after primary vs secondary button clicks is not explicit in this extracted content.
-- Persistence boundary for "show only once" is unclear: page lifecycle, tab session, browser session, or user session.
-- Tracking schema details and event names are referenced externally and not fully specified in this PRD text.
+- Exact backend contract details for `imageUrl`, `primaryButtonText`, and `secondaryButtonText` were marked TBD in parts of the PRD/MoM.
+- Exact event names and payload schema should be confirmed from the linked tracking sheet/finalized tracking schema.
+- Persistence scope of the “show only once” rule is not explicit: page session, tab session, browser session, or user session.
+- HTML support boundaries and sanitization rules are not specified.

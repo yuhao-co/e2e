@@ -54,8 +54,20 @@ function parseArgs(argv: string[]) {
 
   return {
     label,
-    command: commandArgs.join(' '),
+    commandArgs,
   };
+}
+
+function formatCommandForDisplay(commandArgs: string[]) {
+  return commandArgs
+    .map((arg) => {
+      if (/^[A-Za-z0-9_./:@%+=,-]+$/.test(arg)) {
+        return arg;
+      }
+
+      return `'${arg.replaceAll("'", `'\\''`)}'`;
+    })
+    .join(' ');
 }
 
 function formatDuration(durationMs: number) {
@@ -279,16 +291,18 @@ function buildLarkCard(params: {
   };
 }
 
-async function runCommand(command: string): Promise<RunResult> {
+async function runCommand(commandArgs: string[]): Promise<RunResult> {
   return await new Promise((resolve, reject) => {
     const startedAt = Date.now();
     const outputBuffer: string[] = [];
     let trailingChunk = '';
 
-    const child = spawn(command, {
+    const [command, ...args] = commandArgs;
+
+    const child = spawn(command, args, {
       cwd: process.cwd(),
       env: process.env,
-      shell: true,
+      shell: false,
       stdio: ['inherit', 'pipe', 'pipe'],
     });
 
@@ -361,7 +375,8 @@ async function main() {
     throw new Error('Missing LARK_WEBHOOK_URL environment variable.');
   }
 
-  const { label, command } = parseArgs(process.argv.slice(2));
+  const { label, commandArgs } = parseArgs(process.argv.slice(2));
+  const command = formatCommandForDisplay(commandArgs);
   const hostname = process.env.HOSTNAME ?? 'local';
 
   let exitCode = 1;
@@ -370,7 +385,7 @@ async function main() {
   let runError: unknown;
 
   try {
-    const result = await runCommand(command);
+    const result = await runCommand(commandArgs);
     exitCode = result.exitCode;
     durationMs = result.durationMs;
     outputLines = result.outputLines;
