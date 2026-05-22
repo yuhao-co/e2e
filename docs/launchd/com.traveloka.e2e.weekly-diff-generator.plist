@@ -9,11 +9,13 @@
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>cd /Users/yu.hao/Desktop/task/e2e &amp;&amp; /bin/zsh /Users/yu.hao/Desktop/task/e2e/scripts/run-weekly-diff-case-generator.sh</string>
+    <string>cd /Users/yu.hao/Desktop/task/e2e &amp;&amp; CMD=(npx tsx scripts/generate-cases-from-weekly-diff.ts --base-ref "$BASE_REF" --since-days "$SINCE_DAYS" --output-dir "$OUTPUT_DIR") &amp;&amp; if [[ -n "$FOCUS_DOMAIN" ]]; then CMD+=(--focus-domain "$FOCUS_DOMAIN"); fi &amp;&amp; if [[ "$EMIT_WEB_SPEC" == "1" ]]; then CMD+=(--emit-web-spec); fi &amp;&amp; if [[ -n "$TARGET_REPO_URL" ]]; then CMD+=(--repo-url "$TARGET_REPO_URL" --repo-cache-dir "$TARGET_REPO_CACHE_DIR"); else CMD+=(--repo-path "$TARGET_REPO_PATH"); fi &amp;&amp; "${CMD[@]}"</string>
   </array>
 
   <key>EnvironmentVariables</key>
   <dict>
+    <key>PATH</key>
+    <string>/Users/yu.hao/.nvm/versions/node/v20.20.2/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     <key>REPO_ROOT</key>
     <string>/Users/yu.hao/Desktop/task/e2e</string>
     <key>TARGET_REPO_PATH</key>
@@ -39,9 +41,9 @@
     <key>Weekday</key>
     <integer>5</integer>
     <key>Hour</key>
-    <integer>21</integer>
+    <integer>10</integer>
     <key>Minute</key>
-    <integer>0</integer>
+    <integer>32</integer>
   </dict>
 
   <key>WorkingDirectory</key>
