@@ -2,7 +2,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 
 import {
   buildFlightSourceContextFromFiles,
@@ -10,6 +10,8 @@ import {
   type FlightConcern,
 } from '../tests/lib/traveloka-flight/source-map';
 import { createFlightCaseTemplate } from '../tests/lib/traveloka-flight/template';
+import { createAccumulator } from './lib/accumulation-orchestrator';
+import { notifyCustom } from './lib/lark-notifier';
 
 type Args = {
   repoPath: string | null;
@@ -22,6 +24,9 @@ type Args = {
   outputDir: string;
   fetch: boolean;
   dryRun: boolean;
+  runMode?: 'incremental' | 'full' | 'pr-focused';
+  runCases?: boolean;
+  skipBlockedDomains?: boolean;
 };
 
 type DiffFile = {
@@ -173,6 +178,9 @@ function parseArgs(argv: string[]): Args {
     outputDir: DEFAULT_OUTPUT_DIR,
     fetch: true,
     dryRun: false,
+    runMode: 'incremental',
+    runCases: false,
+    skipBlockedDomains: true,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -206,6 +214,15 @@ function parseArgs(argv: string[]): Args {
       result.fetch = false;
     } else if (arg === '--dry-run') {
       result.dryRun = true;
+    } else if (arg === '--run-mode' && next) {
+      if (['incremental', 'full', 'pr-focused'].includes(next)) {
+        result.runMode = next as 'incremental' | 'full' | 'pr-focused';
+      }
+      i++;
+    } else if (arg === '--run-cases') {
+      result.runCases = true;
+    } else if (arg === '--dont-skip-blocked') {
+      result.skipBlockedDomains = false;
     }
   }
 
@@ -1899,7 +1916,82 @@ function writeWebSpecs(workspaceRoot: string, candidates: Candidate[]) {
   }
 }
 
-function main() {
+/**
+ * Extract PR number from git commit messages
+ */
+function extractPRNumberFromCommits(changedFiles: DiffFile[]): number | undefined {
+  try {
+    const output = execSync('git log -1 --format=%B', { encoding: 'utf8' });
+    const match = output.match(/#(\d+)/);
+    if (match) return Number(match[1]);
+  } catch {
+    // fallback to undefined
+  }
+  return undefined;
+}
+
+/**
+ * Check if candidate is web desktop flight domain (focus filtering)
+ */
+function isFocusedCandidate(candidate: Candidate): boolean {
+  const isRelevantDomain = 
+    candidate.domain === 'flight-search' || 
+    candidate.domain === 'flight-booking';
+  
+  if (!isRelevantDomain) return false;
+  
+  // Ignore non-web surfaces
+  if (candidate.targetTests?.some(t => 
+    t.includes('android') || t.includes('home-i18n')
+  )) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Run generated test cases with error handling and skip-on-blocked logic
+ */
+async function runGeneratedCases(
+  caseDir: string,
+  skipBlocked: boolean = true
+): Promise<{ passed: number; failed: number; skipped: number; errors: string[] }> {
+  const specFiles = fs.readdirSync(caseDir)
+    .filter(f => f.endsWith('.spec.ts'))
+    .map(f => path.join(caseDir, f));
+  
+  const results = { passed: 0, failed: 0, skipped: 0, errors: [] as string[] };
+  
+  for (const specFile of specFiles) {
+    try {
+      console.log(`[run-cases] Running ${path.basename(specFile)}...`);
+      const cmd = `npx playwright test ${specFile} --headed --project=chromium`;
+      execSync(cmd, { stdio: 'inherit' });
+      results.passed++;
+    } catch (err: any) {
+      const stderr = err.stderr?.toString() || err.toString();
+      const isBlocked = stderr.includes('anti-crawler') || 
+                       stderr.includes('DataDome') || 
+                       stderr.includes('reCAPTCHA') ||
+                       stderr.includes('403') ||
+                       stderr.includes('429');
+      
+      if (isBlocked && skipBlocked) {
+        console.log(`[run-cases] Skipped (anti-crawler detected): ${path.basename(specFile)}`);
+        results.skipped++;
+      } else {
+        console.error(`[run-cases] Failed: ${path.basename(specFile)}`);
+        results.failed++;
+        results.errors.push(`${path.basename(specFile)}: ${stderr.split('\n')[0]}`);
+      }
+    }
+  }
+  
+  return results;
+}
+
+async function main() {
   const args = parseArgs(process.argv.slice(2));
   const repoPath = ensureRepoPath(args);
   if (!fs.existsSync(path.join(repoPath, '.git'))) {
@@ -1920,7 +2012,11 @@ function main() {
     startCommit,
     args.baseRef,
   );
-  const candidates = filterCandidatesByFocus(routedCandidates, args.focusDomain);
+  
+  // Focus on web desktop flight domain only
+  let candidates = filterCandidatesByFocus(routedCandidates, args.focusDomain);
+  candidates = candidates.filter(isFocusedCandidate);
+  
   const resolvedArgs = { ...args, repoPath };
   const markdown = renderMarkdown(resolvedArgs, startCommit, args.baseRef, changedFiles, candidates);
   const consoleSummary = renderConsoleSummary(
@@ -1931,26 +2027,91 @@ function main() {
     candidates,
   );
 
-  const outputRoot = path.resolve(process.cwd(), args.outputDir, 'latest');
+  // Use accumulation system instead of 'latest/'
+  const outputRoot = path.resolve(process.cwd(), args.outputDir);
+  const prNumber = extractPRNumberFromCommits(changedFiles);
+  const accumulator = createAccumulator(outputRoot, prNumber);
+  const targetDir = accumulator.getTargetDirectory();
 
   if (args.dryRun) {
     console.log(consoleSummary);
     console.log('');
-    console.log(`[weekly-diff] dry-run only; no files written to ${outputRoot}`);
+    console.log(`[weekly-diff] dry-run only; no files written to ${targetDir}`);
     return;
   }
 
-  resetOutputDir(outputRoot);
-  writeArtifacts(outputRoot, markdown, candidates, changedFiles);
+  // Process candidates with deduplication
+  let acceptedCount = 0;
+  const domains = new Set<Candidate['domain']>();
+  
+  for (const candidate of candidates) {
+    const result = accumulator.processCandidateCase(candidate);
+    
+    if (!result.isDuplicate) {
+      writeArtifacts(result.path, markdown, [candidate], changedFiles);
+      acceptedCount++;
+      domains.add(candidate.domain);
+    } else {
+      console.log(`[weekly-diff] Skipped duplicate: ${candidate.id}`);
+    }
+  }
+  
+  // Finalize and update manifest
+  const summary = accumulator.finalize(acceptedCount, Array.from(domains));
+  
   if (args.emitWebSpec) {
     writeWebSpecs(process.cwd(), candidates);
   }
   console.log(consoleSummary);
   console.log('');
-  console.log(`[weekly-diff] wrote artifacts to ${outputRoot}`);
-  if (args.emitWebSpec) {
-    console.log('[weekly-diff] wrote generated web specs to tests/web');
+  console.log(`[weekly-diff] accumulated ${acceptedCount}/${candidates.length} cases to ${targetDir}`);
+  console.log(`[weekly-diff] manifest updated:`);
+  console.log(JSON.stringify(summary.manifest.statistics, null, 2));
+  
+  // Run cases if requested
+  if (args.runCases) {
+    console.log('');
+    console.log(`[weekly-diff] running generated test cases...`);
+    const runResults = await runGeneratedCases(targetDir, args.skipBlockedDomains);
+    console.log(`[run-cases] Results: ${runResults.passed} passed, ${runResults.failed} failed, ${runResults.skipped} skipped`);
+    if (runResults.errors.length > 0) {
+      console.log(`[run-cases] Errors:`);
+      runResults.errors.forEach(e => console.log(`  - ${e}`));
+    }
+  }
+  
+  // Send Lark notification about generation completion
+  try {
+    const stats = summary.manifest.statistics;
+    const notificationContent = `
+**Weekly Diff Case Generation Complete**
+
+Generated: ${acceptedCount}/${candidates.length} new cases
+Total accumulated: ${stats.totalCases}
+
+By domain:
+${Object.entries(stats.byDomain)
+  .map(([domain, count]) => `• ${domain}: ${count}`)
+  .join('\n')}
+
+Location: \`generated-cases/${prNumber ? `pr-${prNumber}` : 'snapshot-' + new Date().toISOString().split('T')[0]}/\`
+
+${args.runCases ? '\n✅ Test cases auto-run (see separate notification)' : ''}
+    `.trim();
+    
+    await notifyCustom(
+      '📊 Weekly Diff Generation Complete',
+      notificationContent,
+      acceptedCount > 0 ? 'green' : 'yellow',
+    );
+  } catch (notifyErr) {
+    console.warn('[weekly-diff] Warning: Failed to send Lark notification:', notifyErr);
   }
 }
+
+main().catch(err => {
+  console.error('[weekly-diff] Error:', err);
+  process.exit(1);
+});
 
 main();
