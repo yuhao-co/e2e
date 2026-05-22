@@ -166,16 +166,31 @@ const meeglePrdResolutionCache = new Map<string, PrdReference[]>();
 const DEFAULT_OUTPUT_DIR = 'generated-cases/weekly-diff';
 const DEFAULT_BASE_REF = 'origin/master';
 const DEFAULT_REPO_CACHE_DIR = '.cache/weekly-diff-repos';
+
+// ============================================================================
+// 🔒 STRONG CONSTRAINTS: Desktop Web + Flight Only
+// ============================================================================
+// These constraints are MANDATORY and hardcoded:
+// 1. Source Repository: MUST be https://github.com/traveloka/www (production repo)
+// 2. Domain Focus: ONLY flight-search AND flight-booking (no other domains)
+// 3. Surface: ONLY desktop web (no mobile, no android, no i18n)
+// 4. Output: MUST be /Users/yu.hao/Desktop/task/e2e/tests/web
+// ============================================================================
+
+const FORCED_REPO_URL = 'https://github.com/traveloka/www';
+const FORCED_FOCUS_DOMAINS = ['flight-search', 'flight-booking'] as const;
+const FORCED_OUTPUT_DIR = '/Users/yu.hao/Desktop/task/e2e/tests/web';
+
 function parseArgs(argv: string[]): Args {
   const result: Args = {
     repoPath: null,
-    repoUrl: null,
+    repoUrl: FORCED_REPO_URL,  // 🔒 HARDCODED: Always use Traveloka www
     repoCacheDir: DEFAULT_REPO_CACHE_DIR,
-    focusDomain: null,
+    focusDomain: FORCED_FOCUS_DOMAINS as unknown as Candidate['domain'][],  // 🔒 HARDCODED: Flight only
     emitWebSpec: false,
     baseRef: DEFAULT_BASE_REF,
     sinceDays: 7,
-    outputDir: DEFAULT_OUTPUT_DIR,
+    outputDir: FORCED_OUTPUT_DIR,  // 🔒 HARDCODED: Desktop web test directory
     fetch: true,
     dryRun: false,
     runMode: 'incremental',
@@ -187,17 +202,19 @@ function parseArgs(argv: string[]): Args {
     const arg = argv[i];
     const next = argv[i + 1];
 
+    // 🔒 IGNORE: --repo-path, --repo-url (hardcoded to Traveloka www)
     if (arg === '--repo-path' && next) {
-      result.repoPath = path.resolve(next);
-      i++;
+      i++;  // Skip but don't apply
     } else if (arg === '--repo-url' && next) {
-      result.repoUrl = next;
-      i++;
+      i++;  // Skip but don't apply
+    // 🔒 IGNORE: --focus-domain (hardcoded to flight-search, flight-booking)
+    } else if (arg === '--focus-domain' && next) {
+      i++;  // Skip but don't apply
+    // 🔒 IGNORE: --output-dir (hardcoded to tests/web)
+    } else if (arg === '--output-dir' && next) {
+      i++;  // Skip but don't apply
     } else if (arg === '--repo-cache-dir' && next) {
       result.repoCacheDir = next;
-      i++;
-    } else if (arg === '--focus-domain' && next) {
-      result.focusDomain = next.split(',').map((d) => d.trim()) as Candidate['domain'][];
       i++;
     } else if (arg === '--emit-web-spec') {
       result.emitWebSpec = true;
@@ -206,9 +223,6 @@ function parseArgs(argv: string[]): Args {
       i++;
     } else if (arg === '--since-days' && next) {
       result.sinceDays = Number(next);
-      i++;
-    } else if (arg === '--output-dir' && next) {
-      result.outputDir = next;
       i++;
     } else if (arg === '--no-fetch') {
       result.fetch = false;
@@ -230,13 +244,14 @@ function parseArgs(argv: string[]): Args {
     throw new Error(`Invalid --since-days value: ${result.sinceDays}`);
   }
 
-  const validDomains = ['flight-search', 'flight-booking', 'web-i18n', 'android-home', 'generic-web'];
-  if (result.focusDomain) {
-    const invalid = result.focusDomain.filter((d) => !validDomains.includes(d));
-    if (invalid.length > 0) {
-      throw new Error(`Invalid --focus-domain value(s): ${invalid.join(', ')}`);
-    }
-  }
+  // 🔒 ENFORCE: focusDomain must ALWAYS be ['flight-search', 'flight-booking']
+  result.focusDomain = FORCED_FOCUS_DOMAINS as unknown as Candidate['domain'][];
+  
+  // 🔒 ENFORCE: outputDir must ALWAYS be tests/web
+  result.outputDir = FORCED_OUTPUT_DIR;
+  
+  // 🔒 ENFORCE: repoUrl must ALWAYS be Traveloka www
+  result.repoUrl = FORCED_REPO_URL;
 
   if (!result.repoPath && !result.repoUrl) {
     result.repoPath = process.cwd();
@@ -1993,6 +2008,17 @@ async function runGeneratedCases(
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  
+  // 🔒 STRONG CONSTRAINTS LOG
+  console.log('\n' + '='.repeat(80));
+  console.log('🔒 STRONG CONSTRAINTS (HARDCODED - CANNOT BE OVERRIDDEN):');
+  console.log('='.repeat(80));
+  console.log(`  1️⃣  Repository:    LOCKED → ${FORCED_REPO_URL}`);
+  console.log(`  2️⃣  Domain Focus:   LOCKED → ${FORCED_FOCUS_DOMAINS.join(', ')}`);
+  console.log(`  3️⃣  Surface:        LOCKED → Desktop Web Only (NO mobile/android/i18n)`);
+  console.log(`  4️⃣  Output Path:    LOCKED → ${FORCED_OUTPUT_DIR}`);
+  console.log('='.repeat(80) + '\n');
+  
   const repoPath = ensureRepoPath(args);
   if (!fs.existsSync(path.join(repoPath, '.git'))) {
     throw new Error(`repoPath is not a git repository: ${repoPath}`);
@@ -2028,7 +2054,9 @@ async function main() {
   );
 
   // Use accumulation system instead of 'latest/'
+  // 🔒 FORCED: Output must go to tests/web directory for immediate execution
   const outputRoot = path.resolve(process.cwd(), args.outputDir);
+  const testWebDir = path.resolve(process.cwd(), 'tests/web');
   const prNumber = extractPRNumberFromCommits(changedFiles);
   const accumulator = createAccumulator(outputRoot, prNumber);
   const targetDir = accumulator.getTargetDirectory();
@@ -2036,7 +2064,9 @@ async function main() {
   if (args.dryRun) {
     console.log(consoleSummary);
     console.log('');
-    console.log(`[weekly-diff] dry-run only; no files written to ${targetDir}`);
+    console.log(`[weekly-diff] dry-run only; no files written`);
+    console.log(`  • Accumulation dir: ${targetDir}`);
+    console.log(`  • Tests web dir: ${testWebDir}`);
     return;
   }
 
@@ -2051,6 +2081,14 @@ async function main() {
       writeArtifacts(result.path, markdown, [candidate], changedFiles);
       acceptedCount++;
       domains.add(candidate.domain);
+      
+      // 🔒 FORCED: Also write test spec directly to tests/web
+      if (candidate.webSpecFileName && candidate.webSpecContent) {
+        fs.mkdirSync(testWebDir, { recursive: true });
+        const testFilePath = path.join(testWebDir, candidate.webSpecFileName);
+        fs.writeFileSync(testFilePath, candidate.webSpecContent);
+        console.log(`[weekly-diff] wrote test case: ${candidate.webSpecFileName}`);
+      }
     } else {
       console.log(`[weekly-diff] Skipped duplicate: ${candidate.id}`);
     }
@@ -2064,7 +2102,9 @@ async function main() {
   }
   console.log(consoleSummary);
   console.log('');
-  console.log(`[weekly-diff] accumulated ${acceptedCount}/${candidates.length} cases to ${targetDir}`);
+  console.log(`[weekly-diff] accumulated ${acceptedCount}/${candidates.length} cases`);
+  console.log(`  • Accumulation dir: ${targetDir}`);
+  console.log(`  • Tests web dir: ${testWebDir}`);
   console.log(`[weekly-diff] manifest updated:`);
   console.log(JSON.stringify(summary, null, 2));
   
