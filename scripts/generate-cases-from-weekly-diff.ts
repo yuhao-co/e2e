@@ -54,7 +54,7 @@ type Candidate = {
     prTitle?: string;
     prSummary?: string;
     prTestPlan?: string;
-    prdLinks?: string[];
+    prdLinks?: PrdReference[];
   }>;
   retrievedEvidence?: Array<{
     kind: 'existing-test' | 'shared-helper';
@@ -113,7 +113,7 @@ type RelevantCommit = {
   prTitle?: string;
   prSummary?: string;
   prTestPlan?: string;
-  prdLinks?: string[];
+  prdLinks?: PrdReference[];
 };
 
 type SourceCommitMetadata = {
@@ -124,13 +124,31 @@ type SourceCommitMetadata = {
   prTitle?: string;
   prSummary?: string;
   prTestPlan?: string;
-  prdLinks?: string[];
+  prdLinks?: PrdReference[];
 };
 
 type GitHubRepoIdentity = {
   owner: string;
   name: string;
 };
+
+type PrdReference = {
+  url: string;
+  kind: 'lark-wiki' | 'meegle-fpr';
+};
+
+type MeeglePrdResolutionPayload = {
+  sourceUrl?: string;
+  projectId?: string;
+  detailId?: string;
+  accessStatus?: string;
+  prdLink?: string | null;
+  notes?: string;
+};
+
+const LARK_WIKI_PRD_LINK_PATTERN = /https:\/\/traveloka\.sg\.larksuite\.com\/wiki\/[A-Za-z0-9]+/g;
+const MEEGLE_PRD_LINK_PATTERN = /https:\/\/project\.larksuite\.com\/fpr\/[A-Za-z0-9]+\/detail\/[A-Za-z0-9]+/g;
+const meeglePrdResolutionCache = new Map<string, PrdReference[]>();
 
 const DEFAULT_OUTPUT_DIR = 'generated-cases/weekly-diff';
 const DEFAULT_BASE_REF = 'origin/master';
@@ -413,13 +431,117 @@ function extractPullRequestBodySection(body: string, heading: string) {
   return normalizePullRequestSection(match?.[1]);
 }
 
-function extractLarkPrdLinks(body: string) {
+function collectUniqueMatches(text: string, pattern: RegExp) {
+  return Array.from(new Set(Array.from(text.matchAll(pattern)).map((match) => match[0])));
+}
+
+function extractLarkWikiPrdReferences(body: string): PrdReference[] {
+  return collectUniqueMatches(body, LARK_WIKI_PRD_LINK_PATTERN).map((url) => ({
+    url,
+    kind: 'lark-wiki',
+  }));
+}
+
+function extractMeeglePrdReferences(body: string): PrdReference[] {
+  return collectUniqueMatches(body, MEEGLE_PRD_LINK_PATTERN).map((url) => ({
+    url,
+    kind: 'meegle-fpr',
+  }));
+}
+
+function extractPrdReferences(body: string): PrdReference[] {
   return Array.from(
-    new Set(
-      Array.from(
-        body.matchAll(/https:\/\/traveloka\.sg\.larksuite\.com\/wiki\/[A-Za-z0-9]+/g),
-      ).map((match) => match[0]),
-    ),
+    new Map(
+      [...extractLarkWikiPrdReferences(body), ...extractMeeglePrdReferences(body)].map(
+        (reference) => [reference.url, reference],
+      ),
+    ).values(),
+  );
+}
+
+function formatPrdReference(reference: PrdReference) {
+  return reference.kind === 'meegle-fpr'
+    ? `PRD (meegle): ${reference.url}`
+    : `PRD: ${reference.url}`;
+}
+
+function parseResolvedMeeglePrdReferences(rawOutput: string): PrdReference[] {
+  const resolvedUrls = new Set<string>();
+
+  try {
+    const payload = JSON.parse(rawOutput) as MeeglePrdResolutionPayload;
+    if (typeof payload.prdLink === 'string') {
+      for (const url of collectUniqueMatches(payload.prdLink, LARK_WIKI_PRD_LINK_PATTERN)) {
+        resolvedUrls.add(url);
+      }
+    }
+  } catch {
+    // Fall back to raw link extraction if opencode returned non-JSON content.
+  }
+
+  for (const url of collectUniqueMatches(rawOutput, LARK_WIKI_PRD_LINK_PATTERN)) {
+    resolvedUrls.add(url);
+  }
+
+  return Array.from(resolvedUrls).map((url) => ({ url, kind: 'lark-wiki' as const }));
+}
+
+function resolveMeeglePrdReference(reference: PrdReference): PrdReference[] {
+  const cached = meeglePrdResolutionCache.get(reference.url);
+  if (cached) {
+    return cached;
+  }
+
+  const helperScriptPath = path.resolve(
+    process.cwd(),
+    'scripts/resolve-meegle-prd-link-with-opencode.sh',
+  );
+
+  if (!fs.existsSync(helperScriptPath)) {
+    meeglePrdResolutionCache.set(reference.url, [reference]);
+    return [reference];
+  }
+
+  const outputPath = path.join(
+    '/tmp',
+    `meegle-prd-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
+  );
+
+  try {
+    execFileSync('/bin/zsh', [helperScriptPath, reference.url, outputPath], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    if (!fs.existsSync(outputPath)) {
+      meeglePrdResolutionCache.set(reference.url, [reference]);
+      return [reference];
+    }
+
+    const rawOutput = fs.readFileSync(outputPath, 'utf8');
+    const resolvedReferences = parseResolvedMeeglePrdReferences(rawOutput);
+    const normalizedReferences = resolvedReferences.length ? resolvedReferences : [reference];
+    meeglePrdResolutionCache.set(reference.url, normalizedReferences);
+    return normalizedReferences;
+  } catch {
+    meeglePrdResolutionCache.set(reference.url, [reference]);
+    return [reference];
+  } finally {
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
+    }
+  }
+}
+
+function resolvePrdReferences(references: PrdReference[]) {
+  return Array.from(
+    new Map(
+      references
+        .flatMap((reference) =>
+          reference.kind === 'meegle-fpr' ? resolveMeeglePrdReference(reference) : [reference],
+        )
+        .map((reference) => [reference.url, reference]),
+    ).values(),
   );
 }
 
@@ -443,8 +565,8 @@ function isSpecificPullRequestText(text: string | undefined) {
 
 function prioritizePullRequestContextLines(commits: SourceCommitMetadata[]) {
   const rankedLines = commits.flatMap((commit) => {
-    const prdLines = (commit.prdLinks ?? []).map((link) => ({
-      line: `PRD: ${link}`,
+    const prdLines = (commit.prdLinks ?? []).map((reference) => ({
+      line: formatPrdReference(reference),
       priority: 3,
     }));
     const summaryLines = [commit.prSummary, commit.prTestPlan]
@@ -490,7 +612,7 @@ function fetchPullRequestContext(repoPath: string, prNumber: number) {
     const body = payload.body ?? '';
     const summary = extractPullRequestBodySection(body, 'Summary');
     const testPlan = extractPullRequestBodySection(body, 'Test Plan');
-    const prdLinks = extractLarkPrdLinks(body);
+    const prdLinks = resolvePrdReferences(extractPrdReferences(body));
 
     return {
       title: payload.title?.trim() || null,

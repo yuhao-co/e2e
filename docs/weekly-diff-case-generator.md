@@ -75,6 +75,24 @@ The first-pass behavior is intentionally conservative:
 - only generate a new draft spec where the repo already has a stable template path
 - keep unknown diffs as review items instead of fabricating low-confidence tests
 
+## Meegle PRD Link Flow
+
+Recent validation for Traveloka WWW PR summaries confirmed this PRD-link chain works end to end:
+
+1. Detect a Meegle work-item URL in the PR summary, for example `https://project.larksuite.com/fpr/<project-id>/detail/<detail-id>`.
+2. Route that URL through `scripts/resolve-meegle-prd-link-with-opencode.sh`.
+3. Let `opencode` use MCP Meegle to open the URL directly, locate the internal `PRD Link`, and return a normalized JSON payload.
+4. If the internal PRD points to a Lark doc, treat that resolved link as the canonical PRD URL and return to the existing Lark PRD flow.
+5. When markdown output is needed, pass the resolved Lark PRD URL into `scripts/extract-prd-with-opencode.sh` to read the PRD body through MCP Lark and write a structured markdown file.
+
+Practical notes:
+
+- The resolved JSON payload includes `prdLink`, `prdTitle`, `summary`, and `accessStatus`.
+- The tested Meegle prompt should start from the URL itself, not from a hand-constructed project/detail lookup flow.
+- The current validated path is: Meegle URL -> MCP Meegle resolves internal PRD -> Lark PRD link -> MCP Lark reads PRD body.
+- If the Meegle item is readable but the internal PRD is missing, return `no_prd_link` instead of guessing.
+- If either MCP Meegle or MCP Lark is unauthorized, preserve that status in the JSON payload and stop the chain there.
+
 ## Scheduling on macOS
 
 1. Copy `docs/launchd/com.traveloka.e2e.weekly-diff-generator.plist` to `~/Library/LaunchAgents/`.
