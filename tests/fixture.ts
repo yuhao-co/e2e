@@ -4,6 +4,49 @@ import {
   type PlayWrightAiFixtureType,
 } from '@midscene/web/playwright';
 import { stealthInitScript } from '../playwright.config';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Load session data (cookies and localStorage)
+let sessionData: any = null;
+try {
+  const sessionDataPath = path.join(__dirname, '../session-data.json');
+  if (fs.existsSync(sessionDataPath)) {
+    sessionData = JSON.parse(fs.readFileSync(sessionDataPath, 'utf-8'));
+  }
+} catch (err) {
+  console.warn('Failed to load session data:', err);
+}
+
+// Helper function to inject localStorage data
+function createLocalStorageInitScript(storageData: any): string {
+  if (!storageData || !storageData.localStorage) {
+    return '';
+  }
+  
+  const items = storageData.localStorage.map((item: any) => ({
+    name: item.name,
+    value: item.value,
+  }));
+  
+  return `
+    (function() {
+      try {
+        const items = ${JSON.stringify(items)};
+        items.forEach(function(item) {
+          try {
+            localStorage.setItem(item.name, item.value);
+          } catch (e) {
+            console.warn('Failed to set localStorage item:', item.name, e);
+          }
+        });
+        console.log('✅ Injected ' + items.length + ' localStorage items via init script');
+      } catch (e) {
+        console.warn('Failed to inject localStorage:', e);
+      }
+    })();
+  `;
+}
 
 // Compose Midscene's AI fixture with a small stealth fixture that injects an
 // init script into every new BrowserContext. This is enough to bypass naive
@@ -13,7 +56,27 @@ const stealthFixture = {
     { context }: { context: import('@playwright/test').BrowserContext },
     use: (ctx: import('@playwright/test').BrowserContext) => Promise<void>,
   ) => {
-    await context.addInitScript({ content: stealthInitScript });
+    // Inject both stealth and localStorage scripts
+    let combinedScript = stealthInitScript;
+    
+    if (sessionData && sessionData.origins && sessionData.origins.length > 0) {
+      const storageData = sessionData.origins[0];
+      const localStorageScript = createLocalStorageInitScript(storageData);
+      combinedScript += '\n' + localStorageScript;
+    }
+    
+    await context.addInitScript({ content: combinedScript });
+    
+    // Add session cookies if available
+    if (sessionData && sessionData.cookies) {
+      try {
+        await context.addCookies(sessionData.cookies);
+        console.log(`✅ Loaded ${sessionData.cookies.length} session cookies`);
+      } catch (err) {
+        console.warn('Failed to add cookies:', err);
+      }
+    }
+    
     await use(context);
   },
 };
