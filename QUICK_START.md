@@ -134,6 +134,7 @@ page.locator('[data-testid^="flight-inventory-card"]')
 | Cases not accumulating | Verify: `ls -la generated-cases/pr-*/` |
 | Manifest not found | Run generator first: `--emit-web-spec` |
 | Tests timeout | Use `--headed` mode to debug visually |
+| Lark notification not sent | Check: `LARK_WEBHOOK_URL` environment variable is set |
 
 ## Checklist Before Production
 
