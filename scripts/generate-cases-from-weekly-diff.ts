@@ -593,23 +593,32 @@ function prioritizePullRequestContextLines(commits: SourceCommitMetadata[]) {
 
 function fetchPullRequestContext(repoPath: string, prNumber: number) {
   const repoIdentity = getGitHubRepoIdentity(repoPath);
-  const githubToken = process.env.GITHUB_TOKEN;
-
-  if (!repoIdentity || !githubToken) {
+  if (!repoIdentity) {
     return null;
   }
 
   try {
-    const response = execFileSync(
-      'curl',
-      [
-        '-fsSL',
-        '-H', `Authorization: Bearer ${githubToken}`,
-        '-H', 'Accept: application/vnd.github+json',
-        `https://api.github.com/repos/${repoIdentity.owner}/${repoIdentity.name}/pulls/${prNumber}`,
-      ],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-    );
+    const githubToken = process.env.GITHUB_TOKEN;
+    const response = githubToken
+      ? execFileSync(
+          'curl',
+          [
+            '-fsSL',
+            '-H', `Authorization: Bearer ${githubToken}`,
+            '-H', 'Accept: application/vnd.github+json',
+            `https://api.github.com/repos/${repoIdentity.owner}/${repoIdentity.name}/pulls/${prNumber}`,
+          ],
+          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+        )
+      : execFileSync(
+          'gh',
+          [
+            'api',
+            '-H', 'Accept: application/vnd.github+json',
+            `repos/${repoIdentity.owner}/${repoIdentity.name}/pulls/${prNumber}`,
+          ],
+          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+        );
     const payload = JSON.parse(response) as { title?: string; body?: string };
     const body = payload.body ?? '';
     const summary = extractPullRequestBodySection(body, 'Summary');

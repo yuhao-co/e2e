@@ -1,0 +1,3398 @@
+{
+  "generatedAt": "2026-05-22T06:47:00.337Z",
+  "markdownSummary": "# Weekly Diff Case Generation Report\n\n- Repo path: /Users/yu.hao/Desktop/task/e2e/.cache/weekly-diff-repos/github.com_traveloka_www\n- Base ref: origin/master\n- Diff window: 7 days\n- Focus domain: flight-booking\n- Diff range: 9698074a0f1fab5031b31ed8c0ecdf7a3c4b811e..origin/master\n- Changed files: 806\n\n## Candidates\n\n### Weekly flight booking contact regression coverage\n\n- Domain: flight-booking\n- Confidence: high\n- Action: modify-existing\n- Reason: Changed files map to flight booking contact components. Re-check the nearest booking tests before adding new ones.\n- Solution: Prioritize existing booking contact tests, then emit a runnable weekly spec.\n- How to solve: Use packages/flight/fpr-booking evidence to route the candidate and emit the generated web spec.\n- Suggested intent: Open the desktop Traveloka flight booking page and validate booking contact form fields, including email, email confirmation, mobile number, and passenger name. Verify required-field errors and mismatch-email validation are rendered correctly.\n- Canonical target URL: https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY\n- Workflow concerns: booking-contact\n- Source commits: 21c557e73b by Alexander Leonardo\n- Existing tests to review: tests/web/traveloka-flight-metasearch-email-confirmation.spec.ts\n- Generated web spec file: tests/web/traveloka-flight-booking-weekly-diff-20260522.spec.ts\n- Source hints: 2 tracked in summary.json\n- Changed files: 118 tracked in summary.json\n",
+  "files": [
+    {
+      "status": "M",
+      "filePath": ".github/workflows/build_tvlk5.yml"
+    },
+    {
+      "status": "M",
+      "filePath": ".github/workflows/build_webapx.yml"
+    },
+    {
+      "status": "M",
+      "filePath": ".github/workflows/build_webstd.yml"
+    },
+    {
+      "status": "A",
+      "filePath": "docs/docs/guides/misc/w2aMetaProps.md"
+    },
+    {
+      "status": "M",
+      "filePath": "package.json"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/accom-bloom-from-figma/SKILL.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/accom-bloom-from-figma/component-catalog.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/accom-bloom-from-figma/token-cheatsheet.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-adapt-from-legacy/SKILL.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-adapt-from-legacy/examples/adapt-walkthrough.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-adapt-from-legacy/references/ab-test-gates.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-adapt-from-legacy/references/safe-reusable-atoms.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-adapt-from-legacy/references/storage-handoff.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-adapt-from-legacy/references/type-fork-divergence.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-adapt-from-legacy/translation-table.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-component/SKILL.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-component/examples/desktop-component-annotated.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-component/examples/mobile-v2-component-annotated.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-component/references/contentQuery-pattern.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-component/references/tracking-pattern.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-component/references/withBookingData-contract.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-component/v1-vs-v2-decision.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-page-item-type/SKILL.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-page-item-type/references/pageitem-union-anatomy.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-new-page-item-type/references/platform-coordination.md"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/.ruler/skills/sbf-accom-overview/SKILL.md"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-common/constants/ABTest.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-common/constants/Experiment.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-common/constants/FeatureControl.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/acd-common/utils/__tests__/deferToIdle.vitest.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/acd-common/utils/deferToIdle.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-common/utils/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-components/src/mapSearch/desktop/HotelCardMarker/HotelCardMarker.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-components/src/mapSearch/desktop/SideHotelCard/SideHotelCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-components/src/room/mobile/InventoryCard/InventoryCard.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/acd-components/src/room/mobile/InventoryCard/__tests__/InventoryCard.vitest.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-components/src/search/mobile/PropertyCardV2/PropertyCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-components/src/search/mobile/PropertyCardV2/PropertyContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-components/src/search/mobile/PropertyCardV2/PropertyPriceSection.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/acd-components/src/shared/SoldOutInfo/SoldOutInfo.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-curation/components-mobile/CurationList/CurationHotelCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-curation/components/CurationList/CurationCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-curation/constants/resources.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-curation/layout/__tests__/CurationPage.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-detail-v2/layout-mobile/AccomDetailContent.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/api/getHomePageProps.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/components-mobile/Modals/HomeSearchFormModals.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/components-mobile/__tests__/MobileSearchFormContainer.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/constants/MobileResourceV2.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/constants/ResourceV2.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/contexts/HomePageContexts.tsx"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/accom/acd-home/hooks/useHotelHomePageVariant.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/layout-mobile/MobileAppContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/layout-mobile/MobileHotelHomepageContentV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/layout-mobile/__tests__/MobileHotelHomepageContentV2.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/layout/AppContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/layout/HotelHomepageContentV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/layout/__tests__/AppContainer.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/layout/__tests__/HotelHomepageContentV2.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-home/types/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search-form/components-mobile/SearchDestinationModalContentV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search-form/components-mobile/__tests__/SearchDestinationModal.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search-form/components-mobile/__tests__/SearchDestinationModalContentV2.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search-form/components-mobile/__tests__/SearchFormPopup.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search-form/components-mobile/modals/SearchDestinationModal.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/AccomPromoActivation/Slide.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/__tests__/MobileAccomPromoActivationModal.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/list/MobileAccomPropertyCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/list/MobileAccomPropertyCardV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/list/MobileAccomSearchDownloadAppBanner.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/list/MobileAccomSearchWebToAppBanner.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/list/MobileSearchWebToAppBannerV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/list/StrikeZone/StrikeZoneItem.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/list/StrikeZone/components/StrikeZonePricePanel.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components-mobile/list/resources.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/ListViewInventoryCard/CardContent.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/ListViewInventoryCard/PriceSection.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/ListViewInventoryCard/PriceSectionLoader.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/ListViewInventoryCard/SelectRoomButton.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/ListViewInventoryCard/__tests__/CardContent.vitest.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/ListViewInventoryCard/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/ListViewInventoryCard/resources.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapPageContent/HotelClusterMarker.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapPageContent/HotelClusterSnippet.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapPageContent/HotelMarker.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapPageContent/HotelSnippet.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapPageContent/MapViewInventoryCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapPageContent/PriceMarker.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapPageContent/__tests__/HotelClusterMarker.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapPageContent/__tests__/HotelMarker.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapSearch/MapHotelList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapSearch/MapViewHotelSearch.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/MapSearch/resources.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/acd-search/components/PriceSoldOut/PriceSoldOut.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/acd-search/components/PriceSoldOut/resources.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/SearchListLoader/HotelCardSkeletonLoader.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/components/__tests__/ListViewInventoryCard.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/constants/MobileResourceConstants.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/constants/ResourceConstants.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-search/package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-seo-template/components-mobile/PopularHotelSection/PopularHotelCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-seo-template/components-mobile/__tests__/PopularHotelCard.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-seo-template/components/PopularHotelSection/PopularHotelCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-seo-template/components/__tests__/PopularHotelCard.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/acd-seo-template/utils/resource.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-desktop/shared/pageCreator/HotelHomePage.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-desktop/shared/pageCreator/__tests__/HotelHomePage.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-desktop/shared/pageCreator/createSeoPage.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-mobile/pages/hotel/[country]/[hotel].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-mobile/pages/hotel/detail/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-mobile/pages/hotel/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-mobile/pages/hotel/search/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-mobile/shared/pageCreator/__tests__/CreateHotelHome.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/app-mobile/shared/pageCreator/__tests__/HotelCountryDetailMeta.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/app-mobile/shared/pageCreator/__tests__/HotelDetailMeta.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/app-mobile/shared/pageCreator/__tests__/HotelHomeMeta.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/accom/app-mobile/shared/pageCreator/__tests__/HotelSearchMeta.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-mobile/shared/pageCreator/__tests__/getHotelHomeServerSideProps.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/accom/app-mobile/shared/pageCreator/createHotelHome.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-common/login/externalLogin/ExternalLoginV3.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-common/referralAffiliate/useAffiliateWebAttributionRedirection.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-desktop/header-v2/userNav/DesktopLoggedInNavV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-meta/storage-cookie/xpe-general.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/app-modules/app-meta/storage-eidb/bkg-general.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-meta/storage-eidb/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-meta/storage-ls/fpr-searchForm.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-meta/storage-ss/bkg-general.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-meta/storage-ss/fpr-general.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-mobile/footer/MobileFooter.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-mobile/footer/__tests__/MobileFooter.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-mobile/header/__tests__/MobileHeaderWithSidebar.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-mobile/header/__tests__/MobileHeaderWithSidebarV2.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-mobile/sidebar/MobileSidebar.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/app-modules/app-mobile/webToApp/hooks/useAppInstallUtils.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/__tests__/modules/EntryStatusDisplay.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/crypto.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/deriveCacheKey.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/desktopOperations.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/maskTravelerData.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/mobileOperations.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/contexts/BeforeUnloadContext.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/contexts/BookingPageTrackingContext.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/contexts/LegacyBeforeUnloadWrapper.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/docs/traveler-cache.md"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/hooks/useBannerInfoTracking.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/hooks/useCrossSellTracking.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/hooks/useInstallmentTracking.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/hooks/useRetentionTracking.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/hooks/useTravelerPickerAction.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/modules/EntryStatusDisplay.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/constants.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/desktop/index.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/desktop/maskTravelerData.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/index.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/instances.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/mobile/index.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/operations/clearTravelerCache.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/operations/readTravelerCache.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/operations/writeTravelerCache.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/storage/TravelerCacheDB.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/storage/TravelerCacheEncryption.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/types.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/utils/crypto.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-common/modules/TravelerDetailCache/utils/deriveCacheKey.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/types/api/bookingPage.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-common/utils/BookingPageUtil.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-components/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-components/src/desktop/UIHeader/UIHeader.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-components/src/desktop/UIHeaderBloom/UIHeaderBloom.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-components/src/desktop/UIRetentionPopup/UIRetentionPopup.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-components/src/mobile/UIProductCard/UIProductCard.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-components/src/mobile/UIRetentionPopup/UIRetentionPopup.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/AccountDetail.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/ContentBoundary.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/CreateBookingNavigationHelper.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/ModalCreateBooking.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/ReusableCustomDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/product/FlightCreateBookingDialog.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/product/TrainKAICreateBookingDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/product/custom-dialog/ExperienceCreateBookingDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/Header.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-desktop/__tests__/modules/LeaveConfirmationDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/modules/ContentBoundary.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/modules/CreateBooking/CreateBookingNavigationHelper.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/modules/CreateBooking/ReusableCustomDialog.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/modules/CreateBooking/ReusableDialog.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-desktop/modules/FullPageLoading.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/modules/Header.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-desktop/modules/LeaveConfirmationDialog.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/modules/resource.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-desktop/pages/booking/v2/[token].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/__tests__/modules/AccountDetail.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/__tests__/modules/ContentBoundary.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/CreateBookingNavigationHelper.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/ModalCreateBooking.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/ReusableCustomDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/product/TrainKAICreateBookingDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/product/custom-dialog/ExperienceCreateBookingDialog.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-mobile/__tests__/modules/LeaveConfirmationDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/__tests__/pages/booking/v2/[token].test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/modules/AccountDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/modules/ContentBoundary.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/modules/CreateBooking/CreateBookingNavigationHelper.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/modules/CreateBooking/ModalCreateBooking/CreateBookingCustomDialog/ReusableCustomDialog.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/modules/CreateBooking/ModalCreateBooking/CreateBookingDialog/ReusableDialog.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-mobile/modules/LeaveConfirmationDialog.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-mobile/pages/booking/v2/[token].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/__tests__/modules/ContentBoundary.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/__tests__/modules/CreateBooking.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/__tests__/modules/CreateBookingNavigationHelper.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/__tests__/modules/EntryStatusDisplay.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-registry-desktop/__tests__/modules/LeaveConfirmationDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/components-loading/BookingMultiPageLoader.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/modules/ContentBoundary.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/modules/CreateBooking/CreateBookingDialog/CreateBookingResponseDialog/StatusDialog/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/modules/CreateBooking/CreateBookingNavigation/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/modules/EntryStatusDisplay/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-desktop/modules/Header.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-registry-desktop/modules/LeaveConfirmationDialog.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-registry-mobile/__tests__/modules/LeaveConfirmationDialog.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-mobile/components/BookingLoginInfo.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-mobile/modules/ContentBoundary.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-mobile/modules/CreateBooking/CreateBookingDialog/CreateBookingResponseDialog/StatusDialog/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-mobile/modules/CreateBooking/CreateBookingNavigation/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-registry-mobile/modules/EntryStatusDisplay/index.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-registry-mobile/modules/LeaveConfirmationDialog.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-store-manager/__tests__/hooks/BookingForm/useBookingFormPageController.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-store-manager/docs/feature/retention-popup.md"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-store-manager/hooks/BookingForm/useBookingFormPageController.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-store-manager/hooks/Tracking/useBookingPageTracker.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-store-manager/mocks/desktop/dummyBookingPage.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-store-manager/mocks/dummyBookingPage.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/booking/bkg-store-manager/modules/BeforeUnloadProviderWrapper.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-store-manager/modules/BookingStoreManagerProvider/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-store-manager/modules/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-store-manager/types/api/bookingPage.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-view-description-components/src/common/InputHeaderList/InputHeaderList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/booking/bkg-view-description-components/src/helper/dimension.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/app-mobile/pages/promotion/[promoSlug].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/app-mobile/pages/promotion/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/cnt-coupons/components/common/promotion-vd-coupon-widget-v2/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/cnt-coupons/components/common/promotion-vd-coupon-widget-v2/types.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/collections/app-components/_mobile/SavedItemCards/AdditionalFooterInfo.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/gamification/__tests__/components/mobile/AppInstallModal.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/gamification/__tests__/components/mobile/UpdateAppModal.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/gamification/components/desktop/shared/AppInstallModal.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/gamification/components/desktop/shared/InstallAppBanner.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/gamification/components/mobile/AppInstallModal/AppInstallModal.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/gamification/components/shared/UpdateAppModal.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/CopyText.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/CouponCarouselWidgetV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/DesktopPromoTab.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/ImageAndLottieViewer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/ImageContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/LandingPageDesktop/LandingPageContent.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/content/promotion/components/PromoDeepLinkButton.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/PromoDesktopNavigation.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/content/promotion/components/PromoHorizontalContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/PromoMerchandisingRenderer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/PromoMobileNavigation.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/content/promotion/components/PromoVerticalContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/TabView/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/TabViewV2/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/TabViewV2/types.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/__tests__/CouponCarouselWidgetV2.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/__tests__/ImageContainer.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/__tests__/PromoDesktopNavigation.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/__tests__/PromoMerchandisingRenderer.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/__tests__/PromoMobileNavigation.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/__tests__/PromotionCustomHeader.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/__tests__/PromotionWebToAppTray.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/content/promotion/components/__tests__/viewTrackingWrapper.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/index.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/content/promotion/components/viewTrackingWrapper.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/components/withPromoTracking.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/hooks/__tests__/useTrackVisitPromotionDetailOnce.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/hooks/__tests__/useWebContainerSafeAreInsets.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/content/promotion/hooks/useGetUrlTrackings.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/content/promotion/hooks/usePromoViewTracker.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/hooks/useTrackVisitPromotionDetailOnce.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/hooks/useWebContainerSafeAreaInsets.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/pages/desktop/[promoSlug].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/pages/mobile/[promoSlug].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/pages/mobile/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/renderer/DesktopPromoViewDescription.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/renderer/MobilePromoViewDescription.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/renderer/__tests__/DesktopPromoViewDescription.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/content/promotion/renderer/__tests__/MobilePromoViewDescription.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/api/callAPIInHtmlHead/server/scope.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/app-install/AppDownloadBanner.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/app-install/AppInstallUtil.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/app-install/SmartBanner.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/core/app-install/W2AMetaContext.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/core/app-install/W2AMetaUtils.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/app-install/__tests__/AppDownloadBanner.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/app-install/__tests__/AppInstallUtil.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/core/app-install/types.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/i18n/__tests__/getCountryInfos.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/core/i18n/getCountryInfos.client.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/next/page-template/polyfill.util.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/next/page-template/types.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/next/page-template/withTravelokaApp.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/next/page-template/withTravelokaPage.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/seo/SEOMetaRenderer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/tti/TTIMeasure.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/tti/__tests__/TTIMeasure.vitest.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/tti/__tests__/util.vitest.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/tti/util.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/core/types.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cross-sell-common/app-mobile/__tests__/pages/user/paymentreceived/[bookingId]/PaymentReceivedMeta.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cross-sell-common/app-mobile/pages/user/paymentreceived/[bookingId]/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-common/api/hcn/helpCenter/submitConversationPreInteraction/types.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-common/common/messaging/resource.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-common/components/Adaptive/TravelokaPageContainer.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-common/components/Adaptive/__tests__/TravelokaPageContainer.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-common/hooks/__tests__/useHideOnScroll.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-common/hooks/__tests__/usePullToRefresh.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-common/hooks/index.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-common/hooks/useHideOnScroll.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-common/hooks/usePullToRefresh.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-contactus/components/NoBIDChatModal/components/ManualBIDView/useManualBIDView.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-contactus/components/NoBIDChatModal/components/ProductDetailView/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-contactus/hooks/useEmailFormEnabled.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-contactus/hooks/useSubmitConversationPreInteraction.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChannelStatusBadge/__tests__/ChannelStatusBadge.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChannelStatusBadge/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatFilter/ChatFilter.style.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-messaging/components/ChatFilter/ChatFilterSkeleton.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatFilter/__tests__/ChatFilter.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatFilter/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatItem/__tests__/ChatItem.mobile.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatItem/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatList/__tests__/ChatList.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatList/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatListEmptyScreen/__tests__/ChatListemptyScreen.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatListEmptyScreen/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatListHeader/__tests__/ChatListHeader.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatListHeader/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatOfflineIndicator/__tests__/ChatOfflineIndicator.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ChatOfflineIndicator/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ContactUsEntrypoint/__tests__/ContactUsEntrypoint.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/ContactUsEntrypoint/index.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-messaging/components/PullToRefreshIndicator/PullToRefreshIndicator.style.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-messaging/components/PullToRefreshIndicator/PullToRefreshIndicator.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/cx/cx-messaging/components/PullToRefreshIndicator/__tests__/PullToRefreshIndicator.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/components/__tests__/mocks/messagingContentResource.mock.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/contexts/ChatListContext/__tests__/ChatListContext.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/contexts/ChatListContext/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/contexts/MessagingContext/adapters/MessagingAdapterV1/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/contexts/MessagingContext/adapters/__tests__/MessagingAdapterV1.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/contexts/MessagingContext/types.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/cx/cx-messaging/page/ChatPage.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/discovery/app-mobile/pages/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-desktop/__tests__/line/CruiseLinePage.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-desktop/modules/cruise/components/CruisePartnerSection.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-desktop/modules/cruise/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-desktop/modules/line/Layout.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-desktop/pages/cruise/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-desktop/pages/cruise/package/[nameId].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/__tests__/destination/DestinationPage.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/__tests__/destinationCategory/DestinationCategoryPage.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/__tests__/landing/LandingPage.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/_common/LocationPicker/components/DestinationFilterCardList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/_common/SearchFilterCard/SearchFilterTree/FilterItemTree.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/app-mobile/modules/booking/productSummary/CruiseAdditionalContent.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/booking/productSummary/ProductSummary.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/app-mobile/modules/booking/productSummary/__tests__/CruiseAdditionalContent.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/booking/productSummary/_common/hooks/useBottomInformation.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/landing/components/CategoryPicker/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/landing/components/FilterSectionV2/SortFilter.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/landing/components/FilterSectionV2/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/landing/components/ProductList/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/landing/components/SearchFilterTray/SearchFilterTray.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/components/DatePicker/components/AvailabilityCalendar.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/components/DatePicker/components/CalendarModal.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/components/DatePicker/variants/AvailabilityDatePicker.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/components/DatePicker/variants/BasicDatePicker.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/components/DatePicker/variants/PillsDatePicker.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/components/PaxSelection/PaxSelectionContent.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/components/PaxSelection/components/TimeSlotError.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/queries/AvailableDatesScopeContext.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/modules/ticket/queries/useAvailableDatesQuery.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/pages/activities/[country]/product/[nameId].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/pages/activities/index.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/app-mobile/pages/connectivity/[coverageName]/product/[nameId].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/app-mobile/tti.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/components/TravelExpert/TravelExpertFloatingButtonDesktop.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/components/ViewDescription/ViewDescription.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/components/ViewDescription/components/OrderedList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/components/ViewDescription/components/UnorderedList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/components/ViewDescription/useExtraStyleByVariants.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/constants/featureControl.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/constants/seo.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/hooks/useScrollingNavigation.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/test/utils.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/tracking/constants.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/tracking/types.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/tracking/usePageLoadTracking.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/tracking/utils/common.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/types/booking.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-common/utils/tti.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-components/mobile.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-components/src/mobile/PriceBottom.dblow/PriceBottomConnectivity.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-components/src/mobile/TicketGroup/TicketGroup.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-components/src/mobile/TicketGroup/variants/TicketGroupingBlossom.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/__tests__/ConnectivityDetailPage.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/atoms/detailAtom.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/atoms/paxSelectionAtom.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/atoms/selectedDateAtom.ts"
+    },
+    {
+      "status": "R085",
+      "filePath": "packages/experience/xpe-connectivity-mobile/components/DeviceCompatibility.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-connectivity-mobile/index.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/ConnectivityDetailContent.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/ConnectivityDetailPage.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/PageContainer.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/CollapsiblePillGroup.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/Coverage.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/DatePicker.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/DeviceCompatibilityTray.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/ExploreHighlight.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/Filter.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/FilterError.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/FilterSkeleton.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/Header.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/HowtoUse.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/PaxSelection.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/PaxTicketValidity.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/Pickup.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/PolicyContainer.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/PolicyPill.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/ReviewHighlight.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/components/TermsAndCondition.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/hooks/useGetFilterOptionsMap.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/hooks/useHasSelectionInAllGroups.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/hooks/usePaxTicketValidity.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/hooks/useSelectedPaxItem.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/queries/useAvailableDatesQuery.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/tracking/hooks/useConnectivityDetailTracking.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/utils/computeVisibleCount.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/detail/utils/filters.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/search/ConnectivitySearchContent.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/search/components/SearchResult/SearchResultCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-connectivity-mobile/modules/search/components/SearchResult/SearchResultList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-connectivity-mobile/package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-connectivity/index.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/mocks/allotmentInfo.mock.json"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/mocks/detail.mock.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-connectivity/mocks/index.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/mocks/ticketList.mock.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-connectivity/package.json"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/queries/useAllotmentInfoQuery.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/queries/useProductDetailQuery.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/queries/useTicketListQuery.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/services/allotmentInfo.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/services/productDetail.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/services/ticketList.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-connectivity/types/productDetail.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/components/_common/CruiseDepartureDropdownContent.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/components/_common/CruiseSailingDateDropdownContent.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/CruiseDetailPage.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/CruiseCabinDetail/CruiseCabinDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/CruiseCabinDetail/components/CabinDetailImageShowcase.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/CruiseCabinOptions/CruiseCabinOptions.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/CruiseCabinOptions/components/CruiseCabinCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/CruiseCabinOptions/components/CruiseCabinCardDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/CruiseCabinOptions/components/CruiseCabinInventoryList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/CruiseIdentity/ModalDetailBenefits.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/Highlights/HighlightsV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/__tests__/CruiseCabinDetail.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/components/__tests__/CruiseCabinOptions.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/CruiseLineRecommendations/RecommendationContent.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/CruiseLineRecommendations/RecommendationShipList.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/CruiseLineRecommendations/__tests__/RecommendationContent.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/HeroForm/HeroForm.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/HeroForm/HeroFormContent.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/HeroForm/__tests__/HeroForm.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-mobile/__tests__/BannerHeader.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/__tests__/CruiseCabinDetail.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-mobile/__tests__/DownloadBanner.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/CruiseCabinDetail/CruiseCabinDetail.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/CruiseCabinDetail/__tests__/cabinDetailTrayHandler.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/CruiseCabinDetail/cabinDetailTrayHandler.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/CruisePaxSelectionTray/__tests__/paxSelectionTrayHandler.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/CruisePaxSelectionTray/paxSelectionTrayHandler.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/DateFilter/DateFilter.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/DateFilter/DateFilterTray.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/PaxFilter/PaxFilter.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/PaxFilter/PaxFilterTray.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/__tests__/CruiseBookingFooter.test.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/components/_common/CruiseBookingFooter.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-mobile/modules/detail/constants/cruiseCabin.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise/contexts/CruiseCabinNavigationContext.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise/hooks/__tests__/useCruiseTracking.test.js"
+    },
+    {
+      "status": "R082",
+      "filePath": "packages/experience/xpe-cruise/hooks/useBookCabinRoom.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise/hooks/useCruiseCabinTracking.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-cruise/hooks/useCruiseTracking.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise/types/state.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise/utils/__tests__/merchandising.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise/utils/merchandising.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-seo/components/SEOSchema/utils/schema.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-seo/hooks/useClientFetchSEOData.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-ticketdetail-mobile/components/NavigationTabs.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-ticketdetail-mobile/components/TicketDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-ticketdetail/queries/useTicketDetailQuery.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-ticketdetail/types/common.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-web-to-app/components/__tests__/DownloadButton.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/experience/xpe-web-to-app/hooks/useInstallLink.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/explore/app-mobile/containers/ExploreArticlePage.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/explore/app-mobile/pages/explore/[...explorePath].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/explore/app-mobile/pages/explore/[category].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/explore/app-mobile/pages/explore/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/app-desktop/__tests__/pages/flight/fullsearch.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/app-desktop/__tests__/pages/flight/fulltwosearch.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/app-desktop/pages/flight/fullsearch.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/app-desktop/pages/flight/fulltwosearch.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/app-mobile/__tests__/pages/flight/FlightHomepageMeta.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/app-mobile/__tests__/pages/flight/fullsearch/FlightFullSearchMeta.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/app-mobile/__tests__/pages/flight/fulltwosearch/FlightFullTwoSearchMeta.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/app-mobile/pages/flight/fullsearch.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/app-mobile/pages/flight/fulltwosearch.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/app-mobile/pages/flight/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/app-mobile/pages/tiket-pesawat/index.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/stripHiddenFieldsFromPrefill.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/usePrefillContactDetail.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-booking/components/BFFBookingContact/_usecases/stripHiddenFieldsFromPrefill.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-booking/components/BFFBookingContact/_usecases/usePrefillContactDetail.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-booking/hooks/__tests__/useBFFValidateAddOnsAfterRevalidation.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-booking/hooks/useBFFValidateAddOnsAfterRevalidation.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-booking/utils/__tests__/constructBookingRequest.bff.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-booking/utils/constructBookingRequest.bff.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-bundle/MobileBundleSummaryTray/ApiRevamp/__tests__/MobileBundleSummaryTray.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-bundle/MobileBundleSummaryTray/hooks/useSubmitBookingData.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-bundle/usecases/buildSelectedFlightProductBookingSpec.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-common/meta/abTestKeys.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-common/meta/apiPaths.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-common/meta/featureControlKeys.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-components/src/Drawer/Drawer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-devtools/constants/featureControlKeys.generated.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-metasearch/hooks/__tests__/useGenerateW2aLink.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-metasearch/hooks/useGenerateW2aDeeplink.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-mobile/components/review/RescheduleReviewCashbackSubmission.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-mobile/components/review/__tests__/RescheduleReviewCashbackSubmission.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-mobile/containers/form/RescheduleForm.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-mobile/package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-policy/repositories/__tests__/useFetchReschedulePolicyBooking.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-policy/repositories/useFetchReschedulePolicyBooking.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-search-result/SearchResultRevamp/repositories/__tests__/useFetchSearchResultDetail.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-search-result/SearchResultRevamp/repositories/useFetchSearchResultDetail.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule-search-result/SearchResultRevamp/repositories/useFetchSearchResultRevamp.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/components/review/ReviewCashbackSubmission.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/containers/form/RescheduleForm.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/controllers/__tests__/useFlightRescheduleLandingController.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/controllers/useFlightRescheduleActionController.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/controllers/useFlightRescheduleLandingController.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useBookingCreate.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useBookingForm.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useCreateSession.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useFareDrivenFeatureControl.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useFlightRouteSubmission.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/usePaxSelection.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useRescheduleCashbackSubmission.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useRescheduleDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useRescheduleHistory.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useRescheduleInfo.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useReschedulePolicyInfo.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useRescheduleTnc.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useRescheduleType.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useSearchFormConfig.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-reschedule/hooks/useSearchFormSession.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-form/components/private/FullPageModal.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-components/package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-components/src/FilterSort/PreviousJourneyCallout/PreviousJourneyCallout.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-components/src/FilterSort/RecentFilter/RecentFilterSection.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/Filter.story.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/Filter.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterAirlineOption.story.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterAirlineOption.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterCheckboxOption.story.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterCheckboxOption.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterSection.story.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterSection.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterSliderSection.story.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterSliderSection.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterTimeGroup.story.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterTimeGroup.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterTimeSlot.story.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterTimeSlot.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/filterConstants.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/filterStoryFrame.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/filterStoryHelpers.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-ssr-components/desktop/Filter/types.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/MoreFilterMenu.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/TimeFilterMenu.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/TransitFilterMenu.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/__tests__/TimeFilterMenu.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/MobileFilterSorts/FilterInfoBar.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/MobileFilterSorts/MobileFilterSortsContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/MobileFilterSorts/MobileFilters.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/MobileFilterSorts/MobileSorts.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/MobilePreviousJourneyCallout/MobilePreviousJourneyCallout.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/MobilePromoWidgetTray/_usecases/usePromoItemLogic.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/components/__tests__/FlightSearchSidebarFilter.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/containers/MwebContentHolder.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/containers/MwebFNAContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/containers/__tests__/MwebFNAContainer.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/contexts/FlightFilterLocalStateContext.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/contexts/StoreRoundTripContext.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/hooks/__tests__/useFilterChangeHandler.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/hooks/__tests__/useFilterStateBridge.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/hooks/useFilterChangeHandler.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/hooks/useFilterStateBridge.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/hooks/useRecentFilters.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-v2/hooks/useSortFilterCarryOverControl.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/hooks/useTrackingSearchResult.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/models/StoreRoundTripContextType.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/providers/StoreRoundTripProvider.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/providers/__tests__/StoreRoundTripProvider.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/usecases/__tests__/useCreateFlight.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/usecases/__tests__/useMlmSelector.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/usecases/__tests__/useSearchFilter.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/usecases/useCreateAircraftInfoList.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/usecases/useCreateAircraftInfoListBig4.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/usecases/useCreateFacilityList.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-result-v2/usecases/useSearchFilter.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-v2/utils/filterPersistence.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-v2/utils/recentFiltersToFilterState.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-search-result-v2/utils/sortPersistence.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-seo-search-form/desktop/usecases/useDoFlightSearch.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-seo-v2/usecases/__tests__/validateUrl.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-seo-v2/usecases/validateUrl.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-seo-v2/utils/__tests__/redirect.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-seo-v2/utils/redirect.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-seo-v2/views/FloatingOrHiddenSection/_usecases/useCreateTrackingData.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-seo-v2/views/USPSection/_usecases/__tests__/useSEOAppLinkQuery.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-seo-v2/views/USPSection/_usecases/useSEOAppLinkQuery.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-servo/usecases/useServoSearchSubmit.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/flight/fpr-tdm-common/utils/getRescheduleFlowIdHeaders.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-tracking/impl/VisitTracking.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-desktop/package.json"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/app-desktop/pages/bus-and-train/search.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/app-mobile/__tests__/pages/kereta-api/KeretaApiIndexMeta.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/app-mobile/__tests__/pages/kereta-api/KeretaApiSearchMeta.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/app-mobile/__tests__/pages/kereta-api/TrainIndexMeta.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/bus-and-shuttle/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/bus-and-train/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/bus-and-train/search.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/kereta-api/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/kereta-api/search.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/kereta-api/whoosh.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/train/index.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtr-common/integer/isIntegerIntegrationEnabled.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/package.json"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form-jogress/UIBusTrainDesktopSearchResultCompactCalendar.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form-jogress/UIBusTrainDesktopSearchResultCompactInput.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form-jogress/UIBusTrainDesktopSearchResultCompactPassenger.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form-jogress/__tests__/UIBusTrainDesktopSearchResultCompactCalendar.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form-jogress/__tests__/UIBusTrainDesktopSearchResultCompactInput.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form-jogress/__tests__/UIBusTrainDesktopSearchResultCompactPassenger.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form/UIBusTrainDesktopSearchFormInputCalendar.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form/UIBusTrainDesktopSearchFormInputPassenger.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form/ViewBusTrainDesktopSearchForm.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-form/__tests__/ViewBusTrainDesktopSearchForm.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-bus/ViewBusTrainDesktopSearchResultBus.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-bus/ViewBusTrainDesktopSearchResultBusList.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-bus/__tests__/ViewBusTrainDesktopSearchResultBus.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-bus/__tests__/ViewBusTrainDesktopSearchResultBusList.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-train/ViewBusTrainDesktopSearchResultTrain.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-train/ViewBusTrainDesktopSearchResultTrainFilter.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-train/ViewBusTrainDesktopSearchResultTrainList.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-train/ViewBusTrainDesktopTrainSearchList.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-train/__tests__/ViewBusTrainDesktopSearchResultTrain.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result-train/__tests__/ViewBusTrainDesktopSearchResultTrainList.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/EntryBusTrainDesktopSearchResultPage.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/PresenterBusTrainDesktopSearchResultFilterHeader.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/ResourceBusTrainDesktopSearchResult.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/UIBusTrainDesktopSearchResultReturnBanner.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/UIBusTrainDesktopSearchResultTab.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/ViewBusTrainDesktopSearchResultDateFlow.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/ViewBusTrainDesktopSearchResultEmptyState.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/ViewBusTrainDesktopSearchResultFilterHeader.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/ViewBusTrainDesktopSearchResultReturnBannerContainer.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/ViewBusTrainDesktopSearchResultSearchForm.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/ViewBusTrainDesktopSearchResultTab.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/__tests__/EntryBusTrainDesktopSearchResultPage.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/__tests__/PresenterBusTrainDesktopSearchResultFilterHeader.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/__tests__/ViewBusTrainDesktopSearchResultEmptyState.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/__tests__/ViewBusTrainDesktopSearchResultFilterHeader.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/__tests__/ViewBusTrainDesktopSearchResultSearchForm.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/search-result/__tests__/ViewBusTrainDesktopSearchResultTab.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-desktop/utils/departureSelectionScroll.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/hooks-common/__tests__/useFilteredAndSortedBusInventories.test.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/hooks-common/useBusAndTrainExperiment.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/hooks-common/useFilteredAndSortedBusInventories.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/hooks-common/useShortestDurationBusInventory.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/package.json"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-form/ViewBusTrainMobileSearchFormLocationAutocomplete.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-bus/PresenterBusTrainMobileSearchResultBus.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-bus/ViewBusTrainMobileSearchResultBus.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-bus/ViewBusTrainMobileSearchResultBusItem.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-bus/ViewBusTrainMobileSearchResultBusList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-bus/__tests__/ViewBusTrainMobileSearchResultBusList.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-train/ViewBusTrainMobileSearchResultTrain.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-train/ViewBusTrainMobileSearchResultTrainEmpty.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-train/ViewBusTrainMobileSearchResultTrainList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/EntryBusTrainMobileSearchResultPage.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/UIBusTrainMobileSearchResultTab.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/ViewBusTrainMobileSearchResultHeader.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/ViewBusTrainMobileSearchResultTab.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/__tests__/ViewBusTrainMobileSearchResultHeader.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbus-desktop/search-result/PresenterBusDesktopSearchResultList.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbus-desktop/search-result/ViewBusDesktopSearchResultList.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbus-desktop/search-result/__tests__/ViewBusDesktopSearchResultList.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrtrn-desktop/indonesia-ticket-search-result/PresenterTrainIndonesiaTicketDesktopSearchList.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrtrn-desktop/indonesia-ticket-search-result/ViewTrainIndonesiaTicketDesktopSearchList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrtrn-mobile/indonesia-ticket-search-result/EntryTrainIndonesiaTicketSearchResult.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/merchandising/mch-common/renderer/MerchandisingRenderer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/flight-hotel/__tests__/SearchViewingMethodFilterTray.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/flight-hotel/api/useFlightRoundTrip/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/flight-hotel/components/SearchViewingMethod/SearchViewingMethodFilterTray.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-components/src/_mobile/FlightCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/components/__tests__/FlightHotelReviewProductDetail.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/components/__tests__/PackageReviewProductDetail.test.js"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/components/review/FlightHotelReviewProductDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/components/review/PackageReviewProductDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/components/review/components/ContactDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/components/review/components/FlightCardCarousel.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/components/review/components/FlightHotelProductList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/components/review/components/TravelerDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/package/pkg-payment-mobile/types/review.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/package/pkg-payment-mobile/utils/BookingDetailResource.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-desktop/__tests__/common/DesktopV2PaymentSelectionCommonTestSetup.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/payment/app-desktop/__tests__/coverage-resolve/CardAddModal.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-desktop/containers/travelokaPay/cardsPage/TravelokaPayCardPage.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-desktop/containers/travelokaPay/cardsPage/TravelokaPayCardPageContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/__tests__/common/MobilePaymentSelectionCommonTestSetup.js"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/payment/app-mobile/__tests__/coverage-resolve/EmbeddedAddCardFormContainer.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/payment/app-mobile/__tests__/coverage-resolve/TPayRedirectionNonIDR.test.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/__tests__/general/MobilePaymentConfirmation.test.js"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/app-mobile/__tests__/ui/2129269.test.js"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/app-mobile/__tests__/ui/2129283.test.js"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/app-mobile/__tests__/ui/2129284.test.js"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/app-mobile/containers/pages/payment/confirmation/CoinsPaymentInstructionsContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/containers/pages/payment/confirmation/GenericModalDialogContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/containers/pages/payment/confirmation/PaymentConfirmationPageContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/containers/pages/payment/confirmation/PaymentInstructionsContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/containers/pages/travelokaPay/cards/TravelokaPayCardsPageLayout.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/containers/pages/travelokaPay/cards/page/EmbeddedAddCardFormContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/pages/payment/selection/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/pages/travelokapay/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/@types/service/auxiliary/TripReviewResponse.d.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/components/travelokapay/ManageCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/service/useInvoiceRendering.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/service/usePaymentInfo.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/service/useTransactionStatus.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/payment/pay-common/hooks/useDeferredIdleActivation.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/payment/pay-common/hooks/useMyCardsImprovementHooks.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/usePaymentFormMessageEventHandler.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/usePaymentFormMessageEventHandlerWithoutDispatch.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-components/src/PriceDetail/PriceDetail.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-desktop-selection-v2/containers/PaymentSelectionPageV2.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-desktop-selection-v2/containers/payment-options/PaymentScopeSelectorContainer.tsx"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/pay-desktop-selection-v2/hooks/useMyCardsImprovementHooks.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-mobile-selection/containers/PaymentSelectionControlContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-mobile-selection/containers/PaymentSelectionPageContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-mobile-selection/contexts/PaymentSelectionResourceContext.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-mobile-selection/hooks/useSubmitPaymentHooks.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-options/mobile/content/GPOContent.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-options/shared/utils.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/tpay-desktop/components/CardAddModal.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/tpay-mobile/components/EmbeddedAddCardFormContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/tpay-mobile/containers/TravelokaPayCardsPageLayout.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-common/types/api/itinerary/retrievebooking.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-components/src/desktop/UIPDActionCard/UIPDActionCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-components/src/mobile/UIMyBookingCard/UIMyBookingCard.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/postbooking/pbp-desktop/__tests__/mocks/itinerarySingle.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/postbooking/pbp-desktop/__tests__/modules/ProductDetails/ContentManager.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/__tests__/pages/retrieve/flight/forgot.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/ProductDetails/ContentManager.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/RetrieveBooking/ForgotFlightBooking.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/RetrieveBooking/RetrieveBookingFlight/RetrieveBookingFlight.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/RetrieveBooking/RetrieveBookingResult/RetrieveBookingResultItem.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/RetrieveBooking/SideMenu.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/pages/retrieve/[product].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/pages/retrieve/result.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/__tests__/mocks/itinerarySingle.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/postbooking/pbp-mobile/__tests__/modules/ProductDetails/ContentManager.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/__tests__/modules/RetrieveBooking/RetrieveBookingFlight.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/__tests__/modules/RetrieveBooking/RetrieveFlightForgotBooking.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/postbooking/pbp-mobile/__tests__/pages/issuance/[agentId]/[invoiceId]/issuanceMeta.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/ContinueBooking/ContinueBooking.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/ProductDetails/ContentManager.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/RetrieveBooking/ProductMenu.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/RetrieveBooking/RetrieveBookingContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/RetrieveBooking/RetrieveBookingFlight/RetrieveBookingFlight.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/RetrieveBooking/RetrieveBookingFlight/RetrieveFlightForgotBooking.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/pages/user/issuance/[agentId]/[invoiceId]/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/proxies/api-proxy/go/identifier/middleware.go"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/proxies/api-proxy/go/logger/logger.go"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/proxies/api-proxy/go/logger/middleware.go"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/proxies/dev-proxy/index.js"
+    },
+    {
+      "status": "M",
+      "filePath": "pnpm-lock.yaml"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "flight-booking-weekly",
+      "domain": "flight-booking",
+      "confidence": "high",
+      "title": "Weekly flight booking contact regression coverage",
+      "action": "modify-existing",
+      "reason": "Changed files map to flight booking contact components. Re-check the nearest booking tests before adding new ones.",
+      "solution": "Prioritize existing booking contact tests, then emit a runnable weekly spec.",
+      "howToSolve": "Use packages/flight/fpr-booking evidence to route the candidate and emit the generated web spec.",
+      "changedFiles": [
+        "packages/booking/bkg-common/__tests__/modules/EntryStatusDisplay.test.tsx",
+        "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/crypto.test.ts",
+        "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/deriveCacheKey.test.ts",
+        "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/desktopOperations.test.ts",
+        "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/maskTravelerData.test.ts",
+        "packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/mobileOperations.test.ts",
+        "packages/booking/bkg-common/contexts/BeforeUnloadContext.tsx",
+        "packages/booking/bkg-common/contexts/BookingPageTrackingContext.tsx",
+        "packages/booking/bkg-common/contexts/LegacyBeforeUnloadWrapper.tsx",
+        "packages/booking/bkg-common/docs/traveler-cache.md",
+        "packages/booking/bkg-common/hooks/useBannerInfoTracking.tsx",
+        "packages/booking/bkg-common/hooks/useCrossSellTracking.ts",
+        "packages/booking/bkg-common/hooks/useInstallmentTracking.ts",
+        "packages/booking/bkg-common/hooks/useRetentionTracking.ts",
+        "packages/booking/bkg-common/hooks/useTravelerPickerAction.ts",
+        "packages/booking/bkg-common/modules/EntryStatusDisplay.tsx",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/constants.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/desktop/index.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/desktop/maskTravelerData.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/index.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/instances.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/mobile/index.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/operations/clearTravelerCache.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/operations/readTravelerCache.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/operations/writeTravelerCache.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/storage/TravelerCacheDB.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/storage/TravelerCacheEncryption.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/types.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/utils/crypto.ts",
+        "packages/booking/bkg-common/modules/TravelerDetailCache/utils/deriveCacheKey.ts",
+        "packages/booking/bkg-common/package.json",
+        "packages/booking/bkg-common/types/api/bookingPage.ts",
+        "packages/booking/bkg-common/utils/BookingPageUtil.ts",
+        "packages/booking/bkg-components/index.ts",
+        "packages/booking/bkg-components/src/desktop/UIHeader/UIHeader.tsx",
+        "packages/booking/bkg-components/src/desktop/UIHeaderBloom/UIHeaderBloom.tsx",
+        "packages/booking/bkg-components/src/desktop/UIRetentionPopup/UIRetentionPopup.tsx",
+        "packages/booking/bkg-components/src/mobile/UIProductCard/UIProductCard.tsx",
+        "packages/booking/bkg-components/src/mobile/UIRetentionPopup/UIRetentionPopup.tsx",
+        "packages/booking/bkg-desktop/__tests__/modules/AccountDetail.test.js",
+        "packages/booking/bkg-desktop/__tests__/modules/ContentBoundary.test.tsx",
+        "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/CreateBookingNavigationHelper.test.js",
+        "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/ModalCreateBooking.test.js",
+        "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/ReusableCustomDialog.test.js",
+        "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/product/FlightCreateBookingDialog.test.tsx",
+        "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/product/TrainKAICreateBookingDialog.test.js",
+        "packages/booking/bkg-desktop/__tests__/modules/CreateBooking/product/custom-dialog/ExperienceCreateBookingDialog.test.js",
+        "packages/booking/bkg-desktop/__tests__/modules/Header.test.js",
+        "packages/booking/bkg-desktop/__tests__/modules/LeaveConfirmationDialog.test.js",
+        "packages/booking/bkg-desktop/modules/ContentBoundary.tsx",
+        "packages/booking/bkg-desktop/modules/CreateBooking/CreateBookingNavigationHelper.ts",
+        "packages/booking/bkg-desktop/modules/CreateBooking/ReusableCustomDialog.tsx",
+        "packages/booking/bkg-desktop/modules/CreateBooking/ReusableDialog.tsx",
+        "packages/booking/bkg-desktop/modules/FullPageLoading.tsx",
+        "packages/booking/bkg-desktop/modules/Header.tsx",
+        "packages/booking/bkg-desktop/modules/LeaveConfirmationDialog.tsx",
+        "packages/booking/bkg-desktop/modules/resource.ts",
+        "packages/booking/bkg-desktop/pages/booking/v2/[token].tsx",
+        "packages/booking/bkg-mobile/__tests__/modules/AccountDetail.test.js",
+        "packages/booking/bkg-mobile/__tests__/modules/ContentBoundary.test.tsx",
+        "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/CreateBookingNavigationHelper.test.js",
+        "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/ModalCreateBooking.test.js",
+        "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/ReusableCustomDialog.test.js",
+        "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/product/TrainKAICreateBookingDialog.test.js",
+        "packages/booking/bkg-mobile/__tests__/modules/CreateBooking/product/custom-dialog/ExperienceCreateBookingDialog.test.js",
+        "packages/booking/bkg-mobile/__tests__/modules/LeaveConfirmationDialog.test.js",
+        "packages/booking/bkg-mobile/__tests__/pages/booking/v2/[token].test.js",
+        "packages/booking/bkg-mobile/modules/AccountDetail.tsx",
+        "packages/booking/bkg-mobile/modules/ContentBoundary.tsx",
+        "packages/booking/bkg-mobile/modules/CreateBooking/CreateBookingNavigationHelper.ts",
+        "packages/booking/bkg-mobile/modules/CreateBooking/ModalCreateBooking/CreateBookingCustomDialog/ReusableCustomDialog.tsx",
+        "packages/booking/bkg-mobile/modules/CreateBooking/ModalCreateBooking/CreateBookingDialog/ReusableDialog.tsx",
+        "packages/booking/bkg-mobile/modules/LeaveConfirmationDialog.tsx",
+        "packages/booking/bkg-mobile/pages/booking/v2/[token].tsx",
+        "packages/booking/bkg-registry-desktop/__tests__/modules/ContentBoundary.test.js",
+        "packages/booking/bkg-registry-desktop/__tests__/modules/CreateBooking.test.js",
+        "packages/booking/bkg-registry-desktop/__tests__/modules/CreateBookingNavigationHelper.test.js",
+        "packages/booking/bkg-registry-desktop/__tests__/modules/EntryStatusDisplay.test.js",
+        "packages/booking/bkg-registry-desktop/__tests__/modules/LeaveConfirmationDialog.test.js",
+        "packages/booking/bkg-registry-desktop/components-loading/BookingMultiPageLoader.tsx",
+        "packages/booking/bkg-registry-desktop/modules/ContentBoundary.tsx",
+        "packages/booking/bkg-registry-desktop/modules/CreateBooking/CreateBookingDialog/CreateBookingResponseDialog/StatusDialog/index.tsx",
+        "packages/booking/bkg-registry-desktop/modules/CreateBooking/CreateBookingNavigation/index.ts",
+        "packages/booking/bkg-registry-desktop/modules/EntryStatusDisplay/index.tsx",
+        "packages/booking/bkg-registry-desktop/modules/Header.tsx",
+        "packages/booking/bkg-registry-desktop/modules/LeaveConfirmationDialog.tsx",
+        "packages/booking/bkg-registry-mobile/__tests__/modules/LeaveConfirmationDialog.test.js",
+        "packages/booking/bkg-registry-mobile/components/BookingLoginInfo.tsx",
+        "packages/booking/bkg-registry-mobile/modules/ContentBoundary.tsx",
+        "packages/booking/bkg-registry-mobile/modules/CreateBooking/CreateBookingDialog/CreateBookingResponseDialog/StatusDialog/index.tsx",
+        "packages/booking/bkg-registry-mobile/modules/CreateBooking/CreateBookingNavigation/index.ts",
+        "packages/booking/bkg-registry-mobile/modules/EntryStatusDisplay/index.tsx",
+        "packages/booking/bkg-registry-mobile/modules/LeaveConfirmationDialog.tsx",
+        "packages/booking/bkg-store-manager/__tests__/hooks/BookingForm/useBookingFormPageController.test.js",
+        "packages/booking/bkg-store-manager/docs/feature/retention-popup.md",
+        "packages/booking/bkg-store-manager/hooks/BookingForm/useBookingFormPageController.ts",
+        "packages/booking/bkg-store-manager/hooks/Tracking/useBookingPageTracker.ts",
+        "packages/booking/bkg-store-manager/mocks/desktop/dummyBookingPage.ts",
+        "packages/booking/bkg-store-manager/mocks/dummyBookingPage.ts",
+        "packages/booking/bkg-store-manager/modules/BeforeUnloadProviderWrapper.tsx",
+        "packages/booking/bkg-store-manager/modules/BookingStoreManagerProvider/index.tsx",
+        "packages/booking/bkg-store-manager/modules/index.ts",
+        "packages/booking/bkg-store-manager/types/api/bookingPage.ts",
+        "packages/booking/bkg-view-description-components/src/common/InputHeaderList/InputHeaderList.tsx",
+        "packages/booking/bkg-view-description-components/src/helper/dimension.ts",
+        "packages/experience/app-mobile/modules/booking/productSummary/CruiseAdditionalContent.tsx",
+        "packages/experience/app-mobile/modules/booking/productSummary/ProductSummary.tsx",
+        "packages/experience/app-mobile/modules/booking/productSummary/__tests__/CruiseAdditionalContent.test.js",
+        "packages/experience/app-mobile/modules/booking/productSummary/_common/hooks/useBottomInformation.tsx",
+        "packages/experience/xpe-common/types/booking.ts",
+        "packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/stripHiddenFieldsFromPrefill.test.ts",
+        "packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/usePrefillContactDetail.test.tsx",
+        "packages/flight/fpr-booking/components/BFFBookingContact/_usecases/stripHiddenFieldsFromPrefill.ts",
+        "packages/flight/fpr-booking/components/BFFBookingContact/_usecases/usePrefillContactDetail.ts",
+        "packages/flight/fpr-booking/hooks/__tests__/useBFFValidateAddOnsAfterRevalidation.test.ts",
+        "packages/flight/fpr-booking/hooks/useBFFValidateAddOnsAfterRevalidation.ts",
+        "packages/flight/fpr-booking/utils/__tests__/constructBookingRequest.bff.test.ts",
+        "packages/flight/fpr-booking/utils/constructBookingRequest.bff.ts"
+      ],
+      "targetTests": [
+        "tests/web/traveloka-flight-metasearch-email-confirmation.spec.ts"
+      ],
+      "suggestedUserIntent": "Open the desktop Traveloka flight booking page and validate booking contact form fields, including email, email confirmation, mobile number, and passenger name. Verify required-field errors and mismatch-email validation are rendered correctly.",
+      "targetUrl": "https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY",
+      "concerns": [
+        "booking-contact"
+      ],
+      "sourceHints": [
+        {
+          "sourcePath": "packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactForm.tsx",
+          "reason": "Desktop booking contact form component."
+        },
+        {
+          "sourcePath": "packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts",
+          "reason": "Booking contact validation handler."
+        }
+      ],
+      "sourceCommits": [
+        {
+          "sha": "21c557e73b",
+          "author": "Alexander Leonardo",
+          "subject": "[FEATURE][BOOKING] Retention Popup Enablement (#32211)",
+          "prNumber": 32211,
+          "prTitle": "[FEATURE][BOOKING] Retention Popup Enablement",
+          "prSummary": "Design Docs: [Retention Drop Off](https://traveloka.sg.larksuite.com/wiki/XT84wK4x8ig9NKk0rIelDoB6gkg)",
+          "prdLinks": [
+            {
+              "url": "https://traveloka.sg.larksuite.com/wiki/XT84wK4x8ig9NKk0rIelDoB6gkg",
+              "kind": "lark-wiki"
+            }
+          ]
+        }
+      ],
+      "webSpecFileName": "traveloka-flight-booking-weekly-diff-20260522.spec.ts",
+      "webSpecContent": "import { expect, test } from '../fixture';\nimport {\n  attachFlightWorkflowPlan,\n  createFlightWorkflowPlan,\n  openFlightSearchTask,\n} from '../lib/traveloka-flight/workflow';\n\n\nconst TARGET_URL = 'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY';\n\n/**\n * EN Purpose: Open the desktop Traveloka flight booking page and validate booking contact form fields, including email, email confirmation, mobile number, and passenger name. Verify required-field errors and mismatch-email validation are rendered correctly.\n * 中文目的: 验证本周 flight 改动在 search-results 场景下是否仍然满足既有回归预期。\n * EN Surface: search-results\n * 中文范围: search-results 页面。\n * EN Concerns: booking-contact\n * 中文关注点: booking-contact\n * EN Main checks: booking contact form field rendering and validation.\n * 中文校验项: 预订联系人表单字段渲染与校验。\n * EN Source commits: 21c557e73b by Alexander Leonardo: [FEATURE][BOOKING] Retention Popup Enablement (#32211)\n * 中文来源提交: 21c557e73b by Alexander Leonardo: [FEATURE][BOOKING] Retention Popup Enablement (#32211)\n * EN Source summary: PRD: https://traveloka.sg.larksuite.com/wiki/XT84wK4x8ig9NKk0rIelDoB6gkg | Design Docs: [Retention Drop Off](https://traveloka.sg.larksuite.com/wiki/XT84wK4x8ig9NKk0rIelDoB6gkg)\n * 中文来源摘要: PRD: https://traveloka.sg.larksuite.com/wiki/XT84wK4x8ig9NKk0rIelDoB6gkg | Design Docs: [Retention Drop Off](https://traveloka.sg.larksuite.com/wiki/XT84wK4x8ig9NKk0rIelDoB6gkg)\n * EN Expectation: keep this generated case aligned with the stable Traveloka desktop baseline flow and verify only the routed regression slice.\n * 中文预期: 该生成用例必须与稳定的 Traveloka desktop 基线流程保持一致，只验证本次路由到的回归范围。\n */\n\ntest.use({\n  userAgent:\n    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',\n  locale: 'en-US',\n  timezoneId: 'Asia/Shanghai',\n  extraHTTPHeaders: {\n    'accept-language': 'en-US,en;q=0.9',\n    referer: 'https://www.google.com/',\n  },\n});\n\ntest('Traveloka weekly diff booking contact coverage (20260522)', async ({ page }, testInfo) => {\n  const workflowPlan = createFlightWorkflowPlan({\n    url: TARGET_URL,\n    userIntent: \"Open the desktop Traveloka flight booking page and validate booking contact form fields, including email, email confirmation, mobile number, and passenger name. Verify required-field errors and mismatch-email validation are rendered correctly.\",\n    concerns: [\"booking-contact\"],\n  });\n\n  await attachFlightWorkflowPlan(testInfo, workflowPlan);\n\n  const { sidebar } = await openFlightSearchTask(page, {\n    url: workflowPlan.input.url,\n    userIntent: \"Open the desktop Traveloka flight booking page and validate booking contact form fields, including email, email confirmation, mobile number, and passenger name. Verify required-field errors and mismatch-email validation are rendered correctly.\",\n    concerns: [\"booking-contact\"],\n    waitForSidebar: false,\n  });\n\n  void sidebar;\n\n  const bookingPath = new URL(page.url()).pathname;\n  expect(bookingPath).toMatch(/\\/flight\\/booking/);\n\n  // Booking contact form validation coverage.\n  // If TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL is set, navigate directly to the booking page.\n  // Otherwise use the canonical desktop booking chain from the search results entry URL.\n  const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;\n  if (directBookingUrl) {\n    await page.goto(directBookingUrl, { waitUntil: 'domcontentloaded' });\n  } else {\n    // Fall back to the canonical booking chain: search results -> Choose -> Select ticket type.\n    await page.goto(\"https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY\", { waitUntil: 'domcontentloaded' });\n    const chooseButton = page.locator('[data-testid*=\"choose\"], button').filter({ hasText: /choose/i }).first();\n    await chooseButton.waitFor({ state: 'visible', timeout: 30000 });\n    await chooseButton.click();\n    const selectButton = page.locator('button').filter({ hasText: /^select$/i }).first();\n    await selectButton.waitFor({ state: 'visible', timeout: 15000 });\n    await selectButton.click();\n  }\n  await page.waitForURL(/\\/flight\\/booking/, { timeout: 30000 }).catch(() => {});\n  const bookingUrl = new URL(page.url());\n  expect(bookingUrl.pathname).toMatch(/\\/flight\\/booking/);\n  const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);\n  if (screenshot) {\n    await testInfo.attach('booking-weekly-generated.png', { body: screenshot, contentType: 'image/png' });\n  }\n  // Weekly diff generated candidate: refine against actual changed booking source files.\n  // Suggested changed files (top 10 of 118): [\"packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/stripHiddenFieldsFromPrefill.test.ts\",\"packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/usePrefillContactDetail.test.tsx\",\"packages/flight/fpr-booking/components/BFFBookingContact/_usecases/stripHiddenFieldsFromPrefill.ts\",\"packages/flight/fpr-booking/components/BFFBookingContact/_usecases/usePrefillContactDetail.ts\",\"packages/flight/fpr-booking/hooks/__tests__/useBFFValidateAddOnsAfterRevalidation.test.ts\",\"packages/flight/fpr-booking/hooks/useBFFValidateAddOnsAfterRevalidation.ts\",\"packages/flight/fpr-booking/utils/__tests__/constructBookingRequest.bff.test.ts\",\"packages/flight/fpr-booking/utils/constructBookingRequest.bff.ts\",\"packages/booking/bkg-common/__tests__/modules/EntryStatusDisplay.test.tsx\",\"packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/crypto.test.ts\"]\n  // Omitted additional changed files: 108\n  // Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form.\n  // Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules.\n});\n"
+    }
+  ]
+}
