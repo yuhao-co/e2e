@@ -260,10 +260,11 @@ function parseArgs(argv: string[]): Args {
   return result;
 }
 
-function git(repoPath: string, args: string[]) {
+function git(repoPath: string, args: string[], options?: { timeout?: number }) {
   return execFileSync('git', ['-C', repoPath, ...args], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: options?.timeout,
   }).trim();
 }
 
@@ -289,10 +290,24 @@ function ensureRepoPath(args: Args) {
 
   if (!fs.existsSync(path.join(repoPath, '.git'))) {
     console.log(`[weekly-diff] cloning ${args.repoUrl} into ${repoPath}...`);
-    execFileSync('git', ['clone', '--filter=blob:none', '--no-checkout', args.repoUrl, repoPath], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    execFileSync(
+      'git',
+      [
+        'clone',
+        '--filter=blob:none',
+        '--no-checkout',
+        '--single-branch',
+        '--branch',
+        'master',
+        args.repoUrl,
+        repoPath,
+      ],
+      {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 300000, // 5 min timeout
+      },
+    );
   }
 
   return repoPath;
@@ -2035,7 +2050,13 @@ async function main() {
   console.log(`  2️⃣  Domain Focus:   LOCKED → ${FORCED_FOCUS_DOMAINS.join(', ')}`);
   console.log(`  3️⃣  Surface:        LOCKED → Desktop Web Only (NO mobile/android/i18n)`);
   console.log(`  4️⃣  Output Path:    LOCKED → ${FORCED_OUTPUT_DIR}`);
+  console.log('='.repeat(80));
+  console.log('\n⚡ 优化提示:');
+  console.log('   - 克隆使用 --single-branch 和 --filter=blob:none (仅 master 分支，仅需要的对象)');
+  console.log('   - Fetch 使用 --quiet 模式，仅 fetch 指定分支');
+  console.log('   - 如果要跳过 fetch，使用: --no-fetch 参数');
   console.log('='.repeat(80) + '\n');
+
   
   const repoPath = ensureRepoPath(args);
   if (!fs.existsSync(path.join(repoPath, '.git'))) {
@@ -2044,7 +2065,11 @@ async function main() {
 
   if (args.fetch && /^origin\//.test(args.baseRef)) {
     console.log(`[weekly-diff] fetching ${args.baseRef}...`);
-    git(repoPath, ['fetch', 'origin', '--prune']);
+    // Optimized: only fetch the specific branch, not prune all
+    const branch = args.baseRef.replace(/^origin\//, '');
+    git(repoPath, ['fetch', 'origin', branch, '--quiet'], {
+      timeout: 300000, // 5 min timeout
+    });
   }
 
   const startCommit = getStartCommit(repoPath, args.baseRef, args.sinceDays);
@@ -2171,5 +2196,3 @@ main().catch(err => {
   console.error('[weekly-diff] Error:', err);
   process.exit(1);
 });
-
-main();

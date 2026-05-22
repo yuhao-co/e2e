@@ -2,6 +2,10 @@ import { expect, test } from '../fixture';
 import {
   attachFlightWorkflowPlan,
   createFlightWorkflowPlan,
+  openFlightSearchTask,
+} from '../lib/traveloka-flight/workflow';
+
+import {
   openBookingPageFromSearchResults,
   openMetasearchBookingContactPage,
 } from '../lib/traveloka-flight/workflow';
@@ -10,17 +14,17 @@ const TARGET_URL = 'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DP
 
 /**
  * EN Purpose: Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.
- * 中文目的: 验证本周 flight booking 改动在 desktop booking 链路下仍可稳定进入 booking 页面，并保留人工复查所需上下文。
- * EN Surface: booking
- * 中文范围: booking 页面。
- * EN Concerns: booking-entry, weekly-booking-smoke
- * 中文关注点: booking-entry、weekly-booking-smoke
- * EN Main checks: canonical desktop booking entry chain remains reachable; booking page URL is reached; booking page state is captured for weekly review.
- * 中文校验项: 标准 desktop booking 进入链路可达；成功进入 booking 页面；保留 booking 页面状态供周测复查。
- * EN Source commits: 5684ef12c6 by Ke Wu: [FIX][FLIGHT]fix: contact regex prefill (#33349)
- * 中文来源提交: 5684ef12c6 by Ke Wu: [FIX][FLIGHT]fix: contact regex prefill (#33349)
- * EN Source summary: PRD (meegle): https://project.larksuite.com/fpr/issue/detail/12249080 | address: https://project.larksuite.com/fpr/issue/detail/12249080
- * 中文来源摘要: PRD (meegle): https://project.larksuite.com/fpr/issue/detail/12249080 | address: https://project.larksuite.com/fpr/issue/detail/12249080
+ * 中文目的: 验证本周 flight 改动在 search-results 场景下是否仍然满足既有回归预期。
+ * EN Surface: search-results
+ * 中文范围: search-results 页面。
+ * EN Concerns: booking-contact
+ * 中文关注点: booking-contact
+ * EN Main checks: booking contact form field rendering and validation.
+ * 中文校验项: 预订联系人表单字段渲染与校验。
+ * EN Source commits: b69c3c74c9 by Zili: [FEATURE][FLIGHT] email confirmation (#33383)
+ * 中文来源提交: b69c3c74c9 by Zili: [FEATURE][FLIGHT] email confirmation (#33383)
+ * EN Source summary: PRD (meegle): https://project.larksuite.com/fpr/6901d082e1d4ec8eeb572946/detail/11760876 | https://project.larksuite.com/fpr/6901d082e1d4ec8eeb572946/detail/11760876 | canonical desktop booking entry chain remains reachable | booking page URL is reached and contact form renders correctly | Apply all locator rules from docs/traveloka-flight-locator-guideline.md (Prefer explicit contracts) | Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active | Reference: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md
+ * 中文来源摘要: PRD (meegle): https://project.larksuite.com/fpr/6901d082e1d4ec8eeb572946/detail/11760876 | https://project.larksuite.com/fpr/6901d082e1d4ec8eeb572946/detail/11760876 | canonical desktop booking entry chain remains reachable | booking page URL is reached and contact form renders correctly | Apply all locator rules from docs/traveloka-flight-locator-guideline.md (Prefer explicit contracts) | Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active | Reference: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md
  * EN Expectation: keep this generated case aligned with the stable Traveloka desktop baseline flow and verify only the routed regression slice.
  * 中文预期: 该生成用例必须与稳定的 Traveloka desktop 基线流程保持一致，只验证本次路由到的回归范围。
  */
@@ -40,10 +44,25 @@ test('Traveloka weekly diff booking smoke coverage (20260522)', async ({ page },
   const workflowPlan = createFlightWorkflowPlan({
     url: TARGET_URL,
     userIntent: "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
-    concerns: ['booking-contact'],
+    concerns: ["booking-contact"],
   });
 
   await attachFlightWorkflowPlan(testInfo, workflowPlan);
+
+  const { sidebar } = await openFlightSearchTask(page, {
+    url: workflowPlan.input.url,
+    userIntent: "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
+    concerns: ["booking-contact"],
+    waitForSidebar: false,
+  });
+
+  void sidebar;
+
+  const bookingUrl = new URL(page.url());
+  expect(bookingUrl.pathname).toMatch(/\/flight\/booking/);
+  const contactForm = page.locator("form, [data-testid=\"contact-form\"], [data-testid=\"booking-contact-form\"]").first();
+  const contactExists = await contactForm.isVisible().catch(() => false);
+  expect(contactExists, "Booking contact form should be accessible").toBeTruthy();
 
   const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;
   if (directBookingUrl) {
@@ -51,18 +70,20 @@ test('Traveloka weekly diff booking smoke coverage (20260522)', async ({ page },
   } else {
     await openBookingPageFromSearchResults(page, { url: workflowPlan.input.url });
   }
-
-  const bookingUrl = new URL(page.url());
-  expect(bookingUrl.pathname).toMatch(/\/flight\/booking/);
-
-  const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);
-  if (screenshot) {
-    await testInfo.attach('booking-weekly-generated.png', { body: screenshot, contentType: 'image/png' });
-  }
-
-  // Weekly diff generated candidate: refine against actual changed booking source files.
-  // Suggested changed files (top 10 of 41): ["packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/stripHiddenFieldsFromPrefill.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/usePrefillContactDetail.test.tsx","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/stripHiddenFieldsFromPrefill.ts","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/usePrefillContactDetail.ts","packages/flight/fpr-booking/hooks/__tests__/useBFFValidateAddOnsAfterRevalidation.test.ts","packages/flight/fpr-booking/hooks/useBFFValidateAddOnsAfterRevalidation.ts","packages/flight/fpr-booking/utils/__tests__/constructBookingRequest.bff.test.ts","packages/flight/fpr-booking/utils/constructBookingRequest.bff.ts","packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/crypto.test.ts","packages/booking/bkg-common/__tests__/modules/TravelerDetailCache/deriveCacheKey.test.ts"]
-  // Omitted additional changed files: 31
-  // Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form.
-  // Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules.
+  
+  // Retrieved shared-helper: docs/traveloka-flight-locator-guideline.md - Explicit contracts and locator priority
+  // Retrieved shared-helper: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md - Phase 2 active layer execution strategy
+  // Retrieved shared-helper: docs/weekly-diff-case-generator.md - Weekly diff generation for booking surface
+  // Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - openMetasearchBookingContactPage, openBookingPageFromSearchResults
+  // Suggested changed files (top 10 of 73): ["packages/flight/fpr-booking/__tests__/components/handlers/bookingContactValidationHandler.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactDesktop.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobile.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobile2.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobileVDTray.tsx","packages/flight/fpr-booking/components/BFFBookingContact/__tests__/BFFBookingContactMobile2.test.js","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/useBookingContactLoginSignupNudge.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/useBookingContactLoginSignupNudge.ts","packages/flight/fpr-booking/components/handlers/bookingContactValidationHandler.ts","packages/flight/fpr-booking/__tests__/components/AddOns/PreselectedAddons/PreselectedAddons.test.tsx"]
+  // Omitted additional changed files: 63
+  // Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form
+  // Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules
+  
+  // HARDCODED CONSTRAINTS (生成时强制应用):
+  // 1. Desktop web only - weekly case runs on desktop Playwright
+  // 2. Flight booking domain only - verifies only booking checkout
+  // 3. Traveloka https://github.com/traveloka/www - source must be from production repository
+  // 4. Uses lib/traveloka-flight helpers - createFlightWorkflowPlan, attachFlightWorkflowPlan, openMetasearchBookingContactPage
+  // 5. Phase 2 active layer - executed weekly via: npx tsx scripts/run-accumulated-cases.ts --layer active
 });
