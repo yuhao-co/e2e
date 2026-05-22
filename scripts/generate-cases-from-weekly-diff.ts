@@ -2066,7 +2066,7 @@ async function main() {
   console.log('');
   console.log(`[weekly-diff] accumulated ${acceptedCount}/${candidates.length} cases to ${targetDir}`);
   console.log(`[weekly-diff] manifest updated:`);
-  console.log(JSON.stringify(summary.manifest.statistics, null, 2));
+  console.log(JSON.stringify(summary, null, 2));
   
   // Run cases if requested
   if (args.runCases) {

@@ -138,7 +138,7 @@ export class AccumulationOrchestrator {
    * - Save manifest
    * - Return summary
    */
-  finalize(caseCount: number, domains: string[]): object {
+  finalize(caseCount: number, domains: string[]): any {
     const layerId =
       this.options.prNumber && this.options.prNumber > 0
         ? `pr-${this.options.prNumber}`
@@ -165,6 +165,7 @@ export class AccumulationOrchestrator {
       domains: [...new Set(domains)],
       totalCasesNow: manifestData.statistics.totalCases,
       summary: `Added ${caseCount} new cases (domains: ${domains.join(', ')})`,
+      manifest: manifestData, // Include full manifest for notifications
     };
   }
 
