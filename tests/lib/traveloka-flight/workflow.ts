@@ -8,12 +8,13 @@ import {
   getBookingContactMismatchError,
   getBookingContactRequiredOrConfirmationError,
   getBookingContactSaveOrContinueButton,
+  getFlightInventoryCardButton,
   getFlightHomeSearchButton,
   getFlightHomeSearchWidget,
-  getFlightResultChooseButton,
   requireUniqueVisibleLocator,
   getFlightSearchSidebar,
   getSelectTicketTypeDialog,
+  getTicketOptionSelectButton,
   getTicketTypeSelectButton,
   travelokaFlightHomeSelectors,
   travelokaFlightSearchResultsSelectors,
@@ -284,7 +285,7 @@ export async function openBookingPageFromSearchResults(
   input: SearchResultsToBookingInput,
 ) {
   // Canonical desktop booking chain discovered from the recorded flow:
-  // fullsearch results -> Choose -> Select ticket type drawer -> Select -> booking.
+  // fullsearch results -> flight-inventory-card-button -> select ticket option -> booking.
   if (input.viewport) {
     await page.setViewportSize(input.viewport);
   }
@@ -294,15 +295,24 @@ export async function openBookingPageFromSearchResults(
   await waitForFlightSearchSidebar(page, input.sidebarTimeoutMs);
   await dismissBlockingBottomButton(page);
 
-  const chooseButton = getFlightResultChooseButton(page);
-  await expect(chooseButton, 'Expected at least one visible Choose button on the flight results page.').toBeVisible({ timeout: 20000 });
-  await chooseButton.click();
+  const inventoryCardButton = getFlightInventoryCardButton(page);
+  await expect(
+    inventoryCardButton,
+    'Expected the booking inventory card button on the flight results page.',
+  ).toBeVisible({ timeout: 20000 });
+  await inventoryCardButton.click({ force: true });
 
   const ticketTypeDialog = getSelectTicketTypeDialog(page);
-  await expect(ticketTypeDialog, 'Expected the Select ticket type drawer to appear after clicking Choose.').toBeVisible({ timeout: 20000 });
+  await expect(
+    ticketTypeDialog,
+    'Expected the Select ticket type drawer to appear after clicking the inventory card button.',
+  ).toBeVisible({ timeout: 20000 });
 
-  const selectButton = getTicketTypeSelectButton(page);
-  await expect(selectButton, 'Expected at least one Select button inside the ticket type drawer.').toBeVisible({ timeout: 20000 });
+  const selectButton = getTicketOptionSelectButton(page);
+  await expect(
+    selectButton,
+    'Expected the select ticket option contract button inside the drawer.',
+  ).toBeVisible({ timeout: 20000 });
 
   await Promise.all([
     page.waitForURL(travelokaFlightSearchResultsSelectors.bookingUrlPattern, { timeout: 30000 }),

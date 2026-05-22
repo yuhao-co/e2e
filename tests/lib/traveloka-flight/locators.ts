@@ -157,8 +157,16 @@ export function getFlightResultChooseButton(page: Page): Locator {
   return page.getByRole('button', { name: travelokaFlightSearchResultsSelectors.chooseButton }).first();
 }
 
+export function getFlightInventoryCardButton(page: Page): Locator {
+  return page.getByTestId('flight-inventory-card-button').first();
+}
+
 export function getSelectTicketTypeDialog(page: Page): Locator {
   return page.getByText(travelokaFlightSearchResultsSelectors.selectTicketTypeTitle).first();
+}
+
+export function getTicketOptionSelectButton(page: Page): Locator {
+  return page.getByTestId('button_ticket_option_select_1').first();
 }
 
 export function getTicketTypeSelectButton(page: Page): Locator {

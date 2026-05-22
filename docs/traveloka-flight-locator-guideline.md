@@ -29,6 +29,7 @@ Do not start from class names, deep DOM chains, or `nth()/last()/first()` unless
 - For desktop results-page route changes, treat `IcSystemSearch` as a contract anchor, not as a guaranteed directly clickable header node. Resolve it via `[data-id="IcSystemSearch"], [data-testid="IcSystemSearch"]`, prefer a visible actionable descendant when present, allow a DOM `click()` fallback for overlay-clipped nodes, and wait for either the `Change search` button or the search form to appear before continuing.
 - For result-list verification, never validate filters against a shallow container that only contains `Flight Details`, `Fare & Benefits`, `Refund`, `Reschedule`, and `Choose`. Tag and assert against the full result card that also contains airline, timing, airport, and price signals.
 - Treat the left filter panel as a scrollable region. Before concluding a lower filter section is missing, scroll inside `flight-search-sidebar-filter` itself; page-level scrolling is not a substitute for sidebar scrolling.
+- For the canonical desktop booking chain, prefer `data-testid="flight-inventory-card-button"` on the result card, then `data-testid="button_ticket_option_select_1"` inside the ticket-type drawer. Do not fall back to generic Choose/Select text if these explicit contracts are present.
 
 See `docs/traveloka-flight-filter-structure.md` for the current sidebar filter component tree and runtime id patterns derived from `traveloka/www`.
 
@@ -89,6 +90,16 @@ const baggageRow = sidebar
   .first();
 const baggageControl = baggageRow.locator('input[type="checkbox"], [role="checkbox"]').first();
 await baggageControl.click({ force: true });
+```
+
+### Open the booking chain with explicit contracts
+
+```ts
+const inventoryCardButton = page.getByTestId('flight-inventory-card-button').first();
+await inventoryCardButton.click({ force: true });
+
+const selectTicketTypeButton = page.getByTestId('button_ticket_option_select_1').first();
+await selectTicketTypeButton.click({ force: true });
 ```
 ```
 

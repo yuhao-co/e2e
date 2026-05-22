@@ -941,7 +941,7 @@ function hasStrongFlightBookingEvidence(changedFiles: string[]) {
   });
 }
 
-
+function scoreI18nFile(filePath: string): DomainSignal {
   const value = filePath.toLowerCase();
   let score = 0;
   let strong = false;
