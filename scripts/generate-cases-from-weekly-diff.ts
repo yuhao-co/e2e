@@ -6,6 +6,7 @@ import { execFileSync } from 'node:child_process';
 
 import {
   buildFlightSourceContextFromFiles,
+  DEFAULT_FLIGHT_BOOKING_ENTRY_URL,
   type FlightConcern,
 } from '../tests/lib/traveloka-flight/source-map';
 import { createFlightCaseTemplate } from '../tests/lib/traveloka-flight/template';
@@ -14,7 +15,7 @@ type Args = {
   repoPath: string | null;
   repoUrl: string | null;
   repoCacheDir: string;
-  focusDomain: Candidate['domain'] | null;
+  focusDomain: Candidate['domain'][] | null;
   emitWebSpec: boolean;
   baseRef: string;
   sinceDays: number;
@@ -30,7 +31,7 @@ type DiffFile = {
 
 type Candidate = {
   id: string;
-  domain: 'flight-search' | 'web-i18n' | 'android-home' | 'generic-web';
+  domain: 'flight-search' | 'flight-booking' | 'web-i18n' | 'android-home' | 'generic-web';
   confidence: 'high' | 'medium' | 'low';
   title: string;
   action: 'modify-existing' | 'create-new';
@@ -181,7 +182,7 @@ function parseArgs(argv: string[]): Args {
       result.repoCacheDir = next;
       i++;
     } else if (arg === '--focus-domain' && next) {
-      result.focusDomain = next as Candidate['domain'];
+      result.focusDomain = next.split(',').map((d) => d.trim()) as Candidate['domain'][];
       i++;
     } else if (arg === '--emit-web-spec') {
       result.emitWebSpec = true;
@@ -205,11 +206,12 @@ function parseArgs(argv: string[]): Args {
     throw new Error(`Invalid --since-days value: ${result.sinceDays}`);
   }
 
-  if (
-    result.focusDomain &&
-    !['flight-search', 'web-i18n', 'android-home', 'generic-web'].includes(result.focusDomain)
-  ) {
-    throw new Error(`Invalid --focus-domain value: ${result.focusDomain}`);
+  const validDomains = ['flight-search', 'flight-booking', 'web-i18n', 'android-home', 'generic-web'];
+  if (result.focusDomain) {
+    const invalid = result.focusDomain.filter((d) => !validDomains.includes(d));
+    if (invalid.length > 0) {
+      throw new Error(`Invalid --focus-domain value(s): ${invalid.join(', ')}`);
+    }
   }
 
   if (!result.repoPath && !result.repoUrl) {
@@ -905,7 +907,41 @@ function scoreFlightFile(filePath: string): DomainSignal {
   return { domain: 'flight-search', score, strong };
 }
 
-function scoreI18nFile(filePath: string): DomainSignal {
+function scoreFlightBookingFile(filePath: string): DomainSignal {
+  const value = filePath.toLowerCase();
+  let score = 0;
+  let strong = false;
+
+  if (/^packages\/flight\/fpr-booking\//.test(value)) {
+    score += 9;
+    strong = true;
+  }
+  if (/bookingcontact|bookingcontactvalidation|bffbookingcontact/.test(value)) {
+    score += 5;
+    strong = true;
+  }
+  if (/^packages\/flight\/fpr-booking-/.test(value)) {
+    score += 4;
+    strong = true;
+  }
+  if (/\b(booking|contact form|email confirmation|passenger detail)\b/.test(value)) {
+    score += 2;
+  }
+
+  return { domain: 'flight-booking', score, strong };
+}
+
+function hasStrongFlightBookingEvidence(changedFiles: string[]) {
+  return changedFiles.some((filePath) => {
+    const value = filePath.toLowerCase();
+    return (
+      /^packages\/flight\/fpr-booking\//.test(value) ||
+      /bookingcontactvalidation|bffbookingcontact/.test(value)
+    );
+  });
+}
+
+
   const value = filePath.toLowerCase();
   let score = 0;
   let strong = false;
@@ -950,6 +986,7 @@ function scoreAndroidFile(filePath: string): DomainSignal {
 
 function collectDomainSignals(filePath: string): DomainSignal[] {
   return [
+    scoreFlightBookingFile(filePath),
     scoreFlightFile(filePath),
     scoreI18nFile(filePath),
     scoreAndroidFile(filePath),
@@ -1249,6 +1286,129 @@ function buildFlightCandidate(
   };
 }
 
+function buildFlightBookingCandidate(
+  changedFiles: string[],
+  workspaceRoot: string,
+  repoPath: string,
+  startCommit: string,
+  endRef: string,
+): Candidate {
+  const weeklyCaseStamp = formatWeeklyCaseStamp();
+  const suggestedUserIntent =
+    'Open the desktop Traveloka flight booking page and validate booking contact form fields, ' +
+    'including email, email confirmation, mobile number, and passenger name. ' +
+    'Verify required-field errors and mismatch-email validation are rendered correctly.';
+
+  const fileWeights = new Map<string, number>(
+    changedFiles.map((filePath) => {
+      const value = filePath.toLowerCase();
+      let w = 1;
+      if (/bffbookingcontact|bookingcontactvalidation/.test(value)) w += 5;
+      if (/fpr-booking/.test(value)) w += 3;
+      return [filePath, w];
+    }),
+  );
+
+  const hasStrongEvidence = hasStrongFlightBookingEvidence(changedFiles);
+  const sourceCommits = collectRelevantCommits(repoPath, startCommit, endRef, changedFiles, 3, fileWeights);
+  const enrichedSourceCommits = enrichRelevantCommitsWithPullRequestContext(repoPath, sourceCommits);
+  const sourceSummaryLines = prioritizePullRequestContextLines(enrichedSourceCommits).slice(0, 2);
+
+  const bookingEntryUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL
+    || DEFAULT_FLIGHT_BOOKING_ENTRY_URL;
+
+  const highlightedChangedFiles = changedFiles
+    .slice()
+    .sort((a, b) => (fileWeights.get(b) ?? 0) - (fileWeights.get(a) ?? 0))
+    .slice(0, 10);
+  const omittedCount = Math.max(0, changedFiles.length - highlightedChangedFiles.length);
+
+  const webSpecFileName = `traveloka-flight-booking-weekly-diff-${weeklyCaseStamp}.spec.ts`;
+  const interactionLines = [
+    '// Booking contact form validation coverage.',
+    '// If TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL is set, navigate directly to the booking page.',
+    '// Otherwise use the canonical desktop booking chain from the search results entry URL.',
+    `const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;`,
+    `if (directBookingUrl) {`,
+    `  await page.goto(directBookingUrl, { waitUntil: 'domcontentloaded' });`,
+    `} else {`,
+    `  // Fall back to the canonical booking chain: search results -> Choose -> Select ticket type.`,
+    `  await page.goto(${JSON.stringify(bookingEntryUrl)}, { waitUntil: 'domcontentloaded' });`,
+    `  const chooseButton = page.locator('[data-testid*="choose"], button').filter({ hasText: /choose/i }).first();`,
+    `  await chooseButton.waitFor({ state: 'visible', timeout: 30000 });`,
+    `  await chooseButton.click();`,
+    `  const selectButton = page.locator('button').filter({ hasText: /^select$/i }).first();`,
+    `  await selectButton.waitFor({ state: 'visible', timeout: 15000 });`,
+    `  await selectButton.click();`,
+    `}`,
+    `await page.waitForURL(/\\/flight\\/booking/, { timeout: 30000 }).catch(() => {});`,
+    `const bookingUrl = new URL(page.url());`,
+    `expect(bookingUrl.pathname).toMatch(/\\/flight\\/booking/);`,
+    `const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);`,
+    `if (screenshot) {`,
+    `  await testInfo.attach('booking-weekly-generated.png', { body: screenshot, contentType: 'image/png' });`,
+    `}`,
+    `// Weekly diff generated candidate: refine against actual changed booking source files.`,
+    `// Suggested changed files (top ${highlightedChangedFiles.length}${omittedCount ? ` of ${changedFiles.length}` : ''}): ${JSON.stringify(highlightedChangedFiles)}`,
+    ...(omittedCount ? [`// Omitted additional changed files: ${omittedCount}`] : []),
+    `// Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form.`,
+    `// Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules.`,
+  ];
+
+  const webSpecContent = createFlightCaseTemplate({
+    testName: `Traveloka weekly diff booking contact coverage (${weeklyCaseStamp})`,
+    url: bookingEntryUrl,
+    userIntent: suggestedUserIntent,
+    importPrefix: '../',
+    concerns: ['booking-contact'],
+    sourceCommitLines: enrichedSourceCommits.map(
+      (commit: { sha: string; author: string; subject: string }) =>
+        `${commit.sha} by ${commit.author}: ${commit.subject}`,
+    ),
+    sourceSummaryLines,
+    assertionLines: [
+      `const bookingPath = new URL(page.url()).pathname;`,
+      `expect(bookingPath).toMatch(/\\/flight\\/booking/);`,
+    ],
+    interactionLines,
+  });
+
+  return {
+    id: 'flight-booking-weekly',
+    domain: 'flight-booking',
+    confidence: hasStrongEvidence ? 'high' : 'medium',
+    title: 'Weekly flight booking contact regression coverage',
+    action: 'modify-existing',
+    reason: hasStrongEvidence
+      ? 'Changed files map to flight booking contact components. Re-check the nearest booking tests before adding new ones.'
+      : 'Changed files weakly suggest booking contact behavior. Keep as manual-review guidance.',
+    solution: hasStrongEvidence
+      ? 'Prioritize existing booking contact tests, then emit a runnable weekly spec.'
+      : 'Keep as summary-only until stronger booking source evidence is present.',
+    howToSolve: hasStrongEvidence
+      ? 'Use packages/flight/fpr-booking evidence to route the candidate and emit the generated web spec.'
+      : 'Keep target URL and source hints, but suppress web spec emission until fpr-booking source is in the diff.',
+    changedFiles,
+    targetTests: ['tests/web/traveloka-flight-metasearch-email-confirmation.spec.ts'],
+    suggestedUserIntent,
+    targetUrl: bookingEntryUrl,
+    concerns: ['booking-contact'],
+    sourceHints: [
+      {
+        sourcePath: 'packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactForm.tsx',
+        reason: 'Desktop booking contact form component.',
+      },
+      {
+        sourcePath: 'packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts',
+        reason: 'Booking contact validation handler.',
+      },
+    ],
+    sourceCommits: enrichedSourceCommits,
+    webSpecFileName: hasStrongEvidence ? webSpecFileName : undefined,
+    webSpecContent: hasStrongEvidence ? webSpecContent : undefined,
+  };
+}
+
 function buildI18nCandidate(changedFiles: string[]): Candidate {
   const keywords = summarizeKeywords(changedFiles);
   return {
@@ -1320,7 +1480,8 @@ function routeCandidates(
   startCommit: string,
   endRef: string,
 ): Candidate[] {
-  const buckets: Record<'flight-search' | 'web-i18n' | 'android-home' | 'generic-web', DomainBucket> = {
+  const buckets: Record<'flight-booking' | 'flight-search' | 'web-i18n' | 'android-home' | 'generic-web', DomainBucket> = {
+    'flight-booking': { files: [], score: 0, strongHits: 0 },
     'flight-search': { files: [], score: 0, strongHits: 0 },
     'web-i18n': { files: [], score: 0, strongHits: 0 },
     'android-home': { files: [], score: 0, strongHits: 0 },
@@ -1346,6 +1507,17 @@ function routeCandidates(
   }
 
   const candidates: Candidate[] = [];
+  if (buckets['flight-booking'].strongHits > 0) {
+    candidates.push(
+      buildFlightBookingCandidate(
+        buckets['flight-booking'].files,
+        workspaceRoot,
+        repoPath,
+        startCommit,
+        endRef,
+      ),
+    );
+  }
   if (buckets['flight-search'].strongHits > 0) {
     candidates.push(
       buildFlightCandidate(
@@ -1370,12 +1542,12 @@ function routeCandidates(
   return candidates;
 }
 
-function filterCandidatesByFocus(candidates: Candidate[], focusDomain: Candidate['domain'] | null) {
-  if (!focusDomain) {
+function filterCandidatesByFocus(candidates: Candidate[], focusDomain: Candidate['domain'][] | null) {
+  if (!focusDomain || focusDomain.length === 0) {
     return candidates;
   }
 
-  return candidates.filter((candidate) => candidate.domain === focusDomain);
+  return candidates.filter((candidate) => focusDomain.includes(candidate.domain));
 }
 
 function renderMarkdown(args: Args, startCommit: string, endRef: string, files: DiffFile[], candidates: Candidate[]) {
@@ -1385,8 +1557,8 @@ function renderMarkdown(args: Args, startCommit: string, endRef: string, files: 
   lines.push(`- Repo path: ${args.repoPath}`);
   lines.push(`- Base ref: ${args.baseRef}`);
   lines.push(`- Diff window: ${args.sinceDays} days`);
-  if (args.focusDomain) {
-    lines.push(`- Focus domain: ${args.focusDomain}`);
+  if (args.focusDomain && args.focusDomain.length > 0) {
+    lines.push(`- Focus domain: ${args.focusDomain.join(', ')}`);
   }
   lines.push(`- Diff range: ${startCommit}..${endRef}`);
   lines.push(`- Changed files: ${files.length}`);

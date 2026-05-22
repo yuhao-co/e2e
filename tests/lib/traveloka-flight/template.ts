@@ -50,6 +50,11 @@ function describeConcern(concern: FlightConcern) {
         en: 'date-related flow on the flight results surface',
         zh: '机票结果页上的日期相关流程',
       };
+    case 'booking-contact':
+      return {
+        en: 'booking contact form field rendering and validation',
+        zh: '预订联系人表单字段渲染与校验',
+      };
   }
 }
 

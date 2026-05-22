@@ -5,7 +5,7 @@ REPO_ROOT="${REPO_ROOT:-/Users/yu.hao/Desktop/task/e2e}"
 TARGET_REPO_PATH="${TARGET_REPO_PATH:-}"
 TARGET_REPO_URL="${TARGET_REPO_URL:-https://github.com/traveloka/www}"
 TARGET_REPO_CACHE_DIR="${TARGET_REPO_CACHE_DIR:-.cache/weekly-diff-repos}"
-FOCUS_DOMAIN="${FOCUS_DOMAIN:-flight-search}"
+FOCUS_DOMAIN="${FOCUS_DOMAIN:-flight-search,flight-booking}"
 EMIT_WEB_SPEC="${EMIT_WEB_SPEC:-1}"
 BASE_REF="${BASE_REF:-origin/master}"
 SINCE_DAYS="${SINCE_DAYS:-7}"
@@ -52,7 +52,10 @@ if [[ "$RUN_WEEKLY_PLAYWRIGHT" != "1" ]]; then
 fi
 
 setopt null_glob
-WEEKLY_SPECS=(tests/web/traveloka-flight-weekly-diff-20*.spec.ts)
+WEEKLY_SPECS=(
+  tests/web/traveloka-flight-weekly-diff-20*.spec.ts
+  tests/web/traveloka-flight-booking-weekly-diff-20*.spec.ts
+)
 
 if (( ${#WEEKLY_SPECS[@]} == 0 )); then
   echo "[weekly-diff] no accumulated weekly flight specs found under tests/web"

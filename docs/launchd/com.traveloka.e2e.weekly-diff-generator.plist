@@ -25,7 +25,7 @@
     <key>TARGET_REPO_CACHE_DIR</key>
     <string>.cache/weekly-diff-repos</string>
     <key>FOCUS_DOMAIN</key>
-    <string>flight-search</string>
+    <string>flight-search,flight-booking</string>
     <key>EMIT_WEB_SPEC</key>
     <string>1</string>
     <key>BASE_REF</key>

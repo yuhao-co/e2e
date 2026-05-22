@@ -1,11 +1,12 @@
-export type FlightSurface = 'search-entry' | 'search-results';
+export type FlightSurface = 'search-entry' | 'search-results' | 'booking';
 
 export type FlightConcern =
   | 'search-form'
   | 'results-list'
   | 'transit-filter'
   | 'airline-filter'
-  | 'date-flow';
+  | 'date-flow'
+  | 'booking-contact';
 
 export type SourceHint = {
   sourcePath: string;
@@ -27,9 +28,23 @@ export type FlightSourceContext = {
 export const DEFAULT_FLIGHT_RESULTS_URL =
   'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';
 
+export const DEFAULT_FLIGHT_BOOKING_ENTRY_URL =
+  'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY';
+
 // Keep Traveloka's public web repo pinned here so future cases can route from
 // a user URL + intent to the most likely owning source module first.
 export const TRAVELOKA_WWW_REPOSITORY = 'https://github.com/traveloka/www';
+
+const FLIGHT_BOOKING_SOURCE_HINTS: SourceHint[] = [
+  {
+    sourcePath: 'packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactForm.tsx',
+    reason: 'Desktop booking contact form component owning email, name, and mobile fields.',
+  },
+  {
+    sourcePath: 'packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts',
+    reason: 'Booking contact validation handler driving field-level error rules.',
+  },
+];
 
 const FLIGHT_RESULTS_SOURCE_HINTS: Record<FlightConcern, SourceHint[]> = {
   'search-form': [
@@ -72,6 +87,7 @@ const FLIGHT_RESULTS_SOURCE_HINTS: Record<FlightConcern, SourceHint[]> = {
       reason: 'Closest verified desktop results component for date-flow and filter interactions.',
     },
   ],
+  'booking-contact': FLIGHT_BOOKING_SOURCE_HINTS,
 };
 
 const concernKeywords: Array<[FlightConcern, RegExp]> = [
@@ -79,6 +95,7 @@ const concernKeywords: Array<[FlightConcern, RegExp]> = [
   ['airline-filter', /\b(airline|carrier)\b/i],
   ['date-flow', /\b(date|calendar|depart|return)\b/i],
   ['results-list', /\b(result|flight list|price|sort)\b/i],
+  ['booking-contact', /\b(booking|contact|email|passenger detail|name|mobile|validation)\b/i],
   ['search-form', /\b(search|origin|destination|passenger|round-trip|one-way)\b/i],
 ];
 
@@ -121,6 +138,10 @@ export function inferFlightSurface(url: string): FlightSurface {
     return 'search-results';
   }
 
+  if (/\/flight\/booking/.test(pathname)) {
+    return 'booking';
+  }
+
   return 'search-entry';
 }
 
@@ -138,8 +159,18 @@ export function buildFlightSourceContext(url: string, userIntent = ''): FlightSo
     concerns.add('results-list');
   }
 
+  if (surface === 'booking') {
+    concerns.add('booking-contact');
+  }
+
   if (concerns.size === 0) {
-    concerns.add(surface === 'search-results' ? 'results-list' : 'search-form');
+    if (surface === 'search-results') {
+      concerns.add('results-list');
+    } else if (surface === 'booking') {
+      concerns.add('booking-contact');
+    } else {
+      concerns.add('search-form');
+    }
   }
 
   const orderedConcerns = Array.from(concerns);
