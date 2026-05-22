@@ -297,12 +297,12 @@ async function runCommand(commandArgs: string[]): Promise<RunResult> {
     const outputBuffer: string[] = [];
     let trailingChunk = '';
 
-    const [command, ...args] = commandArgs;
+    const command = formatCommandForDisplay(commandArgs);
 
-    const child = spawn(command, args, {
+    const child = spawn(command, {
       cwd: process.cwd(),
       env: process.env,
-      shell: false,
+      shell: true,
       stdio: ['inherit', 'pipe', 'pipe'],
     });
 
