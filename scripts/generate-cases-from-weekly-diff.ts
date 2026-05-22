@@ -69,6 +69,11 @@ type Candidate = {
   webSpecContent?: string;
 };
 
+type CandidateMarkdownArtifact = {
+  fileName: string;
+  content: string;
+};
+
 type DomainBucket = {
   files: string[];
   score: number;
@@ -145,6 +150,8 @@ type MeeglePrdResolutionPayload = {
   accessStatus?: string;
   prdLink?: string | null;
   notes?: string;
+  prdTitle?: string | null;
+  summary?: string | null;
 };
 
 const LARK_WIKI_PRD_LINK_PATTERN = /https:\/\/traveloka\.sg\.larksuite\.com\/wiki\/[A-Za-z0-9]+/g;
@@ -1303,10 +1310,6 @@ function buildFlightBookingCandidate(
   endRef: string,
 ): Candidate {
   const weeklyCaseStamp = formatWeeklyCaseStamp();
-  const suggestedUserIntent =
-    'Open the desktop Traveloka flight booking page and validate booking contact form fields, ' +
-    'including email, email confirmation, mobile number, and passenger name. ' +
-    'Verify required-field errors and mismatch-email validation are rendered correctly.';
 
   const fileWeights = new Map<string, number>(
     changedFiles.map((filePath) => {
@@ -1322,6 +1325,19 @@ function buildFlightBookingCandidate(
   const sourceCommits = collectRelevantCommits(repoPath, startCommit, endRef, changedFiles, 3, fileWeights);
   const enrichedSourceCommits = enrichRelevantCommitsWithPullRequestContext(repoPath, sourceCommits);
   const sourceSummaryLines = prioritizePullRequestContextLines(enrichedSourceCommits).slice(0, 2);
+  const retentionFocused = [
+    ...changedFiles,
+    ...enrichedSourceCommits.flatMap((commit) => [
+      commit.subject,
+      commit.prTitle ?? '',
+      commit.prSummary ?? '',
+      commit.prTestPlan ?? '',
+    ]),
+  ].some((value) => /retention|exit[-\s]?intent|drop\s*off/i.test(value));
+
+  const suggestedUserIntent = retentionFocused
+    ? 'Open the desktop Traveloka flight booking flow from search results, verify the canonical booking page remains reachable, and capture booking-page state for retention-popup related weekly review.'
+    : 'Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.';
 
   const bookingEntryUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL
     || DEFAULT_FLIGHT_BOOKING_ENTRY_URL;
@@ -1333,69 +1349,95 @@ function buildFlightBookingCandidate(
   const omittedCount = Math.max(0, changedFiles.length - highlightedChangedFiles.length);
 
   const webSpecFileName = `traveloka-flight-booking-weekly-diff-${weeklyCaseStamp}.spec.ts`;
-  const interactionLines = [
-    '// Booking contact form validation coverage.',
-    '// If TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL is set, navigate directly to the booking page.',
-    '// Otherwise use the canonical desktop booking chain from the search results entry URL.',
-    `const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;`,
-    `if (directBookingUrl) {`,
-    `  await page.goto(directBookingUrl, { waitUntil: 'domcontentloaded' });`,
-    `} else {`,
-    `  // Fall back to the canonical booking chain: search results -> Choose -> Select ticket type.`,
-    `  await page.goto(${JSON.stringify(bookingEntryUrl)}, { waitUntil: 'domcontentloaded' });`,
-    `  const chooseButton = page.locator('[data-testid*="choose"], button').filter({ hasText: /choose/i }).first();`,
-    `  await chooseButton.waitFor({ state: 'visible', timeout: 30000 });`,
-    `  await chooseButton.click();`,
-    `  const selectButton = page.locator('button').filter({ hasText: /^select$/i }).first();`,
-    `  await selectButton.waitFor({ state: 'visible', timeout: 15000 });`,
-    `  await selectButton.click();`,
-    `}`,
-    `await page.waitForURL(/\\/flight\\/booking/, { timeout: 30000 }).catch(() => {});`,
-    `const bookingUrl = new URL(page.url());`,
-    `expect(bookingUrl.pathname).toMatch(/\\/flight\\/booking/);`,
-    `const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);`,
-    `if (screenshot) {`,
-    `  await testInfo.attach('booking-weekly-generated.png', { body: screenshot, contentType: 'image/png' });`,
-    `}`,
-    `// Weekly diff generated candidate: refine against actual changed booking source files.`,
-    `// Suggested changed files (top ${highlightedChangedFiles.length}${omittedCount ? ` of ${changedFiles.length}` : ''}): ${JSON.stringify(highlightedChangedFiles)}`,
-    ...(omittedCount ? [`// Omitted additional changed files: ${omittedCount}`] : []),
-    `// Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form.`,
-    `// Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules.`,
-  ];
+  const sourceCommitSummary = enrichedSourceCommits.length
+    ? enrichedSourceCommits
+        .map((commit: { sha: string; author: string; subject: string }) => `${commit.sha} by ${commit.author}: ${commit.subject}`)
+        .join(' | ')
+    : 'No specific commit metadata was attached for this generated case.';
+  const sourceSummary = sourceSummaryLines.length ? sourceSummaryLines.join(' | ') : null;
+  const webSpecContent = `import { expect, test } from '../fixture';
+import {
+  attachFlightWorkflowPlan,
+  createFlightWorkflowPlan,
+  openBookingPageFromSearchResults,
+  openMetasearchBookingContactPage,
+} from '../lib/traveloka-flight/workflow';
 
-  const webSpecContent = createFlightCaseTemplate({
-    testName: `Traveloka weekly diff booking contact coverage (${weeklyCaseStamp})`,
-    url: bookingEntryUrl,
-    userIntent: suggestedUserIntent,
-    importPrefix: '../',
+const TARGET_URL = '${bookingEntryUrl}';
+
+/**
+ * EN Purpose: ${suggestedUserIntent}
+ * 中文目的: 验证本周 flight booking 改动在 desktop booking 链路下仍可稳定进入 booking 页面，并保留人工复查所需上下文。
+ * EN Surface: booking
+ * 中文范围: booking 页面。
+ * EN Concerns: booking-entry, weekly-booking-smoke
+ * 中文关注点: booking-entry、weekly-booking-smoke
+ * EN Main checks: canonical desktop booking entry chain remains reachable; booking page URL is reached; booking page state is captured for weekly review.
+ * 中文校验项: 标准 desktop booking 进入链路可达；成功进入 booking 页面；保留 booking 页面状态供周测复查。
+ * EN Source commits: ${sourceCommitSummary}
+ * 中文来源提交: ${sourceCommitSummary}
+${sourceSummary ? ` * EN Source summary: ${sourceSummary}\n * 中文来源摘要: ${sourceSummary}\n` : ''} * EN Expectation: keep this generated case aligned with the stable Traveloka desktop baseline flow and verify only the routed regression slice.
+ * 中文预期: 该生成用例必须与稳定的 Traveloka desktop 基线流程保持一致，只验证本次路由到的回归范围。
+ */
+
+test.use({
+  userAgent:
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+  locale: 'en-US',
+  timezoneId: 'Asia/Shanghai',
+  extraHTTPHeaders: {
+    'accept-language': 'en-US,en;q=0.9',
+    referer: 'https://www.google.com/',
+  },
+});
+
+test('Traveloka weekly diff booking smoke coverage (${weeklyCaseStamp})', async ({ page }, testInfo) => {
+  const workflowPlan = createFlightWorkflowPlan({
+    url: TARGET_URL,
+    userIntent: ${JSON.stringify(suggestedUserIntent)},
     concerns: ['booking-contact'],
-    sourceCommitLines: enrichedSourceCommits.map(
-      (commit: { sha: string; author: string; subject: string }) =>
-        `${commit.sha} by ${commit.author}: ${commit.subject}`,
-    ),
-    sourceSummaryLines,
-    assertionLines: [
-      `const bookingPath = new URL(page.url()).pathname;`,
-      `expect(bookingPath).toMatch(/\\/flight\\/booking/);`,
-    ],
-    interactionLines,
   });
+
+  await attachFlightWorkflowPlan(testInfo, workflowPlan);
+
+  const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;
+  if (directBookingUrl) {
+    await openMetasearchBookingContactPage(page, { url: directBookingUrl });
+  } else {
+    await openBookingPageFromSearchResults(page, { url: workflowPlan.input.url });
+  }
+
+  const bookingUrl = new URL(page.url());
+  expect(bookingUrl.pathname).toMatch(/\\/flight\\/booking/);
+
+  const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);
+  if (screenshot) {
+    await testInfo.attach('booking-weekly-generated.png', { body: screenshot, contentType: 'image/png' });
+  }
+
+  // Weekly diff generated candidate: refine against actual changed booking source files.
+  // Suggested changed files (top ${highlightedChangedFiles.length}${omittedCount ? ` of ${changedFiles.length}` : ''}): ${JSON.stringify(highlightedChangedFiles)}
+${omittedCount ? `  // Omitted additional changed files: ${omittedCount}\n` : ''}  // Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form.
+  // Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules.
+${retentionFocused ? "  // PRD note: the routed PR context mentions retention-popup behavior, so this weekly spec stays at booking-entry smoke level and preserves the page state for manual popup review.\n" : ''}});
+`;
 
   return {
     id: 'flight-booking-weekly',
     domain: 'flight-booking',
     confidence: hasStrongEvidence ? 'high' : 'medium',
-    title: 'Weekly flight booking contact regression coverage',
+    title: retentionFocused
+      ? 'Weekly flight booking retention-entry regression coverage'
+      : 'Weekly flight booking entry regression coverage',
     action: 'modify-existing',
     reason: hasStrongEvidence
-      ? 'Changed files map to flight booking contact components. Re-check the nearest booking tests before adding new ones.'
-      : 'Changed files weakly suggest booking contact behavior. Keep as manual-review guidance.',
+      ? 'Changed files map to flight booking surfaces. Re-check the nearest booking tests, then emit a runnable booking smoke case through the stable desktop chain.'
+      : 'Changed files weakly suggest booking behavior. Keep as manual-review guidance.',
     solution: hasStrongEvidence
-      ? 'Prioritize existing booking contact tests, then emit a runnable weekly spec.'
+      ? 'Prioritize existing booking tests, then emit a runnable weekly booking smoke spec through shared helpers.'
       : 'Keep as summary-only until stronger booking source evidence is present.',
     howToSolve: hasStrongEvidence
-      ? 'Use packages/flight/fpr-booking evidence to route the candidate and emit the generated web spec.'
+      ? 'Use packages/flight/fpr-booking evidence to route the candidate, preserve PRD references in markdown, and emit the generated web spec through the shared booking helper.'
       : 'Keep target URL and source hints, but suppress web spec emission until fpr-booking source is in the diff.',
     changedFiles,
     targetTests: ['tests/web/traveloka-flight-metasearch-email-confirmation.spec.ts'],
@@ -1626,6 +1668,168 @@ function renderMarkdown(args: Args, startCommit: string, endRef: string, files: 
   return lines.join('\n');
 }
 
+function collectCandidatePrdLinks(candidate: Candidate) {
+  const references = candidate.sourceCommits?.flatMap((commit) => commit.prdLinks ?? []) ?? [];
+  const seen = new Set<string>();
+  const result: PrdReference[] = [];
+
+  for (const reference of references) {
+    if (seen.has(reference.url)) {
+      continue;
+    }
+
+    seen.add(reference.url);
+    result.push(reference);
+  }
+
+  return result;
+}
+
+function buildCandidateMarkdownArtifacts(candidate: Candidate): CandidateMarkdownArtifact[] {
+  const artifacts: CandidateMarkdownArtifact[] = [];
+  const prdLinks = collectCandidatePrdLinks(candidate);
+  const sourceSummaryLines = prioritizePullRequestContextLines(candidate.sourceCommits ?? []).slice(0, 4);
+  const traceLines: string[] = [];
+
+  traceLines.push('# PRD Workflow Trace');
+  traceLines.push('');
+  traceLines.push(`- Candidate: ${candidate.title}`);
+  traceLines.push(`- Domain: ${candidate.domain}`);
+  traceLines.push(`- Confidence: ${candidate.confidence}`);
+  traceLines.push(`- Suggested intent: ${candidate.suggestedUserIntent}`);
+  if (candidate.webSpecFileName) {
+    traceLines.push(`- Generated web spec: tests/web/${candidate.webSpecFileName}`);
+  }
+  if (candidate.targetUrl) {
+    traceLines.push(`- Canonical target URL: ${candidate.targetUrl}`);
+  }
+  traceLines.push('');
+  traceLines.push('## Source Context');
+  traceLines.push('');
+  if (candidate.sourceCommits?.length) {
+    for (const commit of candidate.sourceCommits) {
+      const prSuffix = commit.prNumber ? ` (#${commit.prNumber})` : '';
+      traceLines.push(`- ${commit.sha} by ${commit.author}: ${commit.subject}${prSuffix}`);
+    }
+  } else {
+    traceLines.push('- No source commits were attached.');
+  }
+  if (sourceSummaryLines.length) {
+    traceLines.push('');
+    traceLines.push('## Source Summary');
+    traceLines.push('');
+    for (const line of sourceSummaryLines) {
+      traceLines.push(`- ${line}`);
+    }
+  }
+  traceLines.push('');
+  traceLines.push('## PRD References');
+  traceLines.push('');
+  if (prdLinks.length) {
+    for (const reference of prdLinks) {
+      traceLines.push(`- ${reference.kind}: ${reference.url}`);
+    }
+  } else {
+    traceLines.push('- No PRD link was extracted from the routed source commits.');
+  }
+  if (candidate.domain === 'flight-booking') {
+    traceLines.push('');
+    traceLines.push('## Booking Routing Decision');
+    traceLines.push('');
+    traceLines.push('- The weekly generator emits booking smoke coverage through the shared desktop booking helper instead of inlining Choose/Select text locators.');
+    traceLines.push('- The generated booking spec verifies booking-page reachability and preserves screenshot evidence for manual PRD review.');
+    if (sourceSummaryLines.some((line) => /retention|exit[-\s]?intent/i.test(line))) {
+      traceLines.push('- PR context indicates retention-popup behavior, so the generated booking case intentionally avoids pretending to cover booking-contact field validation.');
+    }
+  }
+
+  artifacts.push({
+    fileName: `${candidate.domain}-workflow-trace.md`,
+    content: `${traceLines.join('\n')}\n`,
+  });
+
+  return artifacts;
+}
+
+function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
+  const extractScriptPath = path.resolve(process.cwd(), 'scripts/extract-prd-with-opencode.sh');
+  const resolveScriptPath = path.resolve(process.cwd(), 'scripts/resolve-meegle-prd-link-with-opencode.sh');
+  if (!fs.existsSync(extractScriptPath)) {
+    return;
+  }
+
+  const prdLinks = collectCandidatePrdLinks(candidate);
+  let resolvedPrdLink = prdLinks.find((reference) => reference.kind === 'lark-wiki')?.url ?? null;
+
+  if (!resolvedPrdLink) {
+    const meegleLink = prdLinks.find((reference) => reference.kind === 'meegle-fpr')?.url;
+    if (meegleLink && fs.existsSync(resolveScriptPath)) {
+      const resolutionPath = path.join(rootDir, `${candidate.domain}-prd-resolution.json`);
+
+      try {
+        execFileSync(resolveScriptPath, [meegleLink, resolutionPath], {
+          cwd: process.cwd(),
+          stdio: ['ignore', 'pipe', 'pipe'],
+          encoding: 'utf8',
+        });
+
+        const payload = JSON.parse(fs.readFileSync(resolutionPath, 'utf8')) as MeeglePrdResolutionPayload;
+        const resolutionLines = [
+          '# PRD Resolution',
+          '',
+          `- Candidate: ${candidate.title}`,
+          `- Source URL: ${payload.sourceUrl ?? meegleLink}`,
+          `- Access status: ${payload.accessStatus ?? 'error'}`,
+          `- Resolved PRD link: ${payload.prdLink ?? 'not found'}`,
+          `- PRD title: ${payload.prdTitle ?? 'unknown'}`,
+          `- Notes: ${payload.notes ?? 'n/a'}`,
+        ];
+
+        if (payload.summary) {
+          resolutionLines.push(`- Summary: ${payload.summary}`);
+        }
+
+        fs.writeFileSync(
+          path.join(rootDir, `${candidate.domain}-prd-resolution.md`),
+          `${resolutionLines.join('\n')}\n`,
+        );
+
+        resolvedPrdLink = payload.prdLink ?? null;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        fs.writeFileSync(
+          path.join(rootDir, `${candidate.domain}-prd-resolution.md`),
+          [`# PRD Resolution Failed`, '', `- Candidate: ${candidate.title}`, `- Meegle link: ${meegleLink}`, `- Error: ${message}`].join('\n') + '\n',
+        );
+      }
+    }
+  }
+
+  if (!resolvedPrdLink) {
+    fs.writeFileSync(
+      path.join(rootDir, `${candidate.domain}-prd-extraction.md`),
+      [`# PRD Extraction Skipped`, '', `- Candidate: ${candidate.title}`, '- No direct or resolved Lark PRD link was available for extraction.'].join('\n') + '\n',
+    );
+    return;
+  }
+
+  const outputPath = path.join(rootDir, `${candidate.domain}-prd-extraction.md`);
+
+  try {
+    execFileSync(extractScriptPath, [resolvedPrdLink, outputPath], {
+      cwd: process.cwd(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      encoding: 'utf8',
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    fs.writeFileSync(
+      outputPath,
+      [`# PRD Extraction Failed`, '', `- Candidate: ${candidate.title}`, `- PRD link: ${resolvedPrdLink}`, `- Error: ${message}`].join('\n') + '\n',
+    );
+  }
+}
+
 function renderConsoleSummary(
   args: Args,
   startCommit: string,
@@ -1661,6 +1865,7 @@ function renderConsoleSummary(
 
 function writeArtifacts(rootDir: string, markdown: string, candidates: Candidate[], files: DiffFile[]) {
   fs.mkdirSync(rootDir, { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'summary.md'), `${markdown}\n`);
   fs.writeFileSync(
     path.join(rootDir, 'summary.json'),
     JSON.stringify({ generatedAt: new Date().toISOString(), markdownSummary: markdown, files, candidates }, null, 2),
@@ -1670,6 +1875,12 @@ function writeArtifacts(rootDir: string, markdown: string, candidates: Candidate
     if (candidate.draftFileName && candidate.draftContent) {
       fs.writeFileSync(path.join(rootDir, candidate.draftFileName), candidate.draftContent);
     }
+
+    for (const artifact of buildCandidateMarkdownArtifacts(candidate)) {
+      fs.writeFileSync(path.join(rootDir, artifact.fileName), artifact.content);
+    }
+
+    writeCandidatePrdExtractions(rootDir, candidate);
   }
 }
 
