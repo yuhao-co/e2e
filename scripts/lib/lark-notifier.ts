@@ -35,6 +35,7 @@ export interface TestRunResult {
   failedCases?: string[];
   duration?: number;
   mode?: string;
+  layer?: 'active' | 'archive' | 'deep_archive';  // Phase 2: 分层信息
 }
 
 /**
@@ -76,8 +77,11 @@ function buildTestResultCard(result: TestRunResult): LarkCardPayload {
     ? `\n**Failed Cases**: ${result.failedCases.slice(0, 5).join(', ')}${result.failedCases.length > 5 ? ` +${result.failedCases.length - 5} more` : ''}`
     : '';
   
+  // Phase 2: 添加分层信息
+  const layerText = result.layer ? `\n**Layer**: ${result.layer} (周度/月度/按需)` : '';
+  
   const summaryText = `
-**Mode**: ${result.mode || 'full'}
+**Mode**: ${result.mode || 'full'}${layerText}
 **Total**: ${total} | **Passed**: ${passed} | **Failed**: ${failed} | **Skipped**: ${skipped}
 **Pass Rate**: ${passRate}%
 **Duration**: ${formatDuration(result.duration)}${failedCasesText}

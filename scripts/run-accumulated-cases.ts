@@ -4,18 +4,24 @@
  * Run all accumulated test cases with skip-on-blocking logic
  * 
  * Usage:
- *   npx tsx scripts/run-accumulated-cases.ts [--mode incremental|full|all] [--pr-number <num>] [--dont-skip-blocked]
+ *   npx tsx scripts/run-accumulated-cases.ts [--mode incremental|full|all] [--layer active|archive|deep_archive] [--pr-number <num>] [--dont-skip-blocked]
  * 
  * Modes:
  *   - incremental: Run only cases not run in the last execution (default)
  *   - full: Run all active cases from manifest
  *   - all: Run everything, including deprecated cases (warning: may be slow)
+ * 
+ * Layers (new in Phase 2):
+ *   - active: 最近 4 周 + permanent 用例 (周度执行，~60 分钟)
+ *   - archive: 4+ 周的 stable 用例 (月度执行，~180 分钟)
+ *   - deep_archive: 已下线/retired 用例 (按需执行)
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execSync } from 'node:child_process';
 import { notifyTestResults } from './lib/lark-notifier';
+import { AccumulationManifest } from './lib/accumulation-manifest';
 
 interface ManifestStatistics {
   totalCases: number;
@@ -55,6 +61,7 @@ interface Args {
   skipBlocked: boolean;
   outputDir: string;
   dryRun: boolean;
+  layer?: 'active' | 'archive' | 'deep_archive';
 }
 
 function parseArgs(argv: string[]): Args {
@@ -76,6 +83,11 @@ function parseArgs(argv: string[]): Args {
       i++;
     } else if (arg === '--pr-number' && next) {
       result.prNumber = Number(next);
+      i++;
+    } else if (arg === '--layer' && next) {
+      if (['active', 'archive', 'deep_archive'].includes(next)) {
+        result.layer = next as 'active' | 'archive' | 'deep_archive';
+      }
       i++;
     } else if (arg === '--dont-skip-blocked') {
       result.skipBlocked = false;
@@ -104,6 +116,53 @@ function loadManifest(manifestPath: string): Manifest | null {
   } catch (err) {
     console.error(`[run-cases] Failed to load manifest:`, err);
     return null;
+  }
+}
+
+/**
+ * Get test cases from AccumulationManifest using layer strategy (Phase 2)
+ * 
+ * 新增功能：使用分层策略获取用例
+ * - active: 周度执行，最近 4 周 + permanent
+ * - archive: 月度执行，历史 4+ 周的 stable
+ * - deep_archive: 按需执行，已下线/retired
+ */
+function getTestCasesFromLayer(
+  manifestPath: string,
+  layer: 'active' | 'archive' | 'deep_archive',
+): string[] {
+  try {
+    const manifest = new AccumulationManifest(manifestPath);
+    const cases = manifest.getCasesToRunByLayer(layer);
+    
+    if (cases.length === 0) {
+      console.log(`[run-cases] No cases found in ${layer} layer`);
+      return [];
+    }
+
+    // Convert CaseMetadata to file paths
+    const specFiles = cases
+      .map(c => {
+        // 尝试找到对应的 spec 文件
+        // 假设 path 字段存储相对路径
+        if (c.path && fs.existsSync(c.path)) {
+          return c.path;
+        }
+        // 否则根据 PR 号或 id 推断
+        const dir = c.prNumber ? `generated-cases/pr-${c.prNumber}` : 'generated-cases/baseline';
+        const specFile = path.join(dir, `${c.id}.spec.ts`);
+        if (fs.existsSync(specFile)) {
+          return specFile;
+        }
+        return null;
+      })
+      .filter((f): f is string => f !== null);
+
+    console.log(`[run-cases] Found ${specFiles.length} test case(s) in ${layer} layer`);
+    return specFiles;
+  } catch (err) {
+    console.error(`[run-cases] Error getting cases from layer:`, err);
+    return [];
   }
 }
 
@@ -302,6 +361,9 @@ async function main() {
 
   console.log(`\n[run-cases] Starting test execution`);
   console.log(`[run-cases] Mode: ${args.mode}`);
+  if (args.layer) {
+    console.log(`[run-cases] Layer: ${args.layer}`);
+  }
   console.log(`[run-cases] Skip blocked: ${args.skipBlocked}`);
   console.log(`[run-cases] Output dir: ${args.outputDir}`);
 
@@ -317,11 +379,20 @@ async function main() {
     process.exit(1);
   }
 
-  // Get cases to run
-  const testCases = getTestCasesToRun(args.outputDir, manifest, args.mode, args.prNumber);
+  // Get cases to run (Phase 2: support layer-based execution)
+  let testCases: string[] = [];
+  
+  if (args.layer) {
+    // 新增：使用分层策略获取用例 (Phase 2)
+    console.log(`[run-cases] Using layer-based execution strategy`);
+    testCases = getTestCasesFromLayer(manifestPath, args.layer);
+  } else {
+    // 既有逻辑：使用旧的模式策略
+    testCases = getTestCasesToRun(args.outputDir, manifest, args.mode, args.prNumber);
+  }
 
   if (testCases.length === 0) {
-    console.log('[run-cases] ℹ️  No test cases found for this mode.');
+    console.log('[run-cases] ℹ️  No test cases found for this execution.');
     process.exit(0);
   }
 
@@ -364,7 +435,7 @@ async function main() {
 
   console.log(`\n[run-cases] Run history updated in ${manifestPath}\n`);
 
-  // Send Lark notification
+  // Send Lark notification (with layer info)
   try {
     const startTime = Date.now();
     await notifyTestResults({
@@ -377,6 +448,7 @@ async function main() {
         .map(r => path.basename(r.filePath)),
       duration: Date.now() - startTime,
       mode: args.mode,
+      layer: args.layer,  // 新增：分层信息
     });
   } catch (notifyErr) {
     console.warn('[run-cases] Warning: Failed to send Lark notification:', notifyErr);

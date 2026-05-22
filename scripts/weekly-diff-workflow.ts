@@ -204,6 +204,9 @@ async function verifyAccumulation(): Promise<StageResult> {
 
 /**
  * Stage 4: Run cases
+ * 
+ * Phase 2: Modified to use layer-based execution (active layer only for weekly workflow)
+ * This ensures weekly execution is bounded to ~60 minutes
  */
 async function runCases(skipRun?: boolean): Promise<StageResult> {
   const startTime = Date.now();
@@ -218,9 +221,13 @@ async function runCases(skipRun?: boolean): Promise<StageResult> {
       };
     }
     
-    console.log('[workflow] Stage 4/6: Running accumulated cases...');
+    console.log('[workflow] Stage 4/6: Running accumulated cases (active layer)...');
     
-    const cmd = `npx tsx scripts/run-accumulated-cases.ts --mode full`;
+    // Phase 2: Use layer-based execution for weekly workflow
+    // Active layer contains: most recent 4 weeks + permanent cases (~60 min)
+    // Archive layer (monthly): historical cases (deferred to separate run)
+    // Deep archive (on-demand): retired cases (can be queried manually)
+    const cmd = `npx tsx scripts/run-accumulated-cases.ts --layer active`;
     execSync(cmd, { stdio: 'inherit' });
     
     console.log('✅ Case execution completed');
