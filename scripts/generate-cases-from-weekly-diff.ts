@@ -1273,6 +1273,13 @@ function buildFlightCandidate(
     fileWeights,
   );
   const webSpecFileName = `traveloka-flight-weekly-diff-${weeklyCaseStamp}.spec.ts`;
+  
+  // 🔒 HARDCODED CONSTRAINTS (生成时强制应用):
+  // 1. Desktop web only (桌面网页) - 不生成移动端或其他设备
+  // 2. Flight domain only (仅航班域) - flight-search 和 flight-booking
+  // 3. Traveloka https://github.com/traveloka/www (仅此源)
+  // 4. Use lib/traveloka-flight helpers (使用航班库)
+  
   const webSpecContent = createFlightCaseTemplate({
     testName: `Traveloka weekly diff generated flight results coverage (${weeklyCaseStamp})`,
     url: sourceContext.url,
@@ -1284,10 +1291,23 @@ function buildFlightCandidate(
       (commit: { sha: string; author: string; subject: string }) =>
         `${commit.sha} by ${commit.author}: ${commit.subject}`,
     ),
-    sourceSummaryLines,
+    sourceSummaryLines: [
+      ...sourceSummaryLines,
+      'Apply all locator rules from docs/traveloka-flight-locator-guideline.md',
+      'Validate filter structure per docs/traveloka-flight-filter-structure.md',
+      'Check carry-over behavior per docs/traveloka-flight-carry-over-airline-bug-report.md',
+      'Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active',
+    ],
     assertionLines: generatedPlan.assertionLines,
     interactionLines: [
       ...generatedPlan.interactionLines,
+      '// Retrieved shared-helper: docs/traveloka-flight-locator-guideline.md - Locator priority and Traveloka-specific rules',
+      '// Retrieved shared-helper: docs/traveloka-flight-filter-structure.md - Sidebar filter component tree and runtime id patterns',
+      '// Retrieved shared-helper: docs/traveloka-flight-carry-over-airline-bug-report.md - Carry-over behavior rules and known issues',
+      '// Retrieved shared-helper: docs/weekly-diff-case-generator.md - Weekly diff generation strategy',
+      '// Retrieved shared-helper: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md - Phase 2 layered execution strategy',
+      '// Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - Exports: createFlightWorkflowPlan, openFlightSearchTask, attachFlightWorkflowPlan',
+      '// Retrieved shared-helper: tests/lib/traveloka-flight/locators.ts - Exports: getTaggedFlightResultCards, tagVisibleFlightResultCards, travelokaFlightSearchResultsSelectors',
       ...sourceContext.sourceHints.map(
         (hint) => `// Source hint: ${hint.sourcePath} - ${hint.reason}`,
       ),
@@ -1387,72 +1407,70 @@ function buildFlightBookingCandidate(
         .join(' | ')
     : 'No specific commit metadata was attached for this generated case.';
   const sourceSummary = sourceSummaryLines.length ? sourceSummaryLines.join(' | ') : null;
-  const webSpecContent = `import { expect, test } from '../fixture';
-import {
-  attachFlightWorkflowPlan,
-  createFlightWorkflowPlan,
+  
+  // 🔒 HARDCODED CONSTRAINTS (生成时强制应用):
+  // 1. Desktop web only (桌面网页) - 不生成移动端或其他设备
+  // 2. Flight domain only (仅航班域) - flight-booking
+  // 3. Traveloka https://github.com/traveloka/www (仅此源)
+  // 4. Use lib/traveloka-flight helpers (使用航班库)
+  // 5. Phase 2 active layer (周度执行)
+
+  const bookingImportBlock = `import {
   openBookingPageFromSearchResults,
   openMetasearchBookingContactPage,
-} from '../lib/traveloka-flight/workflow';
+} from '../lib/traveloka-flight/workflow';`;
 
-const TARGET_URL = '${bookingEntryUrl}';
-
-/**
- * EN Purpose: ${suggestedUserIntent}
- * 中文目的: 验证本周 flight booking 改动在 desktop booking 链路下仍可稳定进入 booking 页面，并保留人工复查所需上下文。
- * EN Surface: booking
- * 中文范围: booking 页面。
- * EN Concerns: booking-entry, weekly-booking-smoke
- * 中文关注点: booking-entry、weekly-booking-smoke
- * EN Main checks: canonical desktop booking entry chain remains reachable; booking page URL is reached; booking page state is captured for weekly review.
- * 中文校验项: 标准 desktop booking 进入链路可达；成功进入 booking 页面；保留 booking 页面状态供周测复查。
- * EN Source commits: ${sourceCommitSummary}
- * 中文来源提交: ${sourceCommitSummary}
-${sourceSummary ? ` * EN Source summary: ${sourceSummary}\n * 中文来源摘要: ${sourceSummary}\n` : ''} * EN Expectation: keep this generated case aligned with the stable Traveloka desktop baseline flow and verify only the routed regression slice.
- * 中文预期: 该生成用例必须与稳定的 Traveloka desktop 基线流程保持一致，只验证本次路由到的回归范围。
- */
-
-test.use({
-  userAgent:
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
-  locale: 'en-US',
-  timezoneId: 'Asia/Shanghai',
-  extraHTTPHeaders: {
-    'accept-language': 'en-US,en;q=0.9',
-    referer: 'https://www.google.com/',
-  },
-});
-
-test('Traveloka weekly diff booking smoke coverage (${weeklyCaseStamp})', async ({ page }, testInfo) => {
-  const workflowPlan = createFlightWorkflowPlan({
-    url: TARGET_URL,
-    userIntent: ${JSON.stringify(suggestedUserIntent)},
+  const webSpecContent = createFlightCaseTemplate({
+    testName: `Traveloka weekly diff booking smoke coverage (${weeklyCaseStamp})`,
+    url: bookingEntryUrl,
+    userIntent: suggestedUserIntent,
+    importPrefix: '../',
+    extraImportBlock: bookingImportBlock,
     concerns: ['booking-contact'],
+    sourceCommitLines: enrichedSourceCommits.map(
+      (commit: { sha: string; author: string; subject: string }) =>
+        `${commit.sha} by ${commit.author}: ${commit.subject}`,
+    ),
+    sourceSummaryLines: [
+      ...sourceSummaryLines,
+      'canonical desktop booking entry chain remains reachable',
+      'booking page URL is reached and contact form renders correctly',
+      'Apply all locator rules from docs/traveloka-flight-locator-guideline.md (Prefer explicit contracts)',
+      'Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active',
+      'Reference: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md',
+    ],
+    assertionLines: [
+      'const bookingUrl = new URL(page.url());',
+      'expect(bookingUrl.pathname).toMatch(/\\/flight\\/booking/);',
+      'const contactForm = page.locator("form, [data-testid=\\"contact-form\\"], [data-testid=\\"booking-contact-form\\"]").first();',
+      'const contactExists = await contactForm.isVisible().catch(() => false);',
+      'expect(contactExists, "Booking contact form should be accessible").toBeTruthy();',
+    ],
+    interactionLines: [
+      'const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;',
+      'if (directBookingUrl) {',
+      '  await openMetasearchBookingContactPage(page, { url: directBookingUrl });',
+      '} else {',
+      '  await openBookingPageFromSearchResults(page, { url: workflowPlan.input.url });',
+      '}',
+      '',
+      '// Retrieved shared-helper: docs/traveloka-flight-locator-guideline.md - Explicit contracts and locator priority',
+      '// Retrieved shared-helper: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md - Phase 2 active layer execution strategy',
+      '// Retrieved shared-helper: docs/weekly-diff-case-generator.md - Weekly diff generation for booking surface',
+      '// Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - openMetasearchBookingContactPage, openBookingPageFromSearchResults',
+      `// Suggested changed files (top ${highlightedChangedFiles.length}${omittedCount ? ` of ${changedFiles.length}` : ''}): ${JSON.stringify(highlightedChangedFiles)}`,
+      `${omittedCount ? `// Omitted additional changed files: ${omittedCount}` : ''}`,
+      '// Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form',
+      '// Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules',
+      `${retentionFocused ? "// PRD note: the routed PR context mentions retention-popup behavior, so this weekly spec stays at booking-entry smoke level" : ''}`,
+      '// HARDCODED CONSTRAINTS (生成时强制应用):',
+      '// 1. Desktop web only - weekly case runs on desktop Playwright',
+      '// 2. Flight booking domain only - verifies only booking checkout',
+      '// 3. Traveloka https://github.com/traveloka/www - source must be from production repository',
+      '// 4. Uses lib/traveloka-flight helpers - createFlightWorkflowPlan, attachFlightWorkflowPlan, openMetasearchBookingContactPage',
+      '// 5. Phase 2 active layer - executed weekly via: npx tsx scripts/run-accumulated-cases.ts --layer active',
+    ],
   });
-
-  await attachFlightWorkflowPlan(testInfo, workflowPlan);
-
-  const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;
-  if (directBookingUrl) {
-    await openMetasearchBookingContactPage(page, { url: directBookingUrl });
-  } else {
-    await openBookingPageFromSearchResults(page, { url: workflowPlan.input.url });
-  }
-
-  const bookingUrl = new URL(page.url());
-  expect(bookingUrl.pathname).toMatch(/\\/flight\\/booking/);
-
-  const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);
-  if (screenshot) {
-    await testInfo.attach('booking-weekly-generated.png', { body: screenshot, contentType: 'image/png' });
-  }
-
-  // Weekly diff generated candidate: refine against actual changed booking source files.
-  // Suggested changed files (top ${highlightedChangedFiles.length}${omittedCount ? ` of ${changedFiles.length}` : ''}): ${JSON.stringify(highlightedChangedFiles)}
-${omittedCount ? `  // Omitted additional changed files: ${omittedCount}\n` : ''}  // Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form.
-  // Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules.
-${retentionFocused ? "  // PRD note: the routed PR context mentions retention-popup behavior, so this weekly spec stays at booking-entry smoke level and preserves the page state for manual popup review.\n" : ''}});
-`;
 
   return {
     id: 'flight-booking-weekly',
