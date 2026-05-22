@@ -1767,7 +1767,7 @@ function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
       const resolutionPath = path.join(rootDir, `${candidate.domain}-prd-resolution.json`);
 
       try {
-        execFileSync(resolveScriptPath, [meegleLink, resolutionPath], {
+        execFileSync('zsh', [resolveScriptPath, meegleLink, resolutionPath], {
           cwd: process.cwd(),
           stdio: ['ignore', 'pipe', 'pipe'],
           encoding: 'utf8',
@@ -1816,7 +1816,7 @@ function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
   const outputPath = path.join(rootDir, `${candidate.domain}-prd-extraction.md`);
 
   try {
-    execFileSync(extractScriptPath, [resolvedPrdLink, outputPath], {
+    execFileSync('zsh', [extractScriptPath, resolvedPrdLink, outputPath], {
       cwd: process.cwd(),
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',
