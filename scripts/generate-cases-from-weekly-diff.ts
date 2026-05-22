@@ -1126,6 +1126,13 @@ function describeFlightIntentPhrase(concerns: FlightConcern[]) {
   }
 }
 
+function formatWeeklyCaseStamp(date = new Date()) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}${month}${day}`;
+}
+
 function buildFlightFocusFileWeights(focusedFiles: string[]) {
   const weights = new Map<string, number>();
 
@@ -1160,6 +1167,7 @@ function buildFlightCandidate(
   endRef: string,
 ): Candidate {
   const focus = selectDominantFlightConcernFocus(changedFiles);
+  const weeklyCaseStamp = formatWeeklyCaseStamp();
   const phrase = describeFlightIntentPhrase(focus.concerns);
   const fileWeights = buildFlightFocusFileWeights(focus.focusedFiles);
   const suggestedUserIntent =
@@ -1179,9 +1187,9 @@ function buildFlightCandidate(
     focus.focusedFiles,
     fileWeights,
   );
-  const webSpecFileName = 'traveloka-flight-weekly-diff-generated.spec.ts';
+  const webSpecFileName = `traveloka-flight-weekly-diff-${weeklyCaseStamp}.spec.ts`;
   const webSpecContent = createFlightCaseTemplate({
-    testName: 'Traveloka weekly diff generated flight results coverage',
+    testName: `Traveloka weekly diff generated flight results coverage (${weeklyCaseStamp})`,
     url: sourceContext.url,
     userIntent: suggestedUserIntent,
     importPrefix: '../',

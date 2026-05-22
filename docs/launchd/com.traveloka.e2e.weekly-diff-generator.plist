@@ -9,7 +9,7 @@
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>cd /Users/yu.hao/Desktop/task/e2e &amp;&amp; CMD=(npx tsx scripts/generate-cases-from-weekly-diff.ts --base-ref "$BASE_REF" --since-days "$SINCE_DAYS" --output-dir "$OUTPUT_DIR") &amp;&amp; if [[ -n "$FOCUS_DOMAIN" ]]; then CMD+=(--focus-domain "$FOCUS_DOMAIN"); fi &amp;&amp; if [[ "$EMIT_WEB_SPEC" == "1" ]]; then CMD+=(--emit-web-spec); fi &amp;&amp; if [[ -n "$TARGET_REPO_URL" ]]; then CMD+=(--repo-url "$TARGET_REPO_URL" --repo-cache-dir "$TARGET_REPO_CACHE_DIR"); else CMD+=(--repo-path "$TARGET_REPO_PATH"); fi &amp;&amp; "${CMD[@]}"</string>
+    <string>cd /Users/yu.hao/Desktop/task/e2e &amp;&amp; CMD=(npx tsx scripts/generate-cases-from-weekly-diff.ts --base-ref "$BASE_REF" --since-days "$SINCE_DAYS" --output-dir "$OUTPUT_DIR") &amp;&amp; if [[ -n "$FOCUS_DOMAIN" ]]; then CMD+=(--focus-domain "$FOCUS_DOMAIN"); fi &amp;&amp; if [[ "$EMIT_WEB_SPEC" == "1" ]]; then CMD+=(--emit-web-spec); fi &amp;&amp; if [[ -n "$TARGET_REPO_URL" ]]; then CMD+=(--repo-url "$TARGET_REPO_URL" --repo-cache-dir "$TARGET_REPO_CACHE_DIR"); else CMD+=(--repo-path "$TARGET_REPO_PATH"); fi &amp;&amp; "${CMD[@]}" &amp;&amp; setopt null_glob &amp;&amp; WEEKLY_SPECS=(tests/web/traveloka-flight-weekly-diff-20*.spec.ts) &amp;&amp; if (( ${#WEEKLY_SPECS[@]} == 0 )); then echo "[weekly-diff] no accumulated weekly flight specs found under tests/web"; exit 0; fi &amp;&amp; npx tsx scripts/run-with-lark-notify.ts --label "Weekly diff Playwright run" -- npx playwright test "${WEEKLY_SPECS[@]}" &amp;&amp; echo "[weekly-diff] playwright report available at playwright-report/index.html"</string>
   </array>
 
   <key>EnvironmentVariables</key>

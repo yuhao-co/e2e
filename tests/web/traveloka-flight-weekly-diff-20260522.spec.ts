@@ -1,0 +1,90 @@
+import { expect, test } from '../fixture';
+import {
+  attachFlightWorkflowPlan,
+  createFlightWorkflowPlan,
+  openFlightSearchTask,
+} from '../lib/traveloka-flight/workflow';
+
+import { travelokaFlightSearchResultsSelectors } from '../lib/traveloka-flight/locators';
+import { getTaggedFlightResultCards, tagVisibleFlightResultCards } from '../lib/traveloka-flight/locators';
+
+const TARGET_URL = 'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';
+
+/**
+ * EN Purpose: Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.
+ * 中文目的: 验证本周 flight 改动在 search-results 场景下是否仍然满足既有回归预期。
+ * EN Surface: search-results
+ * 中文范围: search-results 页面。
+ * EN Concerns: results-list
+ * 中文关注点: results-list
+ * EN Main checks: results list visibility and basic result-card rendering.
+ * 中文校验项: 结果列表可见性与基础结果卡片渲染。
+ * EN Source commits: 109da42765 by yuhao-co: [FEATURE] Enhance flight booking features and fix related issues (#33161)
+ * 中文来源提交: 109da42765 by yuhao-co: [FEATURE] Enhance flight booking features and fix related issues (#33161)
+ * EN Expectation: keep this generated case aligned with the stable Traveloka desktop baseline flow and verify only the routed regression slice.
+ * 中文预期: 该生成用例必须与稳定的 Traveloka desktop 基线流程保持一致，只验证本次路由到的回归范围。
+ */
+
+test.use({
+  userAgent:
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+  locale: 'en-US',
+  timezoneId: 'Asia/Shanghai',
+  extraHTTPHeaders: {
+    'accept-language': 'en-US,en;q=0.9',
+    referer: 'https://www.google.com/',
+  },
+});
+
+test('Traveloka weekly diff generated flight results coverage (20260522)', async ({ page }, testInfo) => {
+  const workflowPlan = createFlightWorkflowPlan({
+    url: TARGET_URL,
+    userIntent: "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
+    concerns: ["results-list"],
+  });
+
+  await attachFlightWorkflowPlan(testInfo, workflowPlan);
+
+  const { sidebar } = await openFlightSearchTask(page, {
+    url: workflowPlan.input.url,
+    userIntent: "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
+    concerns: ["results-list"],
+    waitForSidebar: true,
+  });
+
+  void sidebar;
+
+  const currentUrl = new URL(page.url());
+  expect(currentUrl.pathname).toBe(new URL(TARGET_URL).pathname);
+  expect(workflowPlan.sourceContext.surface).toBe('search-results');
+  if (!sidebar) {
+    throw new Error('Flight search sidebar was expected but not returned by the shared workflow.');
+  }
+  await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.flights)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.filter)).toBeVisible({ timeout: 15000 });
+
+  const taggedCardCount = await tagVisibleFlightResultCards(page, 'data-weekly-flight-card-idx');
+  const cards = getTaggedFlightResultCards(page, 'data-weekly-flight-card-idx');
+  expect(taggedCardCount, 'Weekly generated case expects visible flight result cards.').toBeGreaterThan(0);
+  await expect(cards.first()).toBeVisible({ timeout: 15000 });
+  const firstCardText = await cards.first().innerText();
+  expect(firstCardText).toMatch(/flight details|fare\s*&\s*benefits/i);
+  const screenshot = await page.screenshot({ fullPage: false }).catch(() => null);
+  if (screenshot) {
+    await testInfo.attach('weekly-generated-results.png', {
+      body: screenshot,
+      contentType: 'image/png',
+    });
+  }
+  // Weekly diff generated candidate: refine this case against the actual changed source files.
+  // Suggested changed files (top 10 of 66): ["packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterAirlineOption.story.tsx","packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterAirlineOption.tsx","packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterSection.story.tsx","packages/flight/fpr-search-result-ssr-components/desktop/Filter/FilterSection.tsx","packages/flight/fpr-search-result-v2/components/__tests__/FlightSearchSidebarFilter.test.tsx","packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/__tests__/TimeFilterMenu.test.tsx","packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/MoreFilterMenu.tsx","packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/TimeFilterMenu.tsx","packages/flight/fpr-search-result-v2/components/FlightHeader/FilterMenu/TransitFilterMenu.tsx","packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx"]
+  // Omitted additional changed files: 56
+  // Retrieved shared-helper: docs/traveloka-flight-locator-guideline.md - Relevant local evidence file for weekly diff generation.
+  // Retrieved shared-helper: docs/traveloka-flight-filter-structure.md - Relevant local evidence file for weekly diff generation.
+  // Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - Exports: createFlightWorkflowPlan, isFlightSearchResultsPlan
+  // Retrieved shared-helper: tests/lib/traveloka-flight/locators.ts - Exports: getFlightSearchSidebar, getFlightResultChooseButton, getSelectTicketTypeDialog, getTicketTypeSelectButton
+  // Retrieved shared-helper: tests/lib/traveloka-flight/source-map.ts - Exports: inferFlightCanonicalUrlFromFiles, buildFlightSourceContextFromFiles, inferFlightSurface, buildFlightSourceContext
+  // Retrieved shared-helper: tests/lib/traveloka-flight/template.ts - Exports: createFlightCaseTemplate
+  // Source hint: packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx - Closest verified results-page component discovered for current desktop flight surface.
+  // Source hint: packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx - Desktop flight results filter sidebar component for the current v2 surface.
+});

@@ -7,13 +7,14 @@
     "mlx:server": "bash scripts/start-mlx-server.sh",
     "mlx:smoke": "bash scripts/mlx-smoke.sh",
     "generate:weekly-diff-cases": "tsx scripts/generate-cases-from-weekly-diff.ts",
+    "weekly-diff:run": "/bin/zsh scripts/run-weekly-diff-case-generator.sh",
     "notify:run": "tsx scripts/run-with-lark-notify.ts",
     "test": "playwright test",
-    "test:web:retained": "playwright test tests/web/traveloka-flight-form-contracts.spec.ts tests/web/traveloka-flight-weekly-diff-generated.spec.ts",
+    "test:web:retained": "playwright test tests/web/traveloka-flight-form-contracts.spec.ts tests/web/traveloka-flight-weekly-diff-20*.spec.ts",
     "test:lark": "npm run notify:run -- --label \"Playwright test\" -- npx playwright test",
-    "test:web:retained:lark": "npm run notify:run -- --label \"Retained web tests\" -- npx playwright test tests/web/traveloka-flight-form-contracts.spec.ts tests/web/traveloka-flight-weekly-diff-generated.spec.ts",
+    "test:web:retained:lark": "npm run notify:run -- --label \"Retained web tests\" -- npx playwright test tests/web/traveloka-flight-form-contracts.spec.ts tests/web/traveloka-flight-weekly-diff-20*.spec.ts",
     "test:headed": "playwright test --headed",
-    "weekly-diff:lark": "npm run notify:run -- --label \"Weekly diff case generation\" -- /bin/zsh scripts/run-weekly-diff-case-generator.sh",
+    "weekly-diff:lark": "npm run weekly-diff:run",
     "report": "playwright show-report"
   },
   "devDependencies": {
