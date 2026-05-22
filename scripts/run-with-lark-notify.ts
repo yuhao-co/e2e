@@ -299,6 +299,10 @@ async function runCommand(commandArgs: string[]): Promise<RunResult> {
 
     const command = formatCommandForDisplay(commandArgs);
 
+    // 🔒 CRITICAL FIX: DO NOT MODIFY THIS SECTION
+    // shell: true is REQUIRED for environment variables and cookie/auth setup
+    // Changing to shell: false breaks anti-crawler mechanisms
+    // Last broken by commit 63a0950 - this restores working functionality
     const child = spawn(command, {
       cwd: process.cwd(),
       env: process.env,
