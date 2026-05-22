@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-22T02:43:52.522Z",
-  "markdownSummary": "# Weekly Diff Case Generation Report\n\n- Repo path: /Users/yu.hao/Desktop/task/e2e/.cache/weekly-diff-repos/github.com_traveloka_www\n- Base ref: origin/master\n- Diff window: 7 days\n- Focus domain: flight-search\n- Diff range: 4cd660434e3dbcbace3ca128972063861c835ae4..origin/master\n- Changed files: 828\n\n## Candidates\n\n### Weekly flight search regression coverage\n\n- Domain: flight-search\n- Confidence: high\n- Action: modify-existing\n- Reason: Changed files map to a dominant verified flight concern cluster. Re-check the nearest search-results tests before adding new ones.\n- Solution: Prioritize existing flight regression tests, then emit a runnable weekly spec because verified flight source evidence exists.\n- How to solve: Use packages/flight and traveloka-flight helper evidence to route the candidate, then emit the generated web spec through the shared workflow template.\n- Suggested intent: Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.\n- Canonical target URL: https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY\n- Workflow concerns: results-list\n- Source commits: 109da42765 by yuhao-co\n- Existing tests to review: tests/web/traveloka-flight-filter.spec.ts, tests/web/traveloka-flight-random-filter.spec.ts\n- Generated web spec file: tests/web/traveloka-flight-weekly-diff-20260522.spec.ts\n- Source hints: 2 tracked in summary.json\n- Retrieved evidence: 6 tracked in summary.json\n- Changed files: 66 tracked in summary.json\n",
+  "generatedAt": "2026-05-22T05:26:31.404Z",
+  "markdownSummary": "# Weekly Diff Case Generation Report\n\n- Repo path: /Users/yu.hao/Desktop/task/e2e/.cache/weekly-diff-repos/github.com_traveloka_www\n- Base ref: origin/master\n- Diff window: 7 days\n- Focus domain: flight-search\n- Diff range: f9ce318bdd6e78b93ba62dbafd6e687d1da9e235..origin/master\n- Changed files: 864\n\n## Candidates\n\n### Weekly flight search regression coverage\n\n- Domain: flight-search\n- Confidence: high\n- Action: modify-existing\n- Reason: Changed files map to a dominant verified flight concern cluster. Re-check the nearest search-results tests before adding new ones.\n- Solution: Prioritize existing flight regression tests, then emit a runnable weekly spec because verified flight source evidence exists.\n- How to solve: Use packages/flight and traveloka-flight helper evidence to route the candidate, then emit the generated web spec through the shared workflow template.\n- Suggested intent: Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.\n- Canonical target URL: https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY\n- Workflow concerns: results-list\n- Source commits: 109da42765 by yuhao-co\n- Existing tests to review: tests/web/traveloka-flight-filter.spec.ts, tests/web/traveloka-flight-random-filter.spec.ts\n- Generated web spec file: tests/web/traveloka-flight-weekly-diff-20260522.spec.ts\n- Source hints: 2 tracked in summary.json\n- Retrieved evidence: 6 tracked in summary.json\n- Changed files: 66 tracked in summary.json\n",
   "files": [
     {
       "status": "M",
@@ -495,6 +495,10 @@
       "filePath": "packages/app-modules/app-desktop/header-v2/userNav/DesktopLoggedInNavV2.tsx"
     },
     {
+      "status": "M",
+      "filePath": "packages/app-modules/app-meta/storage-cookie/xpe-general.ts"
+    },
+    {
       "status": "A",
       "filePath": "packages/app-modules/app-meta/storage-eidb/bkg-general.ts"
     },
@@ -673,10 +677,6 @@
     {
       "status": "M",
       "filePath": "packages/booking/bkg-components/index.ts"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/booking/bkg-components/src/desktop/UIFormWidget/UIFormWidget.tsx"
     },
     {
       "status": "M",
@@ -888,10 +888,6 @@
     },
     {
       "status": "M",
-      "filePath": "packages/booking/bkg-registry-desktop/modules/Tracker/useBookingPageAPITracker.tsx"
-    },
-    {
-      "status": "M",
       "filePath": "packages/booking/bkg-registry-mobile/__tests__/modules/ComponentRegistration.test.js"
     },
     {
@@ -925,10 +921,6 @@
     {
       "status": "A",
       "filePath": "packages/booking/bkg-registry-mobile/modules/LeaveConfirmationDialog.tsx"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/booking/bkg-registry-mobile/modules/Tracker/useBookingPageAPITracker.tsx"
     },
     {
       "status": "M",
@@ -1492,14 +1484,6 @@
     },
     {
       "status": "M",
-      "filePath": "packages/experience/app-desktop/modules/detail.gem/index.tsx"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/experience/app-desktop/modules/detail.gem/tracking/common.ts"
-    },
-    {
-      "status": "M",
       "filePath": "packages/experience/app-desktop/modules/landing/components/BannerHeader/BannerHeader.tsx"
     },
     {
@@ -1513,14 +1497,6 @@
     {
       "status": "D",
       "filePath": "packages/experience/app-desktop/modules/line/queries/useLineListQuery.tsx"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/experience/app-desktop/modules/ticket/components/PaxSelection/components/PaxPriceSummary.tsx"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/experience/app-desktop/modules/ticket/components/PaxSelection/tracking/hooks/usePaxSelectionPageLoadTracking.ts"
     },
     {
       "status": "M",
@@ -1600,14 +1576,6 @@
     },
     {
       "status": "M",
-      "filePath": "packages/experience/app-mobile/modules/detail/_common/tracking/tracking.ts"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/experience/app-mobile/modules/detail/template/index.tsx"
-    },
-    {
-      "status": "M",
       "filePath": "packages/experience/app-mobile/modules/landing/components/CategoryPicker/index.tsx"
     },
     {
@@ -1652,7 +1620,7 @@
     },
     {
       "status": "M",
-      "filePath": "packages/experience/app-mobile/modules/ticket/components/PaxSelection/components/PaxPriceSummary.tsx"
+      "filePath": "packages/experience/app-mobile/modules/ticket/components/PaxSelection/PaxSelectionContent.tsx"
     },
     {
       "status": "M",
@@ -1685,10 +1653,6 @@
     {
       "status": "M",
       "filePath": "packages/experience/app-mobile/modules/ticket/queries/useAvailableDatesQuery.ts"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/experience/app-mobile/modules/ticket/tracking/hooks/usePaxSelectionPageLoadTracking.ts"
     },
     {
       "status": "M",
@@ -1764,14 +1728,6 @@
     },
     {
       "status": "M",
-      "filePath": "packages/experience/xpe-common/tracking/pages/booking/useBookingTracking.ts"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/experience/xpe-common/tracking/pages/booking/useTrackBookingPageLoad.ts"
-    },
-    {
-      "status": "M",
       "filePath": "packages/experience/xpe-common/tracking/types.ts"
     },
     {
@@ -1779,12 +1735,8 @@
       "filePath": "packages/experience/xpe-common/tracking/usePageLoadTracking.ts"
     },
     {
-      "status": "A",
-      "filePath": "packages/experience/xpe-common/tracking/usePageUnloadTracking.ts"
-    },
-    {
       "status": "M",
-      "filePath": "packages/experience/xpe-common/types/api/detail.ts"
+      "filePath": "packages/experience/xpe-common/tracking/utils/common.ts"
     },
     {
       "status": "M",
@@ -2027,6 +1979,14 @@
       "filePath": "packages/experience/xpe-connectivity/types/productDetail.ts"
     },
     {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/components/_common/CruiseDepartureDropdownContent.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/components/_common/CruiseSailingDateDropdownContent.tsx"
+    },
+    {
       "status": "M",
       "filePath": "packages/experience/xpe-cruise-desktop/modules/detail/CruiseDetailPage.tsx"
     },
@@ -2081,6 +2041,18 @@
     {
       "status": "A",
       "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/CruiseLineRecommendations/__tests__/RecommendationContent.test.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/HeroForm/HeroForm.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/HeroForm/HeroFormContent.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/experience/xpe-cruise-desktop/modules/landing/components/HeroForm/__tests__/HeroForm.test.tsx"
     },
     {
       "status": "M",
@@ -2388,10 +2360,6 @@
     },
     {
       "status": "M",
-      "filePath": "packages/flight/fpr-common/hooks/useSafeAreaInset.ts"
-    },
-    {
-      "status": "M",
       "filePath": "packages/flight/fpr-common/meta/abTestKeys.ts"
     },
     {
@@ -2417,10 +2385,6 @@
     {
       "status": "M",
       "filePath": "packages/flight/fpr-metasearch/hooks/useGenerateW2aDeeplink.ts"
-    },
-    {
-      "status": "M",
-      "filePath": "packages/flight/fpr-nachos/views/NachosResult/NachosResultContainer.tsx"
     },
     {
       "status": "M",
@@ -2537,6 +2501,10 @@
     {
       "status": "M",
       "filePath": "packages/flight/fpr-reschedule/hooks/useSearchFormSession.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/flight/fpr-search-form/components/private/FullPageModal.tsx"
     },
     {
       "status": "M",
@@ -2836,6 +2804,18 @@
     },
     {
       "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/bus-and-shuttle/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/bus-and-train/index.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/bus-and-train/search.tsx"
+    },
+    {
+      "status": "M",
       "filePath": "packages/ground-transport/app-mobile/pages/kereta-api/index.tsx"
     },
     {
@@ -2844,7 +2824,15 @@
     },
     {
       "status": "M",
+      "filePath": "packages/ground-transport/app-mobile/pages/kereta-api/whoosh.tsx"
+    },
+    {
+      "status": "M",
       "filePath": "packages/ground-transport/app-mobile/pages/train/index.tsx"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtr-common/integer/isIntegerIntegrationEnabled.ts"
     },
     {
       "status": "M",
@@ -3007,6 +2995,10 @@
       "filePath": "packages/ground-transport/gtrbtr-mobile/hooks-common/__tests__/useFilteredAndSortedBusInventories.test.ts"
     },
     {
+      "status": "A",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/hooks-common/useBusAndTrainExperiment.ts"
+    },
+    {
       "status": "M",
       "filePath": "packages/ground-transport/gtrbtr-mobile/hooks-common/useFilteredAndSortedBusInventories.ts"
     },
@@ -3036,7 +3028,23 @@
     },
     {
       "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-bus/ViewBusTrainMobileSearchResultBusList.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-bus/__tests__/ViewBusTrainMobileSearchResultBusList.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-train/ViewBusTrainMobileSearchResultTrain.tsx"
+    },
+    {
+      "status": "M",
       "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-train/ViewBusTrainMobileSearchResultTrainEmpty.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result-train/ViewBusTrainMobileSearchResultTrainList.tsx"
     },
     {
       "status": "M",
@@ -3044,7 +3052,19 @@
     },
     {
       "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/UIBusTrainMobileSearchResultTab.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/ViewBusTrainMobileSearchResultHeader.tsx"
+    },
+    {
+      "status": "M",
       "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/ViewBusTrainMobileSearchResultTab.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/ground-transport/gtrbtr-mobile/search-result/__tests__/ViewBusTrainMobileSearchResultHeader.test.tsx"
     },
     {
       "status": "M",
@@ -3160,11 +3180,47 @@
     },
     {
       "status": "M",
+      "filePath": "packages/payment/app-mobile/__tests__/general/MobilePaymentConfirmation.test.js"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/app-mobile/__tests__/ui/2129269.test.js"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/app-mobile/__tests__/ui/2129283.test.js"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/app-mobile/__tests__/ui/2129284.test.js"
+    },
+    {
+      "status": "D",
+      "filePath": "packages/payment/app-mobile/containers/pages/payment/confirmation/CoinsPaymentInstructionsContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/containers/pages/payment/confirmation/GenericModalDialogContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/containers/pages/payment/confirmation/PaymentConfirmationPageContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/containers/pages/payment/confirmation/PaymentInstructionsContainer.tsx"
+    },
+    {
+      "status": "M",
       "filePath": "packages/payment/app-mobile/containers/pages/travelokaPay/cards/TravelokaPayCardsPageLayout.tsx"
     },
     {
       "status": "M",
       "filePath": "packages/payment/app-mobile/containers/pages/travelokaPay/cards/page/EmbeddedAddCardFormContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/app-mobile/pages/payment/selection/index.tsx"
     },
     {
       "status": "M",
@@ -3181,6 +3237,22 @@
     {
       "status": "M",
       "filePath": "packages/payment/pay-common/hooks/index.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/service/useInvoiceRendering.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/service/usePaymentInfo.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/payment/pay-common/hooks/service/useTransactionStatus.ts"
+    },
+    {
+      "status": "A",
+      "filePath": "packages/payment/pay-common/hooks/useDeferredIdleActivation.ts"
     },
     {
       "status": "A",
@@ -3224,6 +3296,10 @@
     },
     {
       "status": "M",
+      "filePath": "packages/payment/pay-mobile-selection/hooks/useSubmitPaymentHooks.ts"
+    },
+    {
+      "status": "M",
       "filePath": "packages/payment/pay-options/mobile/content/GPOContent.tsx"
     },
     {
@@ -3263,6 +3339,18 @@
       "filePath": "packages/platform/review/app-components/_mobile/ReviewHighlight/components/ui/ReviewHighlightUserInfo.tsx"
     },
     {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-common/types/api/itinerary/retrievebooking.ts"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-components/src/desktop/UIPDActionCard/UIPDActionCard.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-components/src/mobile/UIMyBookingCard/UIMyBookingCard.tsx"
+    },
+    {
       "status": "A",
       "filePath": "packages/postbooking/pbp-desktop/__tests__/mocks/itinerarySingle.ts"
     },
@@ -3272,7 +3360,35 @@
     },
     {
       "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/__tests__/pages/retrieve/flight/forgot.test.tsx"
+    },
+    {
+      "status": "M",
       "filePath": "packages/postbooking/pbp-desktop/modules/ProductDetails/ContentManager.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/RetrieveBooking/ForgotFlightBooking.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/RetrieveBooking/RetrieveBookingFlight/RetrieveBookingFlight.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/RetrieveBooking/RetrieveBookingResult/RetrieveBookingResultItem.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/modules/RetrieveBooking/SideMenu.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/pages/retrieve/[product].tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-desktop/pages/retrieve/result.tsx"
     },
     {
       "status": "M",
@@ -3283,12 +3399,40 @@
       "filePath": "packages/postbooking/pbp-mobile/__tests__/modules/ProductDetails/ContentManager.test.tsx"
     },
     {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/__tests__/modules/RetrieveBooking/RetrieveBookingFlight.test.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/__tests__/modules/RetrieveBooking/RetrieveFlightForgotBooking.test.tsx"
+    },
+    {
       "status": "A",
       "filePath": "packages/postbooking/pbp-mobile/__tests__/pages/issuance/[agentId]/[invoiceId]/issuanceMeta.test.tsx"
     },
     {
       "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/ContinueBooking/ContinueBooking.tsx"
+    },
+    {
+      "status": "M",
       "filePath": "packages/postbooking/pbp-mobile/modules/ProductDetails/ContentManager.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/RetrieveBooking/ProductMenu.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/RetrieveBooking/RetrieveBookingContainer.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/RetrieveBooking/RetrieveBookingFlight/RetrieveBookingFlight.tsx"
+    },
+    {
+      "status": "M",
+      "filePath": "packages/postbooking/pbp-mobile/modules/RetrieveBooking/RetrieveBookingFlight/RetrieveFlightForgotBooking.tsx"
     },
     {
       "status": "M",
