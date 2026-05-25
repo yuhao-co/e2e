@@ -128,8 +128,15 @@ export class GenericBugDetector {
     // 3. Search Form Broken - For flight-search
     if (pageType === 'flight-search') {
       const searchBroken = await this.page.evaluate(() => {
-        // Check search button
-        const searchBtn = document.querySelector('button[type="submit"], button[class*="search"]');
+        // If the results list is already rendered, the search form worked — skip this check
+        const isResultsPage = /\/(fullsearch|fulltwosearch|results)/.test(window.location.href)
+          || !!document.querySelector('[data-testid="flight-inventory-card-button"], [class*="FlightCard"], [class*="flight-card"], [class*="airlineCode"]');
+        if (isResultsPage) return null;
+
+        // Check search button (only on the search-form page)
+        const searchBtn = document.querySelector(
+          'button[type="submit"], button[class*="search"], [data-id="IcSystemSearch"], [data-testid*="search-button"]'
+        );
         if (!searchBtn) {
           return { issue: 'search_button_missing', detail: 'Search button not found' };
         }
@@ -307,8 +314,11 @@ export class GenericBugDetector {
         issues.push('sql_error_exposed');
       }
 
-      // Check for XSS evidence
-      if (/<script[^>]*>|javascript:/i.test(pageHTML)) {
+      // Check for XSS evidence — only flag suspicious patterns, not normal app script tags
+      const hasJsHref = Array.from(document.querySelectorAll('a[href], [src]'))
+        .some(el => /^javascript:/i.test((el.getAttribute('href') || el.getAttribute('src') || '').trim()));
+      const hasSuspiciousContent = /\balert\s*\(|document\.cookie\s*=/i.test(pageText);
+      if (hasJsHref || hasSuspiciousContent) {
         issues.push('xss_detected');
       }
 
@@ -362,7 +372,7 @@ export class GenericBugDetector {
           .filter(Boolean);
 
         for (const txt of text) {
-          if (pattern.test(txt)) {
+          if (txt && pattern.test(txt)) {
             untranslated.push(txt);
           }
         }
@@ -448,6 +458,34 @@ export class GenericBugDetector {
     const currencyIssue = await this.checkCurrencyFormat(locale);
     if (currencyIssue) {
       this.bugs.push(currencyIssue);
+    }
+
+    // 6. Detect unreplaced template placeholders  e.g. {{title}}, {0}, %{name}
+    const unreplacedPlaceholders = await this.page.evaluate(() => {
+      const pattern = /\{\{[^}]+\}\}|\{[0-9]+\}|%\{[a-z_]+\}/;
+      const found: string[] = [];
+      for (const el of Array.from(document.querySelectorAll('body *'))) {
+        for (const node of Array.from(el.childNodes)) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = (node.textContent || '').trim();
+            if (pattern.test(text)) found.push(text.substring(0, 60));
+          }
+        }
+      }
+      return [...new Set(found)].slice(0, 5);
+    });
+
+    if (unreplacedPlaceholders.length > 0) {
+      this.bugs.push({
+        id: `i18n_placeholder_${Date.now()}`,
+        issue: 'unreplaced_placeholder',
+        category: 'i18n',
+        severity: 'P1',
+        description: `Found ${unreplacedPlaceholders.length} unreplaced template placeholder(s) visible to users`,
+        evidence: { samples: unreplacedPlaceholders },
+        recommendation: 'Verify i18n interpolation pipeline; check that all dynamic values are passed to the translation function',
+        detectionMethod: 'automatic',
+      });
     }
   }
 
@@ -762,6 +800,27 @@ export class GenericBugDetector {
         detectionMethod: 'automatic',
       });
     }
+
+    // Detect broken images (loaded but naturalWidth === 0)
+    const brokenImages = await this.page.evaluate(() => {
+      return Array.from(document.querySelectorAll('img[src]'))
+        .filter(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth === 0)
+        .map(img => ({ src: img.getAttribute('src')?.substring(0, 80), alt: img.getAttribute('alt') || '' }))
+        .slice(0, 5);
+    });
+
+    if (brokenImages.length > 0) {
+      this.bugs.push({
+        id: `ui_broken_images_${Date.now()}`,
+        issue: 'broken_images',
+        category: 'ui',
+        severity: 'P1',
+        description: `${brokenImages.length} image(s) failed to load (naturalWidth = 0)`,
+        evidence: brokenImages,
+        recommendation: 'Check image CDN availability and src paths; verify signed URL expiry',
+        detectionMethod: 'automatic',
+      });
+    }
   }
 
   /**
@@ -770,19 +829,38 @@ export class GenericBugDetector {
   private async checkNetworkRequests(): Promise<void> {
     console.log('🌐 Checking network requests...');
 
-    const networkIssues: { status: number; url: string }[] = [];
-
-    this.page.on('response', response => {
-      if (response.status() >= 400) {
-        networkIssues.push({
-          status: response.status(),
-          url: response.url(),
-        });
-      }
+    // --- (A) Catch 404s from page-load via PerformanceResourceTiming (Chrome 109+) ---
+    const pageLoad404s = await this.page.evaluate(() => {
+      return (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+        .filter(e => (e as any).responseStatus === 404)
+        .map(e => e.name.substring(0, 100))
+        .slice(0, 5);
     });
 
-    // Wait a moment to capture network requests
+    if (pageLoad404s.length > 0) {
+      this.bugs.push({
+        id: `network_404_pageload_${Date.now()}`,
+        issue: 'resource_404',
+        category: 'error',
+        severity: 'P1',
+        description: `${pageLoad404s.length} resource(s) returned 404 during page load`,
+        evidence: { urls: pageLoad404s },
+        recommendation: 'Check CDN paths, asset hashes, and API endpoint availability',
+        detectionMethod: 'automatic',
+      });
+    }
+
+    // --- (B) Capture dynamic requests fired after audit starts ---
+    const networkIssues: { status: number; url: string }[] = [];
+
+    const responseHandler = (response: { status(): number; url(): string }) => {
+      if (response.status() >= 400) {
+        networkIssues.push({ status: response.status(), url: response.url() });
+      }
+    };
+    this.page.on('response', responseHandler);
     await this.page.waitForTimeout(2000);
+    this.page.removeListener('response', responseHandler);
 
     if (networkIssues.length > 0) {
       const grouped = networkIssues.reduce(
@@ -800,7 +878,7 @@ export class GenericBugDetector {
           issue: 'network_error',
           category: 'error',
           severity: severity as 'P1' | 'P2',
-          description: `Detected ${count} HTTP ${status} errors`,
+          description: `Detected ${count} HTTP ${status} errors (dynamic)`,
           evidence: {
             status: parseInt(status),
             count,
