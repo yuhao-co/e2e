@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastUpdated": "2026-05-25T04:14:48.038Z",
+  "lastUpdated": "2026-05-25T05:42:07.335Z",
   "layers": {
     "baseline": {
       "frozen": true,
@@ -60,17 +60,30 @@
         "intentHashes": [],
         "status": "active",
         "checksumHash": "26e5c8057ea9550f"
+      },
+      {
+        "id": "snapshot-2026-05-25T05:38:00.627Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T05:38:00.627Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "53e79b542e7e5b8f"
       }
     ]
   },
   "statistics": {
-    "totalCases": 8,
+    "totalCases": 10,
     "byDomain": {
-      "flight-booking": 4,
-      "flight-search": 4
+      "flight-booking": 5,
+      "flight-search": 5
     },
     "byStatus": {
-      "active": 8,
+      "active": 10,
       "deprecated": 0
     }
   },

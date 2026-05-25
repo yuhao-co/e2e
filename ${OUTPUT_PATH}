@@ -2,10 +2,10 @@
   "sourceUrl": "${MEEGLE_URL}",
   "projectId": "${PROJECT_ID}",
   "detailId": "${DETAIL_ID}",
-  "timestamp": "2026-05-25T12:13:32Z",
-  "accessStatus": "not_found",
+  "timestamp": "2026-05-25T05:55:03Z",
+  "accessStatus": "error",
   "prdLink": null,
   "prdTitle": null,
   "summary": null,
-  "errorDetails": "Meegle read failed: project '${PROJECT_ID}' not found when querying work item '${DETAIL_ID}'. The provided values appear to be unresolved placeholders or an invalid project identifier."
+  "errorDetails": "Cannot resolve Meegle item because MEEGLE_URL, PROJECT_ID, and DETAIL_ID were provided as unresolved placeholders, and MCP Lark is not available in this session for PRD retrieval."
 }

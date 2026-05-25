@@ -1759,168 +1759,6 @@ function renderMarkdown(args: Args, startCommit: string, endRef: string, files: 
   return lines.join('\n');
 }
 
-function collectCandidatePrdLinks(candidate: Candidate) {
-  const references = candidate.sourceCommits?.flatMap((commit) => commit.prdLinks ?? []) ?? [];
-  const seen = new Set<string>();
-  const result: PrdReference[] = [];
-
-  for (const reference of references) {
-    if (seen.has(reference.url)) {
-      continue;
-    }
-
-    seen.add(reference.url);
-    result.push(reference);
-  }
-
-  return result;
-}
-
-function buildCandidateMarkdownArtifacts(candidate: Candidate): CandidateMarkdownArtifact[] {
-  const artifacts: CandidateMarkdownArtifact[] = [];
-  const prdLinks = collectCandidatePrdLinks(candidate);
-  const sourceSummaryLines = prioritizePullRequestContextLines(candidate.sourceCommits ?? []).slice(0, 4);
-  const traceLines: string[] = [];
-
-  traceLines.push('# PRD Workflow Trace');
-  traceLines.push('');
-  traceLines.push(`- Candidate: ${candidate.title}`);
-  traceLines.push(`- Domain: ${candidate.domain}`);
-  traceLines.push(`- Confidence: ${candidate.confidence}`);
-  traceLines.push(`- Suggested intent: ${candidate.suggestedUserIntent}`);
-  if (candidate.webSpecFileName) {
-    traceLines.push(`- Generated web spec: tests/web/${candidate.webSpecFileName}`);
-  }
-  if (candidate.targetUrl) {
-    traceLines.push(`- Canonical target URL: ${candidate.targetUrl}`);
-  }
-  traceLines.push('');
-  traceLines.push('## Source Context');
-  traceLines.push('');
-  if (candidate.sourceCommits?.length) {
-    for (const commit of candidate.sourceCommits) {
-      const prSuffix = commit.prNumber ? ` (#${commit.prNumber})` : '';
-      traceLines.push(`- ${commit.sha} by ${commit.author}: ${commit.subject}${prSuffix}`);
-    }
-  } else {
-    traceLines.push('- No source commits were attached.');
-  }
-  if (sourceSummaryLines.length) {
-    traceLines.push('');
-    traceLines.push('## Source Summary');
-    traceLines.push('');
-    for (const line of sourceSummaryLines) {
-      traceLines.push(`- ${line}`);
-    }
-  }
-  traceLines.push('');
-  traceLines.push('## PRD References');
-  traceLines.push('');
-  if (prdLinks.length) {
-    for (const reference of prdLinks) {
-      traceLines.push(`- ${reference.kind}: ${reference.url}`);
-    }
-  } else {
-    traceLines.push('- No PRD link was extracted from the routed source commits.');
-  }
-  if (candidate.domain === 'flight-booking') {
-    traceLines.push('');
-    traceLines.push('## Booking Routing Decision');
-    traceLines.push('');
-    traceLines.push('- The weekly generator emits booking smoke coverage through the shared desktop booking helper instead of inlining Choose/Select text locators.');
-    traceLines.push('- The generated booking spec verifies booking-page reachability and preserves screenshot evidence for manual PRD review.');
-    if (sourceSummaryLines.some((line) => /retention|exit[-\s]?intent/i.test(line))) {
-      traceLines.push('- PR context indicates retention-popup behavior, so the generated booking case intentionally avoids pretending to cover booking-contact field validation.');
-    }
-  }
-
-  artifacts.push({
-    fileName: `${candidate.domain}-workflow-trace.md`,
-    content: `${traceLines.join('\n')}\n`,
-  });
-
-  return artifacts;
-}
-
-function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
-  const extractScriptPath = path.resolve(process.cwd(), 'scripts/extract-prd-with-opencode.sh');
-  const resolveScriptPath = path.resolve(process.cwd(), 'scripts/resolve-meegle-prd-link-with-opencode.sh');
-  if (!fs.existsSync(extractScriptPath)) {
-    return;
-  }
-
-  const prdLinks = collectCandidatePrdLinks(candidate);
-  let resolvedPrdLink = prdLinks.find((reference) => reference.kind === 'lark-wiki')?.url ?? null;
-
-  if (!resolvedPrdLink) {
-    const meegleLink = prdLinks.find((reference) => reference.kind === 'meegle-fpr')?.url;
-    if (meegleLink && fs.existsSync(resolveScriptPath)) {
-      const resolutionPath = path.join(rootDir, `${candidate.domain}-prd-resolution.json`);
-
-      try {
-        execFileSync('zsh', [resolveScriptPath, meegleLink, resolutionPath], {
-          cwd: process.cwd(),
-          stdio: ['ignore', 'pipe', 'pipe'],
-          encoding: 'utf8',
-        });
-
-        const payload = JSON.parse(fs.readFileSync(resolutionPath, 'utf8')) as MeeglePrdResolutionPayload;
-        const resolutionLines = [
-          '# PRD Resolution',
-          '',
-          `- Candidate: ${candidate.title}`,
-          `- Source URL: ${payload.sourceUrl ?? meegleLink}`,
-          `- Access status: ${payload.accessStatus ?? 'error'}`,
-          `- Resolved PRD link: ${payload.prdLink ?? 'not found'}`,
-          `- PRD title: ${payload.prdTitle ?? 'unknown'}`,
-          `- Notes: ${payload.notes ?? 'n/a'}`,
-        ];
-
-        if (payload.summary) {
-          resolutionLines.push(`- Summary: ${payload.summary}`);
-        }
-
-        fs.writeFileSync(
-          path.join(rootDir, `${candidate.domain}-prd-resolution.md`),
-          `${resolutionLines.join('\n')}\n`,
-        );
-
-        resolvedPrdLink = payload.prdLink ?? null;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        fs.writeFileSync(
-          path.join(rootDir, `${candidate.domain}-prd-resolution.md`),
-          [`# PRD Resolution Failed`, '', `- Candidate: ${candidate.title}`, `- Meegle link: ${meegleLink}`, `- Error: ${message}`].join('\n') + '\n',
-        );
-      }
-    }
-  }
-
-  if (!resolvedPrdLink) {
-    fs.writeFileSync(
-      path.join(rootDir, `${candidate.domain}-prd-extraction.md`),
-      [`# PRD Extraction Skipped`, '', `- Candidate: ${candidate.title}`, '- No direct or resolved Lark PRD link was available for extraction.'].join('\n') + '\n',
-    );
-    return;
-  }
-
-  const outputPath = path.join(rootDir, `${candidate.domain}-prd-extraction.md`);
-
-  try {
-    execFileSync('zsh', [extractScriptPath, resolvedPrdLink, outputPath], {
-      cwd: process.cwd(),
-      stdio: ['ignore', 'pipe', 'pipe'],
-      encoding: 'utf8',
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    fs.writeFileSync(
-      outputPath,
-      [`# PRD Extraction Failed`, '', `- Candidate: ${candidate.title}`, `- PRD link: ${resolvedPrdLink}`, `- Error: ${message}`].join('\n') + '\n',
-    );
-  }
-}
-
 function renderConsoleSummary(
   args: Args,
   startCommit: string,
@@ -1967,12 +1805,78 @@ function writeArtifacts(rootDir: string, markdown: string, candidates: Candidate
       fs.writeFileSync(path.join(rootDir, candidate.draftFileName), candidate.draftContent);
     }
 
-    for (const artifact of buildCandidateMarkdownArtifacts(candidate)) {
-      fs.writeFileSync(path.join(rootDir, artifact.fileName), artifact.content);
+    // Write generated test spec file (if created)
+    if (candidate.webSpecFileName && candidate.webSpecContent) {
+      fs.writeFileSync(path.join(rootDir, candidate.webSpecFileName), candidate.webSpecContent);
     }
 
+    // Extract and store PRD markdown for AI to use in case generation
     writeCandidatePrdExtractions(rootDir, candidate);
   }
+}
+
+function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
+  const extractScriptPath = path.resolve(process.cwd(), 'scripts/extract-prd-with-opencode.sh');
+  const resolveScriptPath = path.resolve(process.cwd(), 'scripts/resolve-meegle-prd-link-with-opencode.sh');
+  if (!fs.existsSync(extractScriptPath)) {
+    return;
+  }
+
+  const prdLinks = collectCandidatePrdLinks(candidate);
+  let resolvedPrdLink = prdLinks.find((reference) => reference.kind === 'lark-wiki')?.url ?? null;
+
+  if (!resolvedPrdLink) {
+    const meegleLink = prdLinks.find((reference) => reference.kind === 'meegle-fpr')?.url;
+    if (meegleLink && fs.existsSync(resolveScriptPath)) {
+      const resolutionPath = path.join(rootDir, `${candidate.domain}-prd-resolution.json`);
+
+      try {
+        execFileSync('zsh', [resolveScriptPath, meegleLink, resolutionPath], {
+          cwd: process.cwd(),
+          stdio: ['ignore', 'pipe', 'pipe'],
+          encoding: 'utf8',
+        });
+
+        const payload = JSON.parse(fs.readFileSync(resolutionPath, 'utf8')) as MeeglePrdResolutionPayload;
+        resolvedPrdLink = payload.prdLink ?? null;
+      } catch (error) {
+        // Failed to resolve meegle link
+      }
+    }
+  }
+
+  if (!resolvedPrdLink) {
+    return;
+  }
+
+  const outputPath = path.join(rootDir, `${candidate.domain}-prd.md`);
+
+  try {
+    execFileSync('zsh', [extractScriptPath, resolvedPrdLink, outputPath], {
+      cwd: process.cwd(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      encoding: 'utf8',
+    });
+  } catch (error) {
+    // Failed to extract PRD
+  }
+}
+
+function collectCandidatePrdLinks(candidate: Candidate) {
+  const references = candidate.sourceCommits?.flatMap((commit) => commit.prdLinks ?? []) ?? [];
+  const seen = new Set<string>();
+  const result: PrdReference[] = [];
+
+  for (const reference of references) {
+    if (seen.has(reference.url)) {
+      continue;
+    }
+
+    seen.add(reference.url);
+    result.push(reference);
+  }
+
+  return result;
 }
 
 function resetOutputDir(rootDir: string) {
