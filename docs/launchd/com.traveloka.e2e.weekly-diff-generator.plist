@@ -37,14 +37,53 @@
   </dict>
 
   <key>StartCalendarInterval</key>
-  <dict>
-    <key>Weekday</key>
-    <integer>5</integer>
-    <key>Hour</key>
-    <integer>10</integer>
-    <key>Minute</key>
-    <integer>32</integer>
-  </dict>
+  <array>
+    <!-- Monday 11:00 AM -->
+    <dict>
+      <key>Weekday</key>
+      <integer>1</integer>
+      <key>Hour</key>
+      <integer>11</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <!-- Tuesday 11:00 AM -->
+    <dict>
+      <key>Weekday</key>
+      <integer>2</integer>
+      <key>Hour</key>
+      <integer>11</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <!-- Wednesday 11:00 AM -->
+    <dict>
+      <key>Weekday</key>
+      <integer>3</integer>
+      <key>Hour</key>
+      <integer>11</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <!-- Thursday 11:00 AM -->
+    <dict>
+      <key>Weekday</key>
+      <integer>4</integer>
+      <key>Hour</key>
+      <integer>11</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <!-- Friday 11:00 AM -->
+    <dict>
+      <key>Weekday</key>
+      <integer>5</integer>
+      <key>Hour</key>
+      <integer>11</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+  </array>
 
   <key>WorkingDirectory</key>
   <string>/Users/yu.hao/Desktop/task/e2e</string>
