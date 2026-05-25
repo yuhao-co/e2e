@@ -3,12 +3,14 @@ import {
   attachFlightWorkflowPlan,
   createFlightWorkflowPlan,
   openFlightSearchTask,
+  clickByIdOrAi,
 } from '../lib/traveloka-flight/workflow';
 
 import {
   openBookingPageFromSearchResults,
   openMetasearchBookingContactPage,
 } from '../lib/traveloka-flight/workflow';
+import { GenericBugDetector } from '../lib/generic-bug-detector';
 
 const TARGET_URL = 'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY';
 
@@ -40,7 +42,9 @@ test.use({
   },
 });
 
-test('Traveloka weekly diff booking smoke coverage (20260525)', async ({ page }, testInfo) => {
+test('Traveloka weekly diff booking smoke coverage (20260525)', async ({ page, ai }, testInfo) => {
+  // ai = Midscene visual AI (MLX local model); used as fallback when data-id/data-testid is absent.
+  // clickByIdOrAi(page, root, id, description, ai) tries data-id first, then ai().
   const workflowPlan = createFlightWorkflowPlan({
     url: TARGET_URL,
     userIntent: "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
@@ -58,18 +62,32 @@ test('Traveloka weekly diff booking smoke coverage (20260525)', async ({ page },
 
   void sidebar;
 
-  // Step 1: Click Choose button
+  // Step 1: Click Choose button (try data-testid first, fall back to AI)
   const chooseButton = page.locator('[data-testid="flight-inventory-card-button"]').first();
-  await chooseButton.isVisible({ timeout: 15000 });
-  await chooseButton.click();
+  const chooseVisible = await chooseButton.isVisible({ timeout: 15000 }).catch(() => false);
+  if (chooseVisible) {
+    await chooseButton.click();
+  } else {
+    console.warn('[ai-fallback] Choose button testid not found — using Midscene AI');
+    await ai('click the Choose button on the first flight result card');
+  }
   
   // Step 2: Wait for ticket type selection drawer
-  await page.getByText(/Select ticket type/i).isVisible({ timeout: 15000 });
+  const ticketTypeVisible = await page.getByText(/Select ticket type/i).isVisible({ timeout: 15000 }).catch(() => false);
+  if (!ticketTypeVisible) {
+    console.warn('[ai-fallback] Select ticket type drawer not detected via text — using Midscene AI');
+    await ai('wait for the ticket type selection drawer to appear');
+  }
   
-  // Step 3: Click Select button in the drawer
+  // Step 3: Click Select button in the drawer (try data-testid first, fall back to AI)
   const selectButton = page.locator('[data-testid="button_ticket_option_select_1"]').first();
-  await selectButton.isVisible({ timeout: 5000 });
-  await selectButton.click();
+  const selectVisible = await selectButton.isVisible({ timeout: 5000 }).catch(() => false);
+  if (selectVisible) {
+    await selectButton.click();
+  } else {
+    console.warn('[ai-fallback] Select button testid not found — using Midscene AI');
+    await ai('click the Select button in the ticket type drawer');
+  }
   
   // Step 4: Verify booking page reached
   await page.waitForURL(/\/flight\/booking/, { timeout: 15000 });
@@ -98,8 +116,8 @@ test('Traveloka weekly diff booking smoke coverage (20260525)', async ({ page },
   // Retrieved shared-helper: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md - Phase 2 active layer execution strategy
   // Retrieved shared-helper: docs/weekly-diff-case-generator.md - Weekly diff generation for booking surface
   // Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - openMetasearchBookingContactPage, openBookingPageFromSearchResults
-  // Suggested changed files (top 10 of 73): ["packages/flight/fpr-booking/__tests__/components/handlers/bookingContactValidationHandler.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactDesktop.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobile.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobile2.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobileVDTray.tsx","packages/flight/fpr-booking/components/BFFBookingContact/__tests__/BFFBookingContactMobile2.test.js","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/useBookingContactLoginSignupNudge.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/useBookingContactLoginSignupNudge.ts","packages/flight/fpr-booking/components/handlers/bookingContactValidationHandler.ts","packages/flight/fpr-booking/__tests__/components/AddOns/PreselectedAddons/PreselectedAddons.test.tsx"]
-  // Omitted additional changed files: 63
+  // Suggested changed files (top 10 of 75): ["packages/flight/fpr-booking/__tests__/components/handlers/bookingContactValidationHandler.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactDesktop.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobile.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobile2.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobileVDTray.tsx","packages/flight/fpr-booking/components/BFFBookingContact/__tests__/BFFBookingContactMobile2.test.js","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/useBookingContactLoginSignupNudge.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/useBookingContactLoginSignupNudge.ts","packages/flight/fpr-booking/components/handlers/bookingContactValidationHandler.ts","packages/flight/fpr-booking/__tests__/components/AddOns/PreselectedAddons/PreselectedAddons.test.tsx"]
+  // Omitted additional changed files: 65
   // Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form
   // Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules
   
@@ -110,4 +128,18 @@ test('Traveloka weekly diff booking smoke coverage (20260525)', async ({ page },
   // 4. Uses lib/traveloka-flight helpers - createFlightWorkflowPlan, attachFlightWorkflowPlan
   // 5. Phase 2 active layer - executed weekly via: npx tsx scripts/run-accumulated-cases.ts --layer active
   // 6. Complete booking chain - Must execute Choose→Select before verifying booking page (per docs/traveloka-flight-booking-case-generation.md)
+  
+  // P0 Critical Bug Detection
+  const detector = new GenericBugDetector(page);
+  const auditResults = await detector.runFullAudit({
+    locale: "en-US",
+    platform: "desktop",
+    pageType: "flight-booking",
+    performanceBaseline: { lcp: 2500, cls: 0.1 },
+  });
+  const p0Issues = auditResults.filter(bug => bug.severity === "P0");
+  if (p0Issues.length > 0) {
+    console.error(`❌ P0 CRITICAL ISSUES FOUND: ${p0Issues.map(b => b.issue).join(", ")}`);
+    expect(p0Issues).toHaveLength(0); // Enforce zero P0 bugs
+  }
 });

@@ -25,6 +25,8 @@
     "bug-data:validate": "npx ts-node scripts/bug-detection-collector.ts validate",
     "model:train": "python3 scripts/train-bug-classification-model.py --train",
     "model:evaluate": "python3 scripts/train-bug-classification-model.py --evaluate",
+    "analyze:p0": "npx tsx scripts/analyze-p0-bugs.ts",
+    "analyze:p0:watch": "watch 'npm run analyze:p0' config/p0-detection-rules.json tests/lib/generic-bug-detector.ts",
     "report": "playwright show-report",
     "workflow": "/bin/zsh scripts/run-complete-workflow.sh",
     "workflow:demo": "/bin/zsh scripts/demo-refresh-auth-session.sh"

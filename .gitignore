@@ -7,8 +7,15 @@ test-results/
 .DS_Store
 *.log
 
+# Weekly-diff generation artifacts (debug only, not needed for tests)
+tests/web/snapshot-*/
+generated-cases/weekly-diff/*/
+
 # Authentication sessions (DO NOT commit)
 auth-pool/*.json
 session-data.json
 !auth-pool/.gitkeep
 !auth-pool/README.md
+
+# Meegle PRD disk cache (opencode results, survives restarts)
+.cache/meegle-prd-resolution/

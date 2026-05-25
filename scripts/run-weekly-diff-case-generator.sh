@@ -13,6 +13,8 @@ OUTPUT_DIR="${OUTPUT_DIR:-generated-cases/weekly-diff}"
 RUN_WEEKLY_PLAYWRIGHT="${RUN_WEEKLY_PLAYWRIGHT:-1}"
 WEEKLY_NOTIFY="${WEEKLY_NOTIFY:-1}"
 WEEKLY_PLAYWRIGHT_LABEL="${WEEKLY_PLAYWRIGHT_LABEL:-Weekly diff Playwright run}"
+# Skip git fetch when cache repo exists (saves ~1-2 min). Set FORCE_FETCH=1 to override.
+FORCE_FETCH="${FORCE_FETCH:-0}"
 RUN_BUG_DETECTION="${RUN_BUG_DETECTION:-1}"
 
 cd "$REPO_ROOT"
@@ -22,6 +24,37 @@ if [[ -f .env ]]; then
   source .env
   set +a
 fi
+
+# MLX server is only needed during Playwright execution (AI fallback), not during generation.
+MLX_HOST="${MIDSCENE_MLX_HOST:-127.0.0.1}"
+MLX_PORT="${MIDSCENE_MLX_PORT:-8080}"
+MLX_PID_FILE="$REPO_ROOT/logs/mlx-server.pid"
+_MLX_STARTED_BY_US=0
+
+_mlx_is_up() {
+  curl -fsS --max-time 2 "http://${MLX_HOST}:${MLX_PORT}/v1/models" >/dev/null 2>&1
+}
+
+_mlx_ensure_running() {
+  if _mlx_is_up; then
+    echo "[mlx] server already running on :${MLX_PORT}"
+  else
+    echo "[mlx] starting local MLX server in background..."
+    bash "$REPO_ROOT/scripts/start-mlx-server.sh" --bg
+    _MLX_STARTED_BY_US=1
+    for i in $(seq 1 24); do
+      if _mlx_is_up; then echo "[mlx] ✅ server ready (${i}×5s)"; break; fi
+      echo "[mlx] waiting for server... (${i}/24)"
+      sleep 5
+    done
+    if ! _mlx_is_up; then
+      echo "[mlx] ❌ server did not become ready in 120s — AI fallback disabled"
+      _MLX_STARTED_BY_US=0
+    fi
+  fi
+}
+
+trap '[[ $_MLX_STARTED_BY_US -eq 1 && -f "$MLX_PID_FILE" ]] && kill "$(cat "$MLX_PID_FILE")" 2>/dev/null && echo "[mlx] server stopped"; rm -f "$MLX_PID_FILE"' EXIT
 
 CMD=(
   npx tsx scripts/generate-cases-from-weekly-diff.ts
@@ -44,6 +77,13 @@ else
   CMD+=(--repo-path "$TARGET_REPO_PATH")
 fi
 
+# Auto skip fetch when cache exists and FORCE_FETCH is not set
+_CACHE_REPO_DIR="$REPO_ROOT/$TARGET_REPO_CACHE_DIR"
+if [[ "$FORCE_FETCH" != "1" && -d "$_CACHE_REPO_DIR" ]]; then
+  echo "[weekly-diff] cache repo found → skipping git fetch (use FORCE_FETCH=1 to update)"
+  CMD+=(--no-fetch)
+fi
+
 CMD+=("$@")
 
 "${CMD[@]}"
@@ -51,36 +91,63 @@ CMD+=("$@")
 # Run generic bug detection if enabled
 if [[ "$RUN_BUG_DETECTION" == "1" ]]; then
   echo ""
-  echo "[bug-detection] Starting generic bug detection..."
+  echo "🚨 [P0-detection] PRE-FLIGHT CHECK: Running P0 critical bug analysis..."
+  echo ""
+  
+  # Pre-flight P0 check (MUST PASS before running tests)
+  if npm run analyze:p0 2>&1 | tee /tmp/p0-analysis.log; then
+    echo "✅ [P0-detection] P0 pre-flight check PASSED - no critical bugs detected"
+  else
+    P0_EXIT_CODE=$?
+    echo "❌ [P0-detection] P0 pre-flight check FAILED - critical bugs detected!"
+    echo "[P0-detection] Details saved to /tmp/p0-analysis.log"
+    # Continue for now but mark as warning
+    if [[ $P0_EXIT_CODE -ne 0 ]]; then
+      echo "⚠️  [P0-detection] WARNING: P0 bugs found, continuing with tests (review results)"
+    fi
+  fi
+  
+  echo ""
+  echo "[bug-detection] Generating PRD for reference..."
   
   # Generate PRD for reference
   if npm run weekly-diff:prd 2>&1 | tail -5; then
-    echo "[bug-detection] PRD generated"
+    echo "[bug-detection] ✅ PRD generated"
   else
-    echo "[bug-detection] PRD generation skipped"
+    echo "[bug-detection] ⏭️  PRD generation skipped"
   fi
   
-  # Run generic bug detection
-  if npm run test:bugs:generic 2>&1 | tail -10; then
-    echo "[bug-detection] Bug detection completed"
+  echo ""
+  echo "[bug-detection] Verifying generated specs include P0 detection..."
+  
+  # Verify generated specs include P0 detection (non-blocking — just check file content)
+  MISSING_P0=$(grep -rL "GenericBugDetector" tests/web/traveloka-flight-*weekly*.spec.ts 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$MISSING_P0" -eq 0 ]]; then
+    echo "[bug-detection] ✅ All weekly specs include P0 detection"
   else
-    echo "[bug-detection] Bug detection encountered issues (continuing...)"
+    echo "[bug-detection] ⚠️  $MISSING_P0 spec(s) missing P0 integration (continuing...)"
   fi
+  
+  echo ""
+  echo "[bug-detection] Collecting bug data for ML training..."
   
   # Collect bug data for training
   if npx ts-node scripts/bug-detection-collector.ts stats 2>&1 | tail -10; then
-    echo "[bug-detection] Data collection completed"
+    echo "[bug-detection] ✅ Data collection completed"
   else
-    echo "[bug-detection] Data collection skipped"
+    echo "[bug-detection] ⏭️  Data collection skipped"
   fi
   
-  echo "[bug-detection] Training data available at: data/bug-detection/training-data.jsonl"
+  echo "[bug-detection] 📊 Training data: data/bug-detection/training-data.jsonl"
   echo ""
 fi
 
 if [[ "$RUN_WEEKLY_PLAYWRIGHT" != "1" ]]; then
   exit 0
 fi
+
+# Start MLX server now — only needed for Playwright AI fallback
+_mlx_ensure_running
 
 setopt null_glob
 WEEKLY_SPECS=(

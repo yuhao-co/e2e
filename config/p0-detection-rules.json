@@ -1,0 +1,150 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-05-25",
+  "description": "P0 (Critical) Bug Detection Rules for Traveloka Flight Flows",
+  "rules": [
+    {
+      "id": "page_blank",
+      "name": "Page is Blank/Unreadable",
+      "description": "Main content area is completely empty or unreadable",
+      "checks": [
+        "DOM has no meaningful content (less than 100 characters of text)",
+        "Page body is empty or contains only error messages",
+        "Main container has display:none or visibility:hidden"
+      ],
+      "impact": "Users cannot view any content",
+      "affectedFlows": ["flight-search", "flight-booking"]
+    },
+    {
+      "id": "page_timeout",
+      "name": "Page Loading Timeout",
+      "description": "Page takes too long to load (exceeds 30 seconds)",
+      "checks": [
+        "Page load time > 30000ms",
+        "Network requests stuck in pending state"
+      ],
+      "impact": "Users get impatient and abandon",
+      "affectedFlows": ["flight-search", "flight-booking"]
+    },
+    {
+      "id": "search_form_broken",
+      "name": "Search Form Not Functional",
+      "description": "Critical search form cannot be used to search",
+      "checks": [
+        "Search button disabled or not clickable",
+        "Search button has opacity < 0.5 or pointer-events:none",
+        "Departure/Arrival airport input frozen",
+        "Date picker not responding to clicks",
+        "Form submission fails (button click has no effect)"
+      ],
+      "impact": "Users cannot search for flights",
+      "affectedFlows": ["flight-search"]
+    },
+    {
+      "id": "booking_form_broken",
+      "name": "Booking Form Not Functional",
+      "description": "Critical booking form cannot be submitted",
+      "checks": [
+        "Passenger name/email input disabled",
+        "Payment button disabled or not clickable",
+        "Seat selection form frozen",
+        "Form submission fails with no feedback"
+      ],
+      "impact": "Users cannot complete booking",
+      "affectedFlows": ["flight-booking"]
+    },
+    {
+      "id": "payment_gateway_down",
+      "name": "Payment Gateway Unreachable",
+      "description": "Payment processor API returns 5xx errors",
+      "checks": [
+        "Payment API endpoint returns 500-599 status",
+        "Payment processing timeout > 15 seconds",
+        "Payment error message: 'Service Unavailable'"
+      ],
+      "impact": "No transactions can be completed",
+      "affectedFlows": ["flight-booking"]
+    },
+    {
+      "id": "data_corruption",
+      "name": "Passenger Data Lost or Corrupted",
+      "description": "User data disappears or shows garbage characters",
+      "checks": [
+        "Selected seats reset to empty",
+        "Passenger name shows as: undefined, null, [object Object]",
+        "Price displays as NaN or negative values",
+        "Passenger data reloads shows different values than submitted"
+      ],
+      "impact": "Users lose booking information",
+      "affectedFlows": ["flight-search", "flight-booking"]
+    },
+    {
+      "id": "security_breach",
+      "name": "Security Vulnerability Detected",
+      "description": "XSS, CSRF, SQL injection evidence found",
+      "checks": [
+        "Page HTML contains unescaped user input in DOM",
+        "No CSRF token in forms",
+        "SQL error messages exposed in page",
+        "Authentication bypass detected (can access without login)"
+      ],
+      "impact": "User accounts at risk of compromise",
+      "affectedFlows": ["flight-search", "flight-booking"]
+    },
+    {
+      "id": "critical_button_stuck",
+      "name": "Critical Action Button Not Working",
+      "description": "Search/Booking/Payment button completely stuck",
+      "checks": [
+        "Button has pointer-events:none",
+        "Button has display:none or visibility:hidden",
+        "Button click event listener removed (no response)",
+        "Button shows loading spinner indefinitely (> 30 seconds)"
+      ],
+      "impact": "Users cannot proceed with transaction",
+      "affectedFlows": ["flight-search", "flight-booking"]
+    },
+    {
+      "id": "network_critical_error",
+      "name": "Critical Network Error",
+      "description": "Core API endpoint returns 503/502 or timeout",
+      "checks": [
+        "Flight search API returns 502/503/504",
+        "Booking API returns 502/503/504",
+        "API timeout (no response after 30s)",
+        "CORS policy blocks API requests"
+      ],
+      "impact": "Core functionality unavailable",
+      "affectedFlows": ["flight-search", "flight-booking"]
+    },
+    {
+      "id": "currency_missing",
+      "name": "Currency Symbol Missing in Prices",
+      "description": "Prices show as numbers only (e.g., '12000' instead of 'Rp 12,000')",
+      "checks": [
+        "Price displayed without currency symbol",
+        "No currency format detected for locale"
+      ],
+      "impact": "Users confused about payment amount",
+      "affectedFlows": ["flight-search", "flight-booking"]
+    },
+    {
+      "id": "session_expired",
+      "name": "Session Expired During Transaction",
+      "description": "Session expires mid-transaction without warning",
+      "checks": [
+        "Auth token missing from requests",
+        "API returns 401 Unauthorized",
+        "User redirected to login mid-booking"
+      ],
+      "impact": "Booking lost, customer frustrated",
+      "affectedFlows": ["flight-booking"]
+    }
+  ],
+  "severity_levels": {
+    "P0": "Complete feature outage or data loss. Affects revenue or security. Immediate action required.",
+    "P1": "Feature severely degraded but workaround exists. Affects multiple users.",
+    "P2": "Feature partially broken. Single user workaround available.",
+    "P3": "Minor issue. User experience impacted slightly."
+  }
+}

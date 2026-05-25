@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastUpdated": "2026-05-25T05:42:07.335Z",
+  "lastUpdated": "2026-05-25T07:37:22.435Z",
   "layers": {
     "baseline": {
       "frozen": true,
@@ -73,17 +73,69 @@
         "intentHashes": [],
         "status": "active",
         "checksumHash": "53e79b542e7e5b8f"
+      },
+      {
+        "id": "snapshot-2026-05-25T06:26:25.239Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T06:26:25.239Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "927b68507d43fce5"
+      },
+      {
+        "id": "snapshot-2026-05-25T07:13:12.582Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T07:13:12.582Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "cbc35f32beddf6a6"
+      },
+      {
+        "id": "snapshot-2026-05-25T07:20:09.600Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T07:20:09.600Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "7e966c9e07215d70"
+      },
+      {
+        "id": "snapshot-2026-05-25T07:32:59.316Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T07:32:59.316Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "0384cff88e2cd710"
       }
     ]
   },
   "statistics": {
-    "totalCases": 10,
+    "totalCases": 18,
     "byDomain": {
-      "flight-booking": 5,
-      "flight-search": 5
+      "flight-booking": 9,
+      "flight-search": 9
     },
     "byStatus": {
-      "active": 10,
+      "active": 18,
       "deprecated": 0
     }
   },

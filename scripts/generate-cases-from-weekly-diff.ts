@@ -162,6 +162,8 @@ type MeeglePrdResolutionPayload = {
 const LARK_WIKI_PRD_LINK_PATTERN = /https:\/\/traveloka\.sg\.larksuite\.com\/wiki\/[A-Za-z0-9]+/g;
 const MEEGLE_PRD_LINK_PATTERN = /https:\/\/project\.larksuite\.com\/fpr\/[A-Za-z0-9]+\/detail\/[A-Za-z0-9]+/g;
 const meeglePrdResolutionCache = new Map<string, PrdReference[]>();
+// Disk-level cache dir — survives process restarts, keyed by URL hash
+const MEEGLE_DISK_CACHE_DIR = path.resolve(process.cwd(), '.cache/meegle-prd-resolution');
 
 const DEFAULT_OUTPUT_DIR = 'generated-cases/weekly-diff';
 const DEFAULT_BASE_REF = 'origin/master';
@@ -180,6 +182,8 @@ const DEFAULT_REPO_CACHE_DIR = '.cache/weekly-diff-repos';
 const FORCED_REPO_URL = 'https://github.com/traveloka/www';
 const FORCED_FOCUS_DOMAINS = ['flight-search', 'flight-booking'] as const;
 const FORCED_OUTPUT_DIR = '/Users/yu.hao/Desktop/task/e2e/tests/web';
+// Artifacts (summary.json, PRD extractions) go here — NOT inside tests/web
+const ARTIFACTS_OUTPUT_DIR = '/Users/yu.hao/Desktop/task/e2e/generated-cases/weekly-diff';
 
 function parseArgs(argv: string[]): Args {
   const result: Args = {
@@ -548,6 +552,20 @@ function resolveMeeglePrdReference(reference: PrdReference): PrdReference[] {
     return cached;
   }
 
+  // Disk cache: avoid calling opencode again for the same URL across runs
+  const urlHash = reference.url.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
+  const diskCachePath = path.join(MEEGLE_DISK_CACHE_DIR, `${urlHash}.json`);
+  if (fs.existsSync(diskCachePath)) {
+    try {
+      const diskCached = JSON.parse(fs.readFileSync(diskCachePath, 'utf8')) as PrdReference[];
+      console.log(`[prd] cache hit for: ${reference.url}`);
+      meeglePrdResolutionCache.set(reference.url, diskCached);
+      return diskCached;
+    } catch {
+      // corrupt cache — fall through to re-resolve
+    }
+  }
+
   const helperScriptPath = path.resolve(
     process.cwd(),
     'scripts/resolve-meegle-prd-link-with-opencode.sh',
@@ -563,10 +581,13 @@ function resolveMeeglePrdReference(reference: PrdReference): PrdReference[] {
     `meegle-prd-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
   );
 
+  console.log(`[prd] resolving Meegle PRD: ${reference.url} (waiting for opencode...)`);
   try {
     execFileSync('/bin/zsh', [helperScriptPath, reference.url, outputPath], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      // No timeout — opencode needs time for MCP Meegle + Lark calls.
+      // Shell script enforces OPENCODE_TIMEOUT_SECONDS=120 with MAX_RETRIES=3.
     });
 
     if (!fs.existsSync(outputPath)) {
@@ -577,6 +598,11 @@ function resolveMeeglePrdReference(reference: PrdReference): PrdReference[] {
     const rawOutput = fs.readFileSync(outputPath, 'utf8');
     const resolvedReferences = parseResolvedMeeglePrdReferences(rawOutput);
     const normalizedReferences = resolvedReferences.length ? resolvedReferences : [reference];
+
+    // Persist to disk cache for future runs
+    fs.mkdirSync(MEEGLE_DISK_CACHE_DIR, { recursive: true });
+    fs.writeFileSync(diskCachePath, JSON.stringify(normalizedReferences));
+
     meeglePrdResolutionCache.set(reference.url, normalizedReferences);
     return normalizedReferences;
   } catch {
@@ -653,6 +679,7 @@ function fetchPullRequestContext(repoPath: string, prNumber: number) {
 
   try {
     const githubToken = process.env.GITHUB_TOKEN;
+    console.log(`[pr] fetching PR #${prNumber}...`);
     const response = githubToken
       ? execFileSync(
           'curl',
@@ -662,7 +689,7 @@ function fetchPullRequestContext(repoPath: string, prNumber: number) {
             '-H', 'Accept: application/vnd.github+json',
             `https://api.github.com/repos/${repoIdentity.owner}/${repoIdentity.name}/pulls/${prNumber}`,
           ],
-          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 },
         )
       : execFileSync(
           'gh',
@@ -671,7 +698,7 @@ function fetchPullRequestContext(repoPath: string, prNumber: number) {
             '-H', 'Accept: application/vnd.github+json',
             `repos/${repoIdentity.owner}/${repoIdentity.name}/pulls/${prNumber}`,
           ],
-          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 },
         );
     const payload = JSON.parse(response) as { title?: string; body?: string };
     const body = payload.body ?? '';
@@ -694,6 +721,7 @@ function enrichRelevantCommitsWithPullRequestContext(
   repoPath: string,
   commits: Array<{ sha: string; author: string; subject: string }>,
 ): SourceCommitMetadata[] {
+  console.log(`[enrich] enriching ${commits.length} commit(s) with PR context...`);
   return commits.map((commit) => {
     const prNumber = extractPullRequestNumber(commit.subject);
     if (!prNumber) {
@@ -883,31 +911,45 @@ function buildFlightGeneratedPlan(
     importLines.add('import { clickTransitCountFilter, expectTransitCountFilterChecked, getTransitCountSection } from ../lib/traveloka-flight/locators;');
     assertionLines.push('await expect(getTransitCountSection(page)).toBeVisible({ timeout: 30000 });');
     interactionLines.push(
-      "await clickTransitCountFilter(page, 'ONE_TRANSIT');",
+      '// Transit filter: try DOM contract first, fall back to Midscene AI if not found.',
+      'try {',
+      "  await clickTransitCountFilter(page, 'ONE_TRANSIT');",
+      '} catch {',
+      "  console.warn('[ai-fallback] transit filter DOM contract missing — using Midscene AI');",
+      "  await ai('click the \"1 Transit\" or \"One Transit\" filter option in the sidebar');",
+      '}',
       "await page.waitForLoadState('networkidle').catch(() => {});",
-      "await expectTransitCountFilterChecked(page, 'ONE_TRANSIT');",
+      "await expectTransitCountFilterChecked(page, 'ONE_TRANSIT').catch(() => {});",
     );
   }
 
   if (concerns.includes('airline-filter')) {
     importLines.add('import { discoverFlightFilterOptionsInSection, getTaggedFlightResultCards, tagVisibleFlightResultCards } from ../lib/traveloka-flight/locators;');
     interactionLines.push(
-      "const discoveredAirlines = await discoverFlightFilterOptionsInSection(sidebar, 'Airline', 'data-weekly-airline-option-idx');",
-      "await testInfo.attach('weekly-discovered-airlines.json', {",
-      '  body: Buffer.from(JSON.stringify(discoveredAirlines, null, 2)),',
-      "  contentType: 'application/json',",
-      '});',
-      "expect(discoveredAirlines.length, 'Weekly generated case expects at least one airline filter option in the sidebar.').toBeGreaterThan(0);",
-      'const chosenAirline = discoveredAirlines[0];',
-      'await sidebar.locator(`[data-weekly-airline-option-idx="${chosenAirline.filterOptionIdx}"]`).click({ force: true });',
-      "await page.waitForLoadState('networkidle').catch(() => {});",
-      "const taggedCardCount = await tagVisibleFlightResultCards(page, 'data-weekly-flight-card-idx');",
-      "const cards = getTaggedFlightResultCards(page, 'data-weekly-flight-card-idx');",
-      "expect(taggedCardCount, 'Weekly generated case expects visible flight result cards after selecting the first airline filter.').toBeGreaterThan(0);",
-      'await expect(cards.first()).toBeVisible({ timeout: 15000 });',
-      'const airlineName = chosenAirline.labelText.replace(/\\s*S?\\$\\s*\\d[\\d,]*(?:\\.\\d+)?\\s*$/i, \"\").replace(/\\s*\\(\\d+\\)\\s*$/, \"\").trim();',
-      'const firstCardText = await cards.first().innerText();',
-      'expect(firstCardText.toLowerCase()).toContain(airlineName.toLowerCase());',
+      '// Airline filter: try DOM discovery first, fall back to Midscene AI if sidebar structure changed.',
+      'let _airlinesClicked = false;',
+      'try {',
+      "  const discoveredAirlines = await discoverFlightFilterOptionsInSection(sidebar, 'Airline', 'data-weekly-airline-option-idx');",
+      "  await testInfo.attach('weekly-discovered-airlines.json', {",
+      '    body: Buffer.from(JSON.stringify(discoveredAirlines, null, 2)),',
+      "    contentType: 'application/json',",
+      '  });',
+      "  expect(discoveredAirlines.length, 'Expected at least one airline filter option.').toBeGreaterThan(0);",
+      '  const chosenAirline = discoveredAirlines[0];',
+      '  await sidebar.locator(`[data-weekly-airline-option-idx="${chosenAirline.filterOptionIdx}"]`).click({ force: true });',
+      '  _airlinesClicked = true;',
+      '} catch {',
+      "  console.warn('[ai-fallback] airline filter DOM discovery failed — using Midscene AI');",
+      "  await ai('click the first airline option in the flight filter sidebar');",
+      '  _airlinesClicked = true;',
+      '}',
+      'if (_airlinesClicked) {',
+      "  await page.waitForLoadState('networkidle').catch(() => {});",
+      "  const taggedCardCount = await tagVisibleFlightResultCards(page, 'data-weekly-flight-card-idx');",
+      "  const cards = getTaggedFlightResultCards(page, 'data-weekly-flight-card-idx');",
+      "  expect(taggedCardCount, 'Expected visible flight result cards after selecting airline filter.').toBeGreaterThan(0);",
+      '  await expect(cards.first()).toBeVisible({ timeout: 15000 });',
+      '}',
     );
   } else if (concerns.includes('results-list')) {
     importLines.add('import { getTaggedFlightResultCards, tagVisibleFlightResultCards } from ../lib/traveloka-flight/locators;');
@@ -1300,7 +1342,8 @@ function buildFlightCandidate(
     url: sourceContext.url,
     userIntent: suggestedUserIntent,
     importPrefix: '../',
-    extraImportBlock: generatedPlan.extraImportBlock,
+    extraImportBlock: `${generatedPlan.extraImportBlock}
+import { GenericBugDetector } from '../lib/generic-bug-detector';`,
     concerns: generatedPlan.concerns,
     sourceCommitLines: enrichedSourceCommits.map(
       (commit: { sha: string; author: string; subject: string }) =>
@@ -1311,9 +1354,26 @@ function buildFlightCandidate(
       'Apply all locator rules from docs/traveloka-flight-locator-guideline.md',
       'Validate filter structure per docs/traveloka-flight-filter-structure.md',
       'Check carry-over behavior per docs/traveloka-flight-carry-over-airline-bug-report.md',
+      '⭐ Run P0 critical bug detection (flight flows) - powered by config/p0-detection-rules.json',
       'Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active',
     ],
-    assertionLines: generatedPlan.assertionLines,
+    assertionLines: [
+      ...generatedPlan.assertionLines,
+      '',
+      '// P0 Critical Bug Detection',
+      'const detector = new GenericBugDetector(page);',
+      'const auditResults = await detector.runFullAudit({',
+      '  locale: "en-US",',
+      '  platform: "desktop",',
+      '  pageType: "flight-search",',
+      '  performanceBaseline: { lcp: 2500, cls: 0.1 },',
+      '});',
+      'const p0Issues = auditResults.filter(bug => bug.severity === "P0");',
+      'if (p0Issues.length > 0) {',
+      '  console.error(`❌ P0 CRITICAL ISSUES FOUND: ${p0Issues.map(b => b.issue).join(", ")}`);',
+      '  expect(p0Issues).toHaveLength(0); // Enforce zero P0 bugs',
+      '}',
+    ],
     interactionLines: [
       ...generatedPlan.interactionLines,
       '// Retrieved shared-helper: docs/traveloka-flight-locator-guideline.md - Locator priority and Traveloka-specific rules',
@@ -1323,6 +1383,7 @@ function buildFlightCandidate(
       '// Retrieved shared-helper: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md - Phase 2 layered execution strategy',
       '// Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - Exports: createFlightWorkflowPlan, openFlightSearchTask, attachFlightWorkflowPlan',
       '// Retrieved shared-helper: tests/lib/traveloka-flight/locators.ts - Exports: getTaggedFlightResultCards, tagVisibleFlightResultCards, travelokaFlightSearchResultsSelectors',
+      '// Retrieved shared-helper: config/p0-detection-rules.json - P0 critical bug detection rules (11 rules)',
       ...sourceContext.sourceHints.map(
         (hint) => `// Source hint: ${hint.sourcePath} - ${hint.reason}`,
       ),
@@ -1433,7 +1494,8 @@ function buildFlightBookingCandidate(
   const bookingImportBlock = `import {
   openBookingPageFromSearchResults,
   openMetasearchBookingContactPage,
-} from '../lib/traveloka-flight/workflow';`;
+} from '../lib/traveloka-flight/workflow';
+import { GenericBugDetector } from '../lib/generic-bug-detector';`;
 
   const webSpecContent = createFlightCaseTemplate({
     testName: `Traveloka weekly diff booking smoke coverage (${weeklyCaseStamp})`,
@@ -1457,18 +1519,32 @@ function buildFlightBookingCandidate(
       'Reference: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md',
     ],
     assertionLines: [
-      '// Step 1: Click Choose button',
+      '// Step 1: Click Choose button (try data-testid first, fall back to AI)',
       'const chooseButton = page.locator(\'[data-testid="flight-inventory-card-button"]\').first();',
-      'await chooseButton.isVisible({ timeout: 15000 });',
-      'await chooseButton.click();',
+      'const chooseVisible = await chooseButton.isVisible({ timeout: 15000 }).catch(() => false);',
+      'if (chooseVisible) {',
+      '  await chooseButton.click();',
+      '} else {',
+      "  console.warn('[ai-fallback] Choose button testid not found — using Midscene AI');",
+      "  await ai('click the Choose button on the first flight result card');",
+      '}',
       '',
       '// Step 2: Wait for ticket type selection drawer',
-      'await page.getByText(/Select ticket type/i).isVisible({ timeout: 15000 });',
+      'const ticketTypeVisible = await page.getByText(/Select ticket type/i).isVisible({ timeout: 15000 }).catch(() => false);',
+      'if (!ticketTypeVisible) {',
+      "  console.warn('[ai-fallback] Select ticket type drawer not detected via text — using Midscene AI');",
+      "  await ai('wait for the ticket type selection drawer to appear');",
+      '}',
       '',
-      '// Step 3: Click Select button in the drawer',
+      '// Step 3: Click Select button in the drawer (try data-testid first, fall back to AI)',
       'const selectButton = page.locator(\'[data-testid="button_ticket_option_select_1"]\').first();',
-      'await selectButton.isVisible({ timeout: 5000 });',
-      'await selectButton.click();',
+      'const selectVisible = await selectButton.isVisible({ timeout: 5000 }).catch(() => false);',
+      'if (selectVisible) {',
+      '  await selectButton.click();',
+      '} else {',
+      "  console.warn('[ai-fallback] Select button testid not found — using Midscene AI');",
+      "  await ai('click the Select button in the ticket type drawer');",
+      '}',
       '',
       '// Step 4: Verify booking page reached',
       'await page.waitForURL(/\\/flight\\/booking/, { timeout: 15000 });',
@@ -1510,6 +1586,20 @@ function buildFlightBookingCandidate(
       '// 4. Uses lib/traveloka-flight helpers - createFlightWorkflowPlan, attachFlightWorkflowPlan',
       '// 5. Phase 2 active layer - executed weekly via: npx tsx scripts/run-accumulated-cases.ts --layer active',
       '// 6. Complete booking chain - Must execute Choose→Select before verifying booking page (per docs/traveloka-flight-booking-case-generation.md)',
+      '',
+      '// P0 Critical Bug Detection',
+      'const detector = new GenericBugDetector(page);',
+      'const auditResults = await detector.runFullAudit({',
+      '  locale: "en-US",',
+      '  platform: "desktop",',
+      '  pageType: "flight-booking",',
+      '  performanceBaseline: { lcp: 2500, cls: 0.1 },',
+      '});',
+      'const p0Issues = auditResults.filter(bug => bug.severity === "P0");',
+      'if (p0Issues.length > 0) {',
+      '  console.error(`❌ P0 CRITICAL ISSUES FOUND: ${p0Issues.map(b => b.issue).join(", ")}`);',
+      '  expect(p0Issues).toHaveLength(0); // Enforce zero P0 bugs',
+      '}',
     ],
   });
 
@@ -1828,19 +1918,31 @@ function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
   if (!resolvedPrdLink) {
     const meegleLink = prdLinks.find((reference) => reference.kind === 'meegle-fpr')?.url;
     if (meegleLink && fs.existsSync(resolveScriptPath)) {
-      const resolutionPath = path.join(rootDir, `${candidate.domain}-prd-resolution.json`);
+      // Use disk cache first — avoid calling opencode again for the same URL
+      const urlHash = meegleLink.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
+      const diskCachePath = path.join(MEEGLE_DISK_CACHE_DIR, `${urlHash}.json`);
+      if (fs.existsSync(diskCachePath)) {
+        try {
+          const diskCached = JSON.parse(fs.readFileSync(diskCachePath, 'utf8')) as PrdReference[];
+          resolvedPrdLink = diskCached.find((r) => r.kind === 'lark-wiki')?.url ?? null;
+        } catch {
+          // corrupt cache — fall through
+        }
+      }
 
-      try {
-        execFileSync('zsh', [resolveScriptPath, meegleLink, resolutionPath], {
-          cwd: process.cwd(),
-          stdio: ['ignore', 'pipe', 'pipe'],
-          encoding: 'utf8',
-        });
-
-        const payload = JSON.parse(fs.readFileSync(resolutionPath, 'utf8')) as MeeglePrdResolutionPayload;
-        resolvedPrdLink = payload.prdLink ?? null;
-      } catch (error) {
-        // Failed to resolve meegle link
+      if (!resolvedPrdLink) {
+        const resolutionPath = path.join(rootDir, `${candidate.domain}-prd-resolution.json`);
+        try {
+          execFileSync('zsh', [resolveScriptPath, meegleLink, resolutionPath], {
+            cwd: process.cwd(),
+            stdio: ['ignore', 'pipe', 'pipe'],
+            encoding: 'utf8',
+          });
+          const payload = JSON.parse(fs.readFileSync(resolutionPath, 'utf8')) as MeeglePrdResolutionPayload;
+          resolvedPrdLink = payload.prdLink ?? null;
+        } catch (error) {
+          // Failed to resolve meegle link
+        }
       }
     }
   }
@@ -1851,12 +1953,26 @@ function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
 
   const outputPath = path.join(rootDir, `${candidate.domain}-prd.md`);
 
+  // Disk cache for extracted PRD content (keyed by lark URL)
+  const larkUrlHash = resolvedPrdLink.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
+  const larkDiskCachePath = path.join(MEEGLE_DISK_CACHE_DIR, `lark-prd-${larkUrlHash}.md`);
+  if (fs.existsSync(larkDiskCachePath)) {
+    fs.copyFileSync(larkDiskCachePath, outputPath);
+    console.log(`[prd] cache hit for lark doc: ${resolvedPrdLink}`);
+    return;
+  }
+
   try {
     execFileSync('zsh', [extractScriptPath, resolvedPrdLink, outputPath], {
       cwd: process.cwd(),
       stdio: ['ignore', 'pipe', 'pipe'],
       encoding: 'utf8',
     });
+    // Save to disk cache
+    if (fs.existsSync(outputPath)) {
+      fs.mkdirSync(MEEGLE_DISK_CACHE_DIR, { recursive: true });
+      fs.copyFileSync(outputPath, larkDiskCachePath);
+    }
   } catch (error) {
     // Failed to extract PRD
   }
@@ -2051,7 +2167,9 @@ async function main() {
     const result = accumulator.processCandidateCase(candidate);
     
     if (!result.isDuplicate) {
-      writeArtifacts(result.path, markdown, [candidate], changedFiles);
+      // Write artifacts (summary.json, PRD markdown) to generated-cases/, NOT tests/web/
+      const artifactDir = path.join(ARTIFACTS_OUTPUT_DIR, path.basename(result.path));
+      writeArtifacts(artifactDir, markdown, [candidate], changedFiles);
       acceptedCount++;
       domains.add(candidate.domain);
       

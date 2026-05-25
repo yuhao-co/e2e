@@ -3,10 +3,12 @@ import {
   attachFlightWorkflowPlan,
   createFlightWorkflowPlan,
   openFlightSearchTask,
+  clickByIdOrAi,
 } from '../lib/traveloka-flight/workflow';
 
 import { travelokaFlightSearchResultsSelectors } from '../lib/traveloka-flight/locators';
 import { getTaggedFlightResultCards, tagVisibleFlightResultCards } from '../lib/traveloka-flight/locators';
+import { GenericBugDetector } from '../lib/generic-bug-detector';
 
 const TARGET_URL = 'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';
 
@@ -21,8 +23,8 @@ const TARGET_URL = 'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.
  * 中文校验项: 结果列表可见性与基础结果卡片渲染。
  * EN Source commits: dc0036b796 by Randi Adiel Gianufian: [FEATURE][FLIGHT][WEB] SSR - Filters (#33401)
  * 中文来源提交: dc0036b796 by Randi Adiel Gianufian: [FEATURE][FLIGHT][WEB] SSR - Filters (#33401)
- * EN Source summary: PRD (meegle): https://project.larksuite.com/fpr/epic/detail/11760659 | EPIC: https://project.larksuite.com/fpr/epic/detail/11760659 | Apply all locator rules from docs/traveloka-flight-locator-guideline.md | Validate filter structure per docs/traveloka-flight-filter-structure.md | Check carry-over behavior per docs/traveloka-flight-carry-over-airline-bug-report.md | Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active
- * 中文来源摘要: PRD (meegle): https://project.larksuite.com/fpr/epic/detail/11760659 | EPIC: https://project.larksuite.com/fpr/epic/detail/11760659 | Apply all locator rules from docs/traveloka-flight-locator-guideline.md | Validate filter structure per docs/traveloka-flight-filter-structure.md | Check carry-over behavior per docs/traveloka-flight-carry-over-airline-bug-report.md | Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active
+ * EN Source summary: PRD (meegle): https://project.larksuite.com/fpr/epic/detail/11760659 | EPIC: https://project.larksuite.com/fpr/epic/detail/11760659 | Apply all locator rules from docs/traveloka-flight-locator-guideline.md | Validate filter structure per docs/traveloka-flight-filter-structure.md | Check carry-over behavior per docs/traveloka-flight-carry-over-airline-bug-report.md | ⭐ Run P0 critical bug detection (flight flows) - powered by config/p0-detection-rules.json | Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active
+ * 中文来源摘要: PRD (meegle): https://project.larksuite.com/fpr/epic/detail/11760659 | EPIC: https://project.larksuite.com/fpr/epic/detail/11760659 | Apply all locator rules from docs/traveloka-flight-locator-guideline.md | Validate filter structure per docs/traveloka-flight-filter-structure.md | Check carry-over behavior per docs/traveloka-flight-carry-over-airline-bug-report.md | ⭐ Run P0 critical bug detection (flight flows) - powered by config/p0-detection-rules.json | Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active
  * EN Expectation: keep this generated case aligned with the stable Traveloka desktop baseline flow and verify only the routed regression slice.
  * 中文预期: 该生成用例必须与稳定的 Traveloka desktop 基线流程保持一致，只验证本次路由到的回归范围。
  */
@@ -38,7 +40,9 @@ test.use({
   },
 });
 
-test('Traveloka weekly diff generated flight results coverage (20260525)', async ({ page }, testInfo) => {
+test('Traveloka weekly diff generated flight results coverage (20260525)', async ({ page, ai }, testInfo) => {
+  // ai = Midscene visual AI (MLX local model); used as fallback when data-id/data-testid is absent.
+  // clickByIdOrAi(page, root, id, description, ai) tries data-id first, then ai().
   const workflowPlan = createFlightWorkflowPlan({
     url: TARGET_URL,
     userIntent: "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
@@ -64,6 +68,20 @@ test('Traveloka weekly diff generated flight results coverage (20260525)', async
   }
   await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.flights)).toBeVisible({ timeout: 15000 });
   await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.filter)).toBeVisible({ timeout: 15000 });
+  
+  // P0 Critical Bug Detection
+  const detector = new GenericBugDetector(page);
+  const auditResults = await detector.runFullAudit({
+    locale: "en-US",
+    platform: "desktop",
+    pageType: "flight-search",
+    performanceBaseline: { lcp: 2500, cls: 0.1 },
+  });
+  const p0Issues = auditResults.filter(bug => bug.severity === "P0");
+  if (p0Issues.length > 0) {
+    console.error(`❌ P0 CRITICAL ISSUES FOUND: ${p0Issues.map(b => b.issue).join(", ")}`);
+    expect(p0Issues).toHaveLength(0); // Enforce zero P0 bugs
+  }
 
   const taggedCardCount = await tagVisibleFlightResultCards(page, 'data-weekly-flight-card-idx');
   const cards = getTaggedFlightResultCards(page, 'data-weekly-flight-card-idx');
@@ -94,6 +112,7 @@ test('Traveloka weekly diff generated flight results coverage (20260525)', async
   // Retrieved shared-helper: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md - Phase 2 layered execution strategy
   // Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - Exports: createFlightWorkflowPlan, openFlightSearchTask, attachFlightWorkflowPlan
   // Retrieved shared-helper: tests/lib/traveloka-flight/locators.ts - Exports: getTaggedFlightResultCards, tagVisibleFlightResultCards, travelokaFlightSearchResultsSelectors
+  // Retrieved shared-helper: config/p0-detection-rules.json - P0 critical bug detection rules (11 rules)
   // Source hint: packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx - Closest verified results-page component discovered for current desktop flight surface.
   // Source hint: packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx - Desktop flight results filter sidebar component for the current v2 surface.
 });

@@ -125,6 +125,7 @@ import {
   attachFlightWorkflowPlan,
   createFlightWorkflowPlan,
   openFlightSearchTask,
+  clickByIdOrAi,
 } from '${importPrefix}lib/traveloka-flight/workflow';`
     : `import { expect, test } from '${importPrefix}fixture';
 import {
@@ -133,6 +134,7 @@ import {
   openFlightResultsPage,
   restoreFlightSession,
   runFlightWorkflow,
+  clickByIdOrAi,
 } from '${importPrefix}lib/traveloka-flight/workflow';`;
 
   const navigationBlock = useSearchWorkflow
@@ -171,7 +173,9 @@ ${caseSummaryBlock}
 
 ${testUseBlock}
 
-test('${input.testName}', async ({ page }, testInfo) => {
+test('${input.testName}', async ({ page, ai }, testInfo) => {
+  // ai = Midscene visual AI (MLX local model); used as fallback when data-id/data-testid is absent.
+  // clickByIdOrAi(page, root, id, description, ai) tries data-id first, then ai().
   const workflowPlan = createFlightWorkflowPlan({
     url: TARGET_URL,
     userIntent: ${JSON.stringify(normalized.rawUserIntent)},

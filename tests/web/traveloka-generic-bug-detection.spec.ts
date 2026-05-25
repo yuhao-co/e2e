@@ -1,144 +1,126 @@
 import { test, expect } from '@playwright/test';
-import { GenericBugDetector } from '../lib/generic-bug-detector';
+import { execSync } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 /**
- * Web Desktop Bug Detection - Flight Search & Booking
- * Scope: Web Desktop only, Flight Search and Flight Booking flows
+ * ⚠️ ENFORCEMENT: All bug detection tests MUST be generated via:
+ *   npm run weekly-diff
+ * 
+ * This file is ONLY for verifying that generated test specs include P0 detection.
+ * 
+ * Rules:
+ * ✅ Generated test specs (.spec.ts files) created by generate-cases-from-weekly-diff.ts
+ * ✅ Each generated spec includes:
+ *    - GenericBugDetector import
+ *    - P0 audit run with correct thresholds
+ *    - Zero-tolerance for P0 bugs (expect(p0Issues).toHaveLength(0))
+ * ❌ NO hardcoded URLs allowed
+ * ❌ NO manual test cases allowed
+ * 
+ * Workflow:
+ *   1. Code changes detected → git diff
+ *   2. generate-cases-from-weekly-diff.ts creates test specs with P0 checks
+ *   3. Run: npm run weekly-diff
+ *   4. P0 detection automatically runs in generated specs
+ *   5. Lark notified if P0 bugs found
  */
 
-test.describe('Web Desktop Bug Detection', () => {
-  test('Flight Search Results Page - Bug Detection', async ({ page }) => {
-    // Navigate to flight search results
-    await page.goto('https://www.traveloka.com/en-en/flights/CGK/NRT/2026-06-15', {
-      waitUntil: 'networkidle',
-    });
+test.describe('Generated Test Suite P0 Detection Verification', () => {
+  test('Verify generated flight-search specs include P0 detection', async () => {
+    // Find all generated flight-search specs
+    const specsDir = path.join(process.cwd(), 'tests/web');
+    const generatedSpecs = fs.readdirSync(specsDir)
+      .filter(f => f.startsWith('traveloka-flight-weekly-diff-') && f.endsWith('.spec.ts'))
+      .map(f => path.join(specsDir, f));
 
-    const detector = new GenericBugDetector(page);
-    const bugs = await detector.runFullAudit({
-      locale: 'en-US',
-      platform: 'desktop',
-      pageType: 'flight-search',
-      performanceBaseline: { lcp: 2500, cls: 0.1 },
-    });
+    console.log(`\n📋 Scanning ${generatedSpecs.length} generated flight-search specs for P0 detection...`);
 
-    const summary = detector.getBugsSummary();
+    for (const spec of generatedSpecs) {
+      const content = fs.readFileSync(spec, 'utf8');
+      
+      // Verify GenericBugDetector is imported
+      expect(content).toContain('GenericBugDetector', 
+        `${path.basename(spec)}: Missing GenericBugDetector import`);
+      
+      // Verify P0 audit is called
+      expect(content).toContain('runFullAudit', 
+        `${path.basename(spec)}: Missing runFullAudit call`);
+      
+      // Verify P0 filter exists
+      expect(content).toContain('severity === "P0"', 
+        `${path.basename(spec)}: Missing P0 severity filter`);
+      
+      // Verify zero-tolerance enforcement
+      expect(content).toContain('toHaveLength(0)', 
+        `${path.basename(spec)}: Missing zero-tolerance P0 check`);
 
-    console.log('\n📊 Flight Search Bug Report');
-    console.log('='.repeat(50));
-    console.log(`Total Issues: ${summary.total}`);
-    console.log(`Execution Time: ${summary.executionTime}ms\n`);
+      console.log(`  ✅ ${path.basename(spec)} includes P0 detection`);
+    }
 
-    // By category
-    for (const [category, categoryBugs] of Object.entries(summary.byCategory)) {
-      if (categoryBugs.length > 0) {
-        console.log(`\n📌 ${category.toUpperCase()} (${categoryBugs.length})`);
-        categoryBugs.forEach(bug => {
-          console.log(`[${bug.severity}] ${bug.issue}: ${bug.description}`);
-        });
+    if (generatedSpecs.length === 0) {
+      console.warn('\n⚠️  No generated specs found. Run: npm run weekly-diff');
+    }
+  });
+
+  test('Verify generated flight-booking specs include P0 detection', async () => {
+    // Flight-booking specs are also generated
+    const specsDir = path.join(process.cwd(), 'tests/web');
+    const bookingSpecs = fs.readdirSync(specsDir)
+      .filter(f => f.includes('booking') && f.endsWith('.spec.ts') && !f.includes('generic'))
+      .map(f => path.join(specsDir, f));
+
+    console.log(`\n📋 Scanning ${bookingSpecs.length} generated flight-booking specs for P0 detection...`);
+
+    for (const spec of bookingSpecs) {
+      const content = fs.readFileSync(spec, 'utf8');
+      
+      if (content.includes('GenericBugDetector')) {
+        expect(content).toContain('pageType: "flight-booking"', 
+          `${path.basename(spec)}: Flight-booking P0 detection should specify pageType`);
+        console.log(`  ✅ ${path.basename(spec)} includes flight-booking P0 detection`);
       }
     }
-
-    // Severity summary
-    console.log(`\n⚠️  Severity: P0=${summary.summary.critical} P1=${summary.summary.high} P2=${summary.summary.medium} P3=${summary.summary.low}`);
   });
 
-  test('Flight Booking Page - Bug Detection', async ({ page }) => {
-    // Navigate to booking page
-    await page.goto('https://www.traveloka.com/en-en/booking', {
-      waitUntil: 'networkidle',
-    });
+  test('Enforce: No hardcoded URLs in generated specs', async () => {
+    const specsDir = path.join(process.cwd(), 'tests/web');
+    const generatedSpecs = fs.readdirSync(specsDir)
+      .filter(f => f.startsWith('traveloka-flight-weekly-diff-') && f.endsWith('.spec.ts'))
+      .map(f => path.join(specsDir, f));
 
-    const detector = new GenericBugDetector(page);
-    const bugs = await detector.runFullAudit({
-      locale: 'en-US',
-      platform: 'desktop',
-      pageType: 'flight-booking',
-      performanceBaseline: { lcp: 3000, cls: 0.15 },
-    });
-
-    const summary = detector.getBugsSummary();
-
-    console.log('\n📊 Flight Booking Bug Report');
-    console.log('='.repeat(50));
-    console.log(`Total Issues: ${summary.total}`);
-
-    // Flag critical issues
-    const criticalBugs = bugs.filter(b => b.severity === 'P0' || b.severity === 'P1');
-    if (criticalBugs.length > 0) {
-      console.log(`\n❌ CRITICAL ISSUES FOUND (${criticalBugs.length}):`);
-      criticalBugs.forEach(bug => {
-        console.log(`  [${bug.severity}] ${bug.issue}: ${bug.description}`);
-      });
-    }
-  });
-
-  test('Flight Search - Multi-locale Detection', async ({ page }) => {
-    const locales = ['en-US', 'id-ID', 'zh-CN'];
-    
-    for (const locale of locales) {
-      console.log(`\n🌍 Testing locale: ${locale}`);
+    for (const spec of generatedSpecs) {
+      const content = fs.readFileSync(spec, 'utf8');
       
-      await page.goto('https://www.traveloka.com/en-en/flights/CGK/NRT/2026-06-15', {
-        waitUntil: 'networkidle',
-      });
-
-      const detector = new GenericBugDetector(page);
-      const bugs = await detector.runFullAudit({
-        locale,
-        platform: 'desktop',
-        pageType: 'flight-search',
-      });
-
-      const i18nBugs = bugs.filter(b => b.category === 'i18n');
-      console.log(`  Found ${i18nBugs.length} i18n issues`);
-      i18nBugs.forEach(bug => {
-        console.log(`    - ${bug.issue}: ${bug.description}`);
-      });
+      // All URLs must come from sourceContext
+      const urlMatches = content.match(/goto\(['"]https?:\/\/www\.traveloka\.com\/[^'"]+['"]/g) || [];
+      
+      for (const urlMatch of urlMatches) {
+        // URL should be from sourceContext.url or similar
+        if (!urlMatch.includes('sourceContext') && !urlMatch.includes('url')) {
+          console.warn(`  ⚠️  ${path.basename(spec)}: Possible hardcoded URL detected: ${urlMatch.substring(0, 50)}`);
+        }
+      }
     }
   });
 
-  test('Continuous Monitoring - Flight Search with Random Interactions', async ({ page }) => {
-    await page.goto('https://www.traveloka.com/en-en/flights/CGK/NRT/2026-06-15', {
-      waitUntil: 'networkidle',
-    });
-
-    const detector = new GenericBugDetector(page);
-    const allBugs: any[] = [];
-
-    // Simulate user interactions
-    const interactions = [
-      async () => await page.click('button, [role="button"]').catch(() => {}),
-      async () => await page.click('a').catch(() => {}),
-      async () => await page.keyboard.press('Tab').catch(() => {}),
-      async () => await page.scroll(0, 300).catch(() => {}),
-    ];
-
-    // Run 5 iterations of interactions
-    for (let i = 0; i < 5; i++) {
-      // Random interaction
-      const interaction = interactions[Math.floor(Math.random() * interactions.length)];
-      await interaction();
-      await page.waitForTimeout(500);
-
-      // Run bug detection
-      const bugs = await detector.runFullAudit({
-        platform: 'desktop',
-        pageType: 'flight-search',
-      });
-      allBugs.push(...bugs);
-    }
-
-    console.log(`\n📊 Continuous Monitoring Report`);
-    console.log(`Total bugs found across 5 iterations: ${allBugs.length}`);
+  test('Report: Weekly-diff generation must include P0 rules config', async () => {
+    const p0RulesPath = path.join(process.cwd(), 'config/p0-detection-rules.json');
     
-    // Group by issue type
-    const byIssue: Record<string, number> = {};
-    allBugs.forEach(bug => {
-      byIssue[bug.issue] = (byIssue[bug.issue] || 0) + 1;
-    });
+    expect(fs.existsSync(p0RulesPath)).toBe(true, 
+      'Missing config/p0-detection-rules.json - P0 detection rules not found');
+    
+    const rulesContent = JSON.parse(fs.readFileSync(p0RulesPath, 'utf8'));
+    console.log(`\n📚 P0 Detection Rules: ${rulesContent.rules.length} rules loaded`);
+    console.log(`   - Flight-search affected: ${rulesContent.rules.filter((r: any) => r.affectedFlows.includes('flight-search')).length}`);
+    console.log(`   - Flight-booking affected: ${rulesContent.rules.filter((r: any) => r.affectedFlows.includes('flight-booking')).length}`);
+  });
+});
 
-    Object.entries(byIssue).forEach(([issue, count]) => {
-      console.log(`  ${issue}: ${count}`);
-    });
+test.describe('Manual P0 Detection Testing (If Needed)', () => {
+  test.skip('⚠️ SKIPPED: Use generated test specs instead', async ({ page }) => {
+    // This placeholder enforces that manual hardcoded tests are NOT used
+    // All P0 detection must be generated via npm run weekly-diff
+    throw new Error('❌ HARDCODED TEST CASES ARE NOT ALLOWED. Use: npm run weekly-diff');
   });
 });

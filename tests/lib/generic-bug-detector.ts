@@ -54,6 +54,9 @@ export class GenericBugDetector {
 
     console.log(`🔍 Starting bug audit for ${pageType} on ${platform}...`);
 
+    // 0. P0 Critical Issues (highest priority)
+    await this.detectP0Issues(pageType);
+
     // 1. Internationalization check
     await this.checkI18nIssues(options?.locale || 'en-US');
 
@@ -79,6 +82,265 @@ export class GenericBugDetector {
 
     console.log(`✅ Audit completed for ${pageType}, found ${this.bugs.length} issues`);
     return this.bugs;
+  }
+
+  /**
+   * Detect P0 (Critical) Issues - Revenue/Security/Data Loss
+   * Rules based on config/p0-detection-rules.json
+   */
+  private async detectP0Issues(pageType: 'flight-search' | 'flight-booking' | null): Promise<void> {
+    console.log('🚨 Checking for P0 critical issues...');
+
+    // 1. Page Blank - Main content is empty
+    const contentLength = await this.page.evaluate(() => {
+      return document.body.innerText.length;
+    });
+
+    if (contentLength < 100) {
+      this.bugs.push({
+        id: `p0_page_blank_${Date.now()}`,
+        issue: 'page_blank',
+        category: 'functional',
+        severity: 'P0',
+        description: 'Page content is blank or unreadable',
+        evidence: { contentLength },
+        recommendation: 'Check if page loaded correctly, verify API responses',
+        detectionMethod: 'automatic',
+      });
+    }
+
+    // 2. Page Timeout - Takes too long to load
+    const startTime = this.detectionStartTime;
+    const currentTime = Date.now();
+    if (currentTime - startTime > 30000) {
+      this.bugs.push({
+        id: `p0_page_timeout_${Date.now()}`,
+        issue: 'page_timeout',
+        category: 'performance',
+        severity: 'P0',
+        description: `Page load time exceeded 30 seconds (${(currentTime - startTime) / 1000}s)`,
+        evidence: { loadTime: currentTime - startTime },
+        recommendation: 'Investigate slow loading times, check backend performance',
+        detectionMethod: 'automatic',
+      });
+    }
+
+    // 3. Search Form Broken - For flight-search
+    if (pageType === 'flight-search') {
+      const searchBroken = await this.page.evaluate(() => {
+        // Check search button
+        const searchBtn = document.querySelector('button[type="submit"], button[class*="search"]');
+        if (!searchBtn) {
+          return { issue: 'search_button_missing', detail: 'Search button not found' };
+        }
+
+        const btnElement = searchBtn as HTMLButtonElement;
+        const style = window.getComputedStyle(searchBtn);
+
+        // Check if button is disabled
+        if (btnElement.disabled || style.pointerEvents === 'none' || style.opacity === '0') {
+          return { issue: 'search_button_disabled', detail: 'Search button is disabled' };
+        }
+
+        // Check if form inputs are frozen
+        const inputs = [
+          document.querySelector('[name="from"], [placeholder*="From"], [placeholder*="Departure"]'),
+          document.querySelector('[name="to"], [placeholder*="To"], [placeholder*="Arrival"]'),
+          document.querySelector('[name*="date"], [placeholder*="date"]'),
+        ];
+
+        for (const input of inputs) {
+          if (input) {
+            const inputStyle = window.getComputedStyle(input);
+            if (inputStyle.pointerEvents === 'none' || (input as HTMLInputElement).disabled) {
+              return { issue: 'form_input_frozen', detail: 'Form input is frozen' };
+            }
+          }
+        }
+
+        return null;
+      });
+
+      if (searchBroken) {
+        this.bugs.push({
+          id: `p0_search_form_broken_${Date.now()}`,
+          issue: 'search_form_broken',
+          category: 'functional',
+          severity: 'P0',
+          description: `Search form not functional: ${searchBroken.detail}`,
+          evidence: searchBroken,
+          recommendation: 'Verify form state management and button click handlers',
+          detectionMethod: 'automatic',
+        });
+      }
+    }
+
+    // 4. Booking Form Broken - For flight-booking
+    if (pageType === 'flight-booking') {
+      const bookingBroken = await this.page.evaluate(() => {
+        // Check payment/submit button
+        const submitBtn = document.querySelector('button[type="submit"], button[class*="confirm"], button[class*="pay"], button[class*="book"]');
+        if (!submitBtn) {
+          return { issue: 'submit_button_missing', detail: 'Submit/Payment button not found' };
+        }
+
+        const btnElement = submitBtn as HTMLButtonElement;
+        const style = window.getComputedStyle(submitBtn);
+
+        if (btnElement.disabled || style.pointerEvents === 'none' || style.opacity === '0') {
+          return { issue: 'submit_button_disabled', detail: 'Submit button is disabled' };
+        }
+
+        // Check critical form fields
+        const criticalFields = [
+          document.querySelector('[name*="passenger"], [name*="name"]'),
+          document.querySelector('[name*="email"], [placeholder*="Email"]'),
+        ];
+
+        for (const field of criticalFields) {
+          if (field) {
+            const fieldStyle = window.getComputedStyle(field);
+            if (fieldStyle.pointerEvents === 'none' || (field as HTMLInputElement).disabled) {
+              return { issue: 'form_field_frozen', detail: 'Form field is frozen' };
+            }
+          }
+        }
+
+        return null;
+      });
+
+      if (bookingBroken) {
+        this.bugs.push({
+          id: `p0_booking_form_broken_${Date.now()}`,
+          issue: 'booking_form_broken',
+          category: 'functional',
+          severity: 'P0',
+          description: `Booking form not functional: ${bookingBroken.detail}`,
+          evidence: bookingBroken,
+          recommendation: 'Verify form state management and disable button click handlers',
+          detectionMethod: 'automatic',
+        });
+      }
+    }
+
+    // 5. Payment Gateway Down - Critical API errors
+    const networkIssues: { status: number; url: string }[] = [];
+    const networkListener = (response: any) => {
+      if (response.status() >= 500 && response.url().includes(/(payment|pay|checkout)/i)) {
+        networkIssues.push({
+          status: response.status(),
+          url: response.url(),
+        });
+      }
+    };
+
+    this.page.on('response', networkListener);
+    await this.page.waitForTimeout(1000);
+    this.page.removeListener('response', networkListener);
+
+    if (networkIssues.length > 0) {
+      this.bugs.push({
+        id: `p0_payment_gateway_down_${Date.now()}`,
+        issue: 'payment_gateway_down',
+        category: 'error',
+        severity: 'P0',
+        description: `Payment gateway unreachable (${networkIssues[0].status} error)`,
+        evidence: networkIssues,
+        recommendation: 'Check payment gateway status and API configuration',
+        detectionMethod: 'automatic',
+      });
+    }
+
+    // 6. Data Corruption - Garbage characters or lost data
+    const dataCorruption = await this.page.evaluate(() => {
+      const issues: string[] = [];
+      const pageText = document.body.innerText;
+
+      // Check for undefined/null/[object Object] in visible text
+      if (pageText.includes('undefined') || pageText.includes('null') || pageText.includes('[object Object]')) {
+        issues.push('garbage_values_visible');
+      }
+
+      // Check for NaN or negative prices
+      const pricePattern = /NaN|-\d+\.\d{2}/;
+      const priceElements = document.querySelectorAll('[class*="price"], [class*="amount"]');
+      for (const el of priceElements) {
+        if (pricePattern.test(el.textContent || '')) {
+          issues.push('corrupted_price_display');
+          break;
+        }
+      }
+
+      // Check for unescaped HTML entities
+      const suspiciousElements = Array.from(document.querySelectorAll('*')).filter(el => {
+        const html = el.innerHTML;
+        return html.includes('&lt;script') || html.includes('&#') && !html.includes('&#x');
+      });
+      if (suspiciousElements.length > 0) {
+        issues.push('unescaped_html_detected');
+      }
+
+      return issues;
+    });
+
+    if (dataCorruption.length > 0) {
+      this.bugs.push({
+        id: `p0_data_corruption_${Date.now()}`,
+        issue: 'data_corruption',
+        category: 'functional',
+        severity: 'P0',
+        description: 'Passenger data corrupted or lost',
+        evidence: { issues: dataCorruption },
+        recommendation: 'Check database integrity and API response serialization',
+        detectionMethod: 'automatic',
+      });
+    }
+
+    // 7. Security Breach - XSS, CSRF, SQL injection
+    const securityIssues = await this.page.evaluate(() => {
+      const issues: string[] = [];
+      const pageHTML = document.documentElement.innerHTML;
+      const pageText = document.body.innerText;
+
+      // Check for SQL errors
+      if (/SQL error|sql syntax|database error/i.test(pageText)) {
+        issues.push('sql_error_exposed');
+      }
+
+      // Check for XSS evidence
+      if (/<script[^>]*>|javascript:/i.test(pageHTML)) {
+        issues.push('xss_detected');
+      }
+
+      // Check CSRF token
+      const csrfToken = document.querySelector('[name="csrf"], [name="_csrf"], [name="__RequestVerificationToken"]');
+      if (!csrfToken && document.querySelector('form[method="POST"]')) {
+        issues.push('missing_csrf_token');
+      }
+
+      return issues;
+    });
+
+    if (securityIssues.length > 0) {
+      this.bugs.push({
+        id: `p0_security_breach_${Date.now()}`,
+        issue: 'security_breach',
+        category: 'functional',
+        severity: 'P0',
+        description: 'Security vulnerability detected',
+        evidence: { issues: securityIssues },
+        recommendation: 'Conduct security audit, implement input sanitization and CSRF protection',
+        detectionMethod: 'automatic',
+      });
+    }
+
+    // 8. Critical Network Errors (5xx on core APIs)
+    const criticalNetworkErrors = await this.page.evaluate(() => {
+      // This would be populated by monitoring network requests
+      return [];
+    });
+
+    console.log(`⚠️ P0 detection completed, found ${this.bugs.filter(b => b.severity === 'P0').length} critical issues`);
   }
 
   /**

@@ -2,10 +2,10 @@
   "sourceUrl": "${MEEGLE_URL}",
   "projectId": "${PROJECT_ID}",
   "detailId": "${DETAIL_ID}",
-  "timestamp": "2026-05-25T05:55:03Z",
-  "accessStatus": "error",
+  "timestamp": "2026-05-25T15:39:01Z",
+  "accessStatus": "not_found",
   "prdLink": null,
   "prdTitle": null,
   "summary": null,
-  "errorDetails": "Cannot resolve Meegle item because MEEGLE_URL, PROJECT_ID, and DETAIL_ID were provided as unresolved placeholders, and MCP Lark is not available in this session for PRD retrieval."
+  "errorDetails": "project: ${PROJECT_ID} not found"
 }

@@ -68,6 +68,9 @@ export type MetasearchEmailConfirmationInput = {
 
 type LocatorRoot = Page | Locator;
 
+/** Midscene AI function signature (subset we use). */
+export type AiFn = (task: string) => Promise<void>;
+
 function escapeRegExp(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -97,6 +100,55 @@ async function getActionableControlById(
   }
 
   return requireUniqueVisibleLocator(contract, description);
+}
+
+/**
+ * Hybrid click: try data-id/data-testid first (fast, deterministic).
+ * Falls back to Midscene AI visual click when the DOM contract is absent.
+ *
+ * @param page       - Playwright Page (needed for AI fallback scope)
+ * @param root       - Locator root to search within (pass `page` for full-page)
+ * @param id         - data-id or data-testid value
+ * @param description - Human-readable label used in both Playwright errors and AI prompt
+ * @param aiFn       - Optional Midscene `ai` fixture function; if omitted, AI fallback is skipped
+ */
+export async function clickByIdOrAi(
+  page: Page,
+  root: LocatorRoot,
+  id: string,
+  description: string,
+  aiFn?: AiFn,
+): Promise<'testid' | 'ai'> {
+  const contract = byControlId(root, id);
+  const visibleCount = await contract.filter({ visible: true }).count().catch(() => 0);
+
+  if (visibleCount > 0) {
+    const control = await getActionableControlById(root, id, description);
+    await control.scrollIntoViewIfNeeded().catch(() => {});
+    try {
+      await control.click({ force: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/outside of the viewport/i.test(msg)) {
+        await control.evaluate((el: Element) => (el as HTMLElement).click());
+      } else {
+        throw err;
+      }
+    }
+    return 'testid';
+  }
+
+  if (!aiFn) {
+    throw new Error(
+      `[clickByIdOrAi] No visible element for id="${id}" (${description}) and no aiFn provided as fallback.`,
+    );
+  }
+
+  console.warn(
+    `[clickByIdOrAi] id="${id}" not found — falling back to Midscene AI for: "${description}"`,
+  );
+  await aiFn(`click ${description}`);
+  return 'ai';
 }
 
 async function clickActionableControlById(
