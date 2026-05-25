@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.traveloka.e2e.explore-coverage-gaps</string>
+
+  <!--
+    Daily autonomous coverage expansion + accumulated regression run.
+
+    Phase 1 (gap fill, ~10 days):
+      explore-coverage-gaps.ts generates up to 3 new smoke specs per day
+      until all 28 flight domains are covered.
+
+    Phase 2 (ongoing, permanent):
+      Once gaps are filled, the script becomes a no-op for generation.
+      The job still runs ALL accumulated specs every day:
+        - weekly-diff generated specs (traveloka-flight-weekly-diff-*.spec.ts)
+        - explore coverage specs      (traveloka-flight-explore-*.spec.ts)
+      This means every case ever generated from PRDs + diffs + gap scans
+      runs daily and can detect production bugs without any new code changes.
+
+    To install:
+      cp docs/launchd/com.traveloka.e2e.explore-coverage-gaps.plist ~/Library/LaunchAgents/
+      launchctl load ~/Library/LaunchAgents/com.traveloka.e2e.explore-coverage-gaps.plist
+
+    To uninstall:
+      launchctl unload ~/Library/LaunchAgents/com.traveloka.e2e.explore-coverage-gaps.plist
+      rm ~/Library/LaunchAgents/com.traveloka.e2e.explore-coverage-gaps.plist
+  -->
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd /Users/yu.hao/Desktop/task/e2e &amp;&amp; echo "[explore] Step 1: gap fill (generate up to 3 new specs)" &amp;&amp; npx tsx scripts/explore-coverage-gaps.ts --limit 3 &amp;&amp; echo "[explore] Step 2: run ALL accumulated specs (weekly-diff + explore + payment e2e)" &amp;&amp; setopt null_glob &amp;&amp; ALL_SPECS=(tests/web/traveloka-flight-weekly-diff-20*.spec.ts tests/web/traveloka-flight-explore-*.spec.ts tests/web/traveloka-flight-booking-payment-e2e.spec.ts) &amp;&amp; if (( ${#ALL_SPECS[@]} == 0 )); then echo "[explore] no accumulated specs found, skipping run"; exit 0; fi &amp;&amp; echo "[explore] Running ${#ALL_SPECS[@]} accumulated spec(s)..." &amp;&amp; npx tsx scripts/run-with-lark-notify.ts --label "Daily accumulated regression" -- npx playwright test "${ALL_SPECS[@]}" --workers=1</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/yu.hao/.nvm/versions/node/v20.20.2/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>REPO_ROOT</key>
+    <string>/Users/yu.hao/Desktop/task/e2e</string>
+  </dict>
+
+  <key>StartCalendarInterval</key>
+  <array>
+    <!-- Monday 14:00 (after weekly-diff at 11:00) -->
+    <dict>
+      <key>Weekday</key>
+      <integer>1</integer>
+      <key>Hour</key>
+      <integer>12</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <!-- Tuesday 14:00 -->
+    <dict>
+      <key>Weekday</key>
+      <integer>2</integer>
+      <key>Hour</key>
+      <integer>12</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <!-- Wednesday 14:00 -->
+    <dict>
+      <key>Weekday</key>
+      <integer>3</integer>
+      <key>Hour</key>
+      <integer>12</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <!-- Thursday 14:00 -->
+    <dict>
+      <key>Weekday</key>
+      <integer>4</integer>
+      <key>Hour</key>
+      <integer>12</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <!-- Friday 14:00 -->
+    <dict>
+      <key>Weekday</key>
+      <integer>5</integer>
+      <key>Hour</key>
+      <integer>12</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+  </array>
+
+  <key>StandardOutPath</key>
+  <string>/Users/yu.hao/Desktop/task/e2e/logs/explore-coverage-gaps.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/yu.hao/Desktop/task/e2e/logs/explore-coverage-gaps.error.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>KeepAlive</key>
+  <false/>
+</dict>
+</plist>

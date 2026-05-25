@@ -1,0 +1,56 @@
+{
+  "_comment": "Test environment config. Payment cards are standard sandbox test numbers (not real).",
+  "staging": {
+    "baseUrl": "https://www.web.staging-traveloka.com",
+    "locale": "en-id",
+    "payment": {
+      "cards": [
+        {
+          "number": "4111111111111111",
+          "type": "Visa",
+          "digits": 16,
+          "cvv": "123",
+          "note": "standard test Visa"
+        },
+        {
+          "number": "5555555555554444",
+          "type": "Mastercard",
+          "digits": 16,
+          "cvv": "123",
+          "note": "QA primary Mastercard"
+        },
+        {
+          "number": "5200000000001096",
+          "type": "Mastercard",
+          "digits": 16,
+          "cvv": "123",
+          "note": "secondary Mastercard"
+        },
+        {
+          "number": "378282246310005",
+          "type": "Amex",
+          "digits": 15,
+          "cvv": "123",
+          "note": "Amex test card"
+        },
+        {
+          "number": "3530111333300000",
+          "type": "JCB",
+          "digits": 16,
+          "cvv": "123",
+          "note": "JCB test card"
+        }
+      ],
+      "defaultCard": "5555555555554444",
+      "defaultCvv": "123"
+    }
+  },
+  "prod": {
+    "baseUrl": "https://www.traveloka.com",
+    "locale": "en-sg"
+  },
+  "masterDev": {
+    "baseUrl": "https://master.web.tvlk.dev",
+    "locale": "en-id"
+  }
+}

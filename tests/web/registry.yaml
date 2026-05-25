@@ -1,94 +1,4 @@
 {
-  "flight-booking-weekly-1779690385240": {
-    "id": "flight-booking-weekly-1779690385240",
-    "domain": "flight-booking",
-    "intent": "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
-    "intentHash": "96353a6b81ff93d5",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-booking-weekly-1779690385240.json",
-    "addedDate": "2026-05-25T06:26:25.239Z",
-    "status": "active"
-  },
-  "flight-search-weekly-1779690538331": {
-    "id": "flight-search-weekly-1779690538331",
-    "domain": "flight-search",
-    "intent": "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
-    "intentHash": "bfdee827366de79a",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-search-weekly-1779690538331.json",
-    "addedDate": "2026-05-25T06:26:25.239Z",
-    "status": "active"
-  },
-  "flight-booking-weekly-1779692898106": {
-    "id": "flight-booking-weekly-1779692898106",
-    "domain": "flight-booking",
-    "intent": "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
-    "intentHash": "96353a6b81ff93d5",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-booking-weekly-1779692898106.json",
-    "addedDate": "2026-05-25T07:08:18.106Z",
-    "status": "active"
-  },
-  "flight-search-weekly-1779692978487": {
-    "id": "flight-search-weekly-1779692978487",
-    "domain": "flight-search",
-    "intent": "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
-    "intentHash": "bfdee827366de79a",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-search-weekly-1779692978487.json",
-    "addedDate": "2026-05-25T07:08:18.106Z",
-    "status": "active"
-  },
-  "flight-booking-weekly-1779693192582": {
-    "id": "flight-booking-weekly-1779693192582",
-    "domain": "flight-booking",
-    "intent": "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
-    "intentHash": "96353a6b81ff93d5",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-booking-weekly-1779693192582.json",
-    "addedDate": "2026-05-25T07:13:12.582Z",
-    "status": "active"
-  },
-  "flight-search-weekly-1779693326286": {
-    "id": "flight-search-weekly-1779693326286",
-    "domain": "flight-search",
-    "intent": "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
-    "intentHash": "bfdee827366de79a",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-search-weekly-1779693326286.json",
-    "addedDate": "2026-05-25T07:13:12.582Z",
-    "status": "active"
-  },
-  "flight-booking-weekly-1779693609601": {
-    "id": "flight-booking-weekly-1779693609601",
-    "domain": "flight-booking",
-    "intent": "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
-    "intentHash": "96353a6b81ff93d5",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-booking-weekly-1779693609601.json",
-    "addedDate": "2026-05-25T07:20:09.600Z",
-    "status": "active"
-  },
-  "flight-search-weekly-1779693714774": {
-    "id": "flight-search-weekly-1779693714774",
-    "domain": "flight-search",
-    "intent": "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
-    "intentHash": "bfdee827366de79a",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-search-weekly-1779693714774.json",
-    "addedDate": "2026-05-25T07:20:09.600Z",
-    "status": "active"
-  },
-  "flight-booking-weekly-1779694379317": {
-    "id": "flight-booking-weekly-1779694379317",
-    "domain": "flight-booking",
-    "intent": "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
-    "intentHash": "96353a6b81ff93d5",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-booking-weekly-1779694379317.json",
-    "addedDate": "2026-05-25T07:32:59.316Z",
-    "status": "active"
-  },
-  "flight-search-weekly-1779694462915": {
-    "id": "flight-search-weekly-1779694462915",
-    "domain": "flight-search",
-    "intent": "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
-    "intentHash": "bfdee827366de79a",
-    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-search-weekly-1779694462915.json",
-    "addedDate": "2026-05-25T07:32:59.316Z",
-    "status": "active"
-  },
   "flight-booking-weekly-1779695068386": {
     "id": "flight-booking-weekly-1779695068386",
     "domain": "flight-booking",
@@ -106,5 +16,62 @@
     "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-search-weekly-1779695209501.json",
     "addedDate": "2026-05-25T07:44:28.385Z",
     "status": "active"
+  },
+  "explore-20260525-flight-homepage": {
+    "id": "explore-20260525-flight-homepage",
+    "domain": "other",
+    "intent": "Smoke coverage for Flight Homepage: page load + P0 detection",
+    "intentHash": "e44259eda54dfdbb",
+    "path": "tests/web/traveloka-flight-explore-flight-homepage-20260525.spec.ts",
+    "addedDate": "2026-05-25",
+    "status": "active",
+    "executionLayer": "active",
+    "lifecycle": "candidate",
+    "promotion": {
+      "candidate_since": "2026-05-25"
+    },
+    "statistics": {
+      "totalRuns": 0,
+      "passedRuns": 0,
+      "failedRuns": 0
+    }
+  },
+  "explore-20260525-flight-status": {
+    "id": "explore-20260525-flight-status",
+    "domain": "other",
+    "intent": "Smoke coverage for Flight Status: page load + P0 detection",
+    "intentHash": "bf610769b493221f",
+    "path": "tests/web/traveloka-flight-explore-flight-status-20260525.spec.ts",
+    "addedDate": "2026-05-25",
+    "status": "active",
+    "executionLayer": "active",
+    "lifecycle": "candidate",
+    "promotion": {
+      "candidate_since": "2026-05-25"
+    },
+    "statistics": {
+      "totalRuns": 0,
+      "passedRuns": 0,
+      "failedRuns": 0
+    }
+  },
+  "explore-20260525-flight-price-freeze": {
+    "id": "explore-20260525-flight-price-freeze",
+    "domain": "other",
+    "intent": "Smoke coverage for Flight Price Freeze: page load + P0 detection",
+    "intentHash": "404dca7aed4e0fc8",
+    "path": "tests/web/traveloka-flight-explore-flight-price-freeze-20260525.spec.ts",
+    "addedDate": "2026-05-25",
+    "status": "active",
+    "executionLayer": "active",
+    "lifecycle": "candidate",
+    "promotion": {
+      "candidate_since": "2026-05-25"
+    },
+    "statistics": {
+      "totalRuns": 0,
+      "passedRuns": 0,
+      "failedRuns": 0
+    }
   }
 }

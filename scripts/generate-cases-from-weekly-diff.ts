@@ -1,4 +1,27 @@
 #!/usr/bin/env tsx
+/**
+ * CASE GENERATION STRATEGY — TWO MODES
+ *
+ * Mode 1 — Daily smoke / explore specs (no specific PRD):
+ *   - Navigation and form interaction must use ai() vision — let Midscene read
+ *     visible button text just like a human would. Do NOT hardcode testIDs for
+ *     "Continue / Next / Submit" type buttons.
+ *   - Use waitForResponse() to intercept BFF API responses for dynamic redirect
+ *     params (e.g. invoiceId/auth after createBooking) instead of waiting for DOM.
+ *   - Hardcoded selectors only for: page-root anchor assertions, stable containers.
+ *   - Goal: self-healing tests that survive UI changes without manual retraining.
+ *
+ * Mode 2 — PRD-driven regression specs (specific PRD / weekly-diff change):
+ *   - Look up the changed packages in traveloka/www source to extract exact
+ *     testIDs and contracts before generating the spec.
+ *   - Use data-testid contracts as ground truth. These tests should FAIL loudly
+ *     if the specific PRD feature regresses.
+ *   - ai() is only for dynamic ViewDescription fields with no stable testID,
+ *     or as a clearly-labelled fallback (print [ai-fallback] warning).
+ *
+ * NEVER mix modes: smoke specs must not rely on hardcoded nav-button testIDs;
+ * PRD regression specs must not rely solely on ai() for contract verification.
+ */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -863,11 +886,73 @@ function uniqueStrings(values: string[]) {
   return Array.from(new Set(values));
 }
 
+/**
+ * Parse PR Summary / Test Plan text from enriched commits and generate
+ * aiQuery() soft-assertions for each extracted "should/must/verify" sentence.
+ * Max 3 assertions per spec to avoid noise. Results are logged but NOT
+ * hard-failing — PRD prose can be ambiguous and we don't want false failures.
+ */
+function buildPrdBehavioralAssertions(commits: SourceCommitMetadata[]): string[] {
+  const lines: string[] = [];
+  let assertionIndex = 0;
+
+  for (const commit of commits) {
+    if (assertionIndex >= 3) break;
+
+    const sources: Array<{ label: string; text: string | undefined }> = [
+      { label: `PR #${commit.prNumber ?? '?'} test plan`, text: commit.prTestPlan },
+      { label: `PR #${commit.prNumber ?? '?'} summary`, text: commit.prSummary },
+    ];
+
+    for (const { label, text } of sources) {
+      if (!text || assertionIndex >= 3) continue;
+
+      const sentences = text
+        .split(/\n|(?<=[.?!])\s+/)
+        .map((s) => s.replace(/^[\d).\-*\s]+/, '').trim())
+        .filter(
+          (s) =>
+            s.length >= 20 &&
+            s.length <= 200 &&
+            /should|must|verify|expect|ensure|check|confirm/i.test(s),
+        );
+
+      for (const sentence of sentences.slice(0, 2)) {
+        if (assertionIndex >= 3) break;
+        const varName = `_prdCheck${assertionIndex}`;
+        const escaped = sentence.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/`/g, '\\`');
+        const shortLabel = sentence.length > 80 ? sentence.slice(0, 80) + '...' : sentence;
+        lines.push(
+          '',
+          `// PRD behavioral assertion from ${label}: "${shortLabel}"`,
+          'try {',
+          `  const ${varName} = await aiQuery<{ result: string; reason: string }>(`,
+          `    'Based on what is currently visible on this page, is this true? ' +`,
+          `    '"${escaped}" ' +`,
+          `    'Respond as JSON: {"result": "yes" or "no", "reason": "one sentence"}',`,
+          '  );',
+          `  console.log('[prd-assertion] ${label}:', JSON.stringify(${varName}));`,
+          `  if (${varName}?.result === 'no') {`,
+          `    console.warn('[prd-assertion] ⚠️  PRD expectation not met: ${escaped}');`,
+          '  }',
+          '} catch {',
+          `  console.warn('[prd-assertion] ${label} skipped (aiQuery failed or unavailable)');`,
+          '}',
+        );
+        assertionIndex++;
+      }
+    }
+  }
+
+  return lines;
+}
+
 function buildFlightGeneratedPlan(
   concerns: FlightConcern[],
   retrievedEvidence: NonNullable<Candidate['retrievedEvidence']>,
   changedFiles: string[],
   fileWeights?: Map<string, number>,
+  commits?: SourceCommitMetadata[],
 ): FlightGeneratedPlan {
   const importLines = new Set<string>();
   const assertionLines = [
@@ -961,6 +1046,12 @@ function buildFlightGeneratedPlan(
       'const firstCardText = await cards.first().innerText();',
       "expect(firstCardText).toMatch(/flight details|fare\\s*&\\s*benefits/i);",
     );
+  }
+
+  // PRD behavioral assertions: extracted from PR Summary / Test Plan "should" sentences
+  const prdAssertions = buildPrdBehavioralAssertions(commits ?? []);
+  if (prdAssertions.length) {
+    assertionLines.push(...prdAssertions);
   }
 
   interactionLines.push(
@@ -1328,6 +1419,7 @@ function buildFlightCandidate(
     retrievedEvidence,
     focus.focusedFiles,
     fileWeights,
+    enrichedSourceCommits,
   );
   const webSpecFileName = `traveloka-flight-weekly-diff-${weeklyCaseStamp}.spec.ts`;
   
@@ -1556,6 +1648,7 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`;
       'const contactForm = page.locator(\'[data-testid="booking-contact-form"], form\').first();',
       'const contactExists = await contactForm.isVisible().catch(() => false);',
       'expect(contactExists, "Booking contact form should be accessible").toBeTruthy();',
+      ...buildPrdBehavioralAssertions(enrichedSourceCommits),
     ],
     interactionLines: [
       '// Execute canonical booking chain: Choose → Select drawer → Booking page',

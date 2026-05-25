@@ -173,9 +173,15 @@ ${caseSummaryBlock}
 
 ${testUseBlock}
 
-test('${input.testName}', async ({ page, ai }, testInfo) => {
-  // ai = Midscene visual AI (MLX local model); used as fallback when data-id/data-testid is absent.
-  // clickByIdOrAi(page, root, id, description, ai) tries data-id first, then ai().
+test('${input.testName}', async ({ page, ai, aiQuery }, testInfo) => {
+  // GENERATION MODE: PRD-driven regression spec.
+  // Navigation strategy:
+  //   - Use ai() for ALL proceed/continue/submit button clicks (reads visible text like a human).
+  //   - Use data-testid contracts from www source ONLY for page-root anchors and PRD-specific
+  //     element assertions (not for nav buttons).
+  //   - Use waitForResponse() to intercept BFF API responses for dynamic redirect params.
+  // If this spec was generated WITHOUT a specific PRD, treat all selectors as candidates —
+  // replace any hardcoded nav-button testIDs with: await ai('click the button to proceed').
   const workflowPlan = createFlightWorkflowPlan({
     url: TARGET_URL,
     userIntent: ${JSON.stringify(normalized.rawUserIntent)},

@@ -182,11 +182,13 @@ export class AccumulationManifest {
     concerns?: string[];
     changedFiles: string[];
   }): string {
+    // intentHash is stable across runs for the same (domain × intent × concerns).
+    // changedFiles is intentionally excluded: different PRs that produce the same
+    // intent/concerns should be treated as the same case and deduplicated.
     const key = [
       candidate.domain,
       candidate.userIntent || candidate.suggestedUserIntent,
       (candidate.concerns || []).sort().join('|'),
-      candidate.changedFiles.slice(0, 5).sort().join('|'), // Top 5 files
     ].join('::');
 
     return crypto.createHash('sha256').update(key).digest('hex').substring(0, 16);
@@ -220,6 +222,15 @@ export class AccumulationManifest {
         (existing) => existing.prNumber !== layer.prNumber,
       );
     }
+
+    // Deduplicate same-day snapshot layers: keep only the latest run per calendar day.
+    // This prevents the manifest from growing unboundedly when weekly-diff runs
+    // multiple times on the same day.
+    const layerDate = (layer.timestamp ?? layer.id).substring(0, 10); // YYYY-MM-DD
+    this.manifest.layers.committed = this.manifest.layers.committed.filter((existing) => {
+      const existingDate = (existing.timestamp ?? existing.id).substring(0, 10);
+      return existingDate !== layerDate;
+    });
 
     const checksumHash = crypto
       .createHash('sha256')

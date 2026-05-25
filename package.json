@@ -29,7 +29,14 @@
     "analyze:p0:watch": "watch 'npm run analyze:p0' config/p0-detection-rules.json tests/lib/generic-bug-detector.ts",
     "report": "playwright show-report",
     "workflow": "/bin/zsh scripts/run-complete-workflow.sh",
-    "workflow:demo": "/bin/zsh scripts/demo-refresh-auth-session.sh"
+    "workflow:demo" : "/bin/zsh scripts/demo-refresh-auth-session.sh",
+    "explore:gaps" : "tsx scripts/explore-coverage-gaps.ts",
+    "explore:gaps:dry" : "tsx scripts/explore-coverage-gaps.ts --dry-run",
+    "explore:gaps:list" : "tsx scripts/explore-coverage-gaps.ts --list-gaps",
+    "explore:run" : "npm run explore:gaps && npx playwright test tests/web/traveloka-flight-weekly-diff-20*.spec.ts tests/web/traveloka-flight-explore-*.spec.ts --workers=1",
+    "explore:run:lark" : "npm run explore:gaps && npx tsx scripts/run-with-lark-notify.ts --label 'Daily accumulated regression' -- npx playwright test tests/web/traveloka-flight-weekly-diff-20*.spec.ts tests/web/traveloka-flight-explore-*.spec.ts --workers=1",
+    "test:staging:payment" : "npx playwright test tests/web/traveloka-flight-booking-payment-e2e.spec.ts --workers=1",
+    "test:staging:payment:headed" : "npx playwright test tests/web/traveloka-flight-booking-payment-e2e.spec.ts --workers=1 --headed"
   },
   "devDependencies": {
     "@midscene/android": "^1.7.7",

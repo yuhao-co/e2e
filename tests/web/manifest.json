@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastUpdated": "2026-05-25T07:37:22.435Z",
+  "lastUpdated": "2026-05-25T08:34:30.886Z",
   "layers": {
     "baseline": {
       "frozen": true,
@@ -10,132 +10,30 @@
     },
     "committed": [
       {
-        "id": "snapshot-2026-05-25T03:00:17.234Z",
+        "id": "explore-20260525",
         "type": "snapshot",
-        "timestamp": "2026-05-25T03:00:17.234Z",
-        "caseCount": 2,
+        "timestamp": "2026-05-25T08:34:30.883Z",
+        "caseCount": 3,
         "domains": [
-          "flight-booking",
-          "flight-search"
+          "flight-homepage"
         ],
-        "intentHashes": [],
-        "status": "active",
-        "checksumHash": "05aaee6cf88c2c1d"
-      },
-      {
-        "id": "snapshot-2026-05-25T03:30:51.771Z",
-        "type": "snapshot",
-        "timestamp": "2026-05-25T03:30:51.771Z",
-        "caseCount": 2,
-        "domains": [
-          "flight-booking",
-          "flight-search"
+        "intentHashes": [
+          "e44259eda54dfdbb",
+          "bf610769b493221f",
+          "404dca7aed4e0fc8"
         ],
-        "intentHashes": [],
         "status": "active",
-        "checksumHash": "810c69d70c13cfbc"
-      },
-      {
-        "id": "snapshot-2026-05-25T03:51:52.845Z",
-        "type": "snapshot",
-        "timestamp": "2026-05-25T03:51:52.845Z",
-        "caseCount": 2,
-        "domains": [
-          "flight-booking",
-          "flight-search"
-        ],
-        "intentHashes": [],
-        "status": "active",
-        "checksumHash": "cef08f4110109114"
-      },
-      {
-        "id": "snapshot-2026-05-25T04:10:57.131Z",
-        "type": "snapshot",
-        "timestamp": "2026-05-25T04:10:57.131Z",
-        "caseCount": 2,
-        "domains": [
-          "flight-booking",
-          "flight-search"
-        ],
-        "intentHashes": [],
-        "status": "active",
-        "checksumHash": "26e5c8057ea9550f"
-      },
-      {
-        "id": "snapshot-2026-05-25T05:38:00.627Z",
-        "type": "snapshot",
-        "timestamp": "2026-05-25T05:38:00.627Z",
-        "caseCount": 2,
-        "domains": [
-          "flight-booking",
-          "flight-search"
-        ],
-        "intentHashes": [],
-        "status": "active",
-        "checksumHash": "53e79b542e7e5b8f"
-      },
-      {
-        "id": "snapshot-2026-05-25T06:26:25.239Z",
-        "type": "snapshot",
-        "timestamp": "2026-05-25T06:26:25.239Z",
-        "caseCount": 2,
-        "domains": [
-          "flight-booking",
-          "flight-search"
-        ],
-        "intentHashes": [],
-        "status": "active",
-        "checksumHash": "927b68507d43fce5"
-      },
-      {
-        "id": "snapshot-2026-05-25T07:13:12.582Z",
-        "type": "snapshot",
-        "timestamp": "2026-05-25T07:13:12.582Z",
-        "caseCount": 2,
-        "domains": [
-          "flight-booking",
-          "flight-search"
-        ],
-        "intentHashes": [],
-        "status": "active",
-        "checksumHash": "cbc35f32beddf6a6"
-      },
-      {
-        "id": "snapshot-2026-05-25T07:20:09.600Z",
-        "type": "snapshot",
-        "timestamp": "2026-05-25T07:20:09.600Z",
-        "caseCount": 2,
-        "domains": [
-          "flight-booking",
-          "flight-search"
-        ],
-        "intentHashes": [],
-        "status": "active",
-        "checksumHash": "7e966c9e07215d70"
-      },
-      {
-        "id": "snapshot-2026-05-25T07:32:59.316Z",
-        "type": "snapshot",
-        "timestamp": "2026-05-25T07:32:59.316Z",
-        "caseCount": 2,
-        "domains": [
-          "flight-booking",
-          "flight-search"
-        ],
-        "intentHashes": [],
-        "status": "active",
-        "checksumHash": "0384cff88e2cd710"
+        "checksumHash": "1ecb273f78b5afe7"
       }
     ]
   },
   "statistics": {
-    "totalCases": 18,
+    "totalCases": 3,
     "byDomain": {
-      "flight-booking": 9,
-      "flight-search": 9
+      "flight-homepage": 3
     },
     "byStatus": {
-      "active": 18,
+      "active": 3,
       "deprecated": 0
     }
   },
