@@ -1,0 +1,11 @@
+{
+  "sourceUrl": "${MEEGLE_URL}",
+  "projectId": "${PROJECT_ID}",
+  "detailId": "${DETAIL_ID}",
+  "timestamp": "2026-05-25T12:13:32Z",
+  "accessStatus": "not_found",
+  "prdLink": null,
+  "prdTitle": null,
+  "summary": null,
+  "errorDetails": "Meegle read failed: project '${PROJECT_ID}' not found when querying work item '${DETAIL_ID}'. The provided values appear to be unresolved placeholders or an invalid project identifier."
+}

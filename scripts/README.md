@@ -33,6 +33,28 @@ npm run test:web -- tests/web/*.spec.ts  # Bypass case generation
 ### Core Entry Point (DO USE)
 - **weekly-diff-workflow.ts** - Main orchestrator (LOCKED, read-only)
 
+### Meegle/Lark Integration (READ-ONLY, CRITICAL)
+These scripts retrieve PRD data from Meegle and Lark. **ZERO failure tolerance.**
+
+- **resolve-meegle-prd-link-with-opencode.sh** ⚠️ CRITICAL
+  - Resolve Meegle URLs to internal PRD links via MCP APIs
+  - Usage: `./scripts/resolve-meegle-prd-link-with-opencode.sh <url> [output-json]`
+  - Output: JSON with PRD metadata and Lark link
+  - Returns: Exit code 0 (success) or 1 (failure)
+  - **READ-ONLY:** No modifications to Meegle/Lark allowed
+  - **HARDENED:** Timeout 120s, 3x retry with 5s backoff, strict JSON validation
+
+- **extract-prd-link-safely.sh** ⚠️ CRITICAL  
+  - Extract and validate PRD link from JSON output
+  - Usage: `./scripts/extract-prd-link-safely.sh <json-file>`
+  - Output: PRD URL string (stdout)
+  - Returns: Exit code 0 (success) or 1 (validation failed)
+  - **VALIDATION:** File existence, readability, JSON syntax, URL format
+
+**See Also:**
+- `docs/MEEGLE_LARK_SCRIPT_CONSTRAINTS.md` - Enforcement & modification policies
+- `docs/MEEGLE_LARK_VALIDATION_TESTING.md` - Usage examples & troubleshooting
+
 ### Sub-Scripts (Internal only)
 - **generate-cases-from-weekly-diff.ts** - Case generation (called by workflow)
 - **run-accumulated-cases.ts** - Test execution (called by workflow)

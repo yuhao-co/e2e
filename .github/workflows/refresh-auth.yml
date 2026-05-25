@@ -1,0 +1,73 @@
+name: Refresh Auth Sessions
+
+on:
+  # Run every Sunday at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * 0'
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      account:
+        description: 'Which account to refresh (tester1, tester2, or tester3)'
+        required: true
+        default: 'tester1'
+        type: choice
+        options:
+          - tester1
+          - tester2
+          - tester3
+
+jobs:
+  refresh-sessions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate fresh session (tester1)
+        if: github.event_name == 'schedule' || github.event.inputs.account == 'tester1'
+        run: |
+          npx ts-node scripts/generate-auth-session.ts tester1
+        env:
+          TRAVELOKA_EMAIL: ${{ secrets.TRAVELOKA_EMAIL || 'flpostissuance@gmail.com' }}
+          TRAVELOKA_PASSWORD: ${{ secrets.TRAVELOKA_PASSWORD || 'TvlkQAflight' }}
+
+      - name: Verify session file
+        run: |
+          if [ -f auth-pool/tester1.json ]; then
+            echo "✅ Session file created successfully"
+            ls -lh auth-pool/tester1.json
+            jq '.cookies | length' auth-pool/tester1.json
+          else
+            echo "❌ Session file not found!"
+            exit 1
+          fi
+
+      - name: Commit and push updated sessions
+        if: success()
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add auth-pool/
+          git commit -m "chore: refresh auth sessions [skip ci]" || echo "No changes to commit"
+          git push
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Session refresh failed"
+          echo "Check if credentials are correct or if Traveloka login page has changed"
+          exit 1

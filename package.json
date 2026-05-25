@@ -15,7 +15,10 @@
     "test:web:retained:lark": "npm run notify:run -- --label \"Retained web tests\" -- npx playwright test tests/web/traveloka-flight-form-contracts.spec.ts tests/web/traveloka-flight-weekly-diff-20*.spec.ts",
     "test:headed": "playwright test --headed",
     "weekly-diff:lark": "npm run weekly-diff:run",
-    "report": "playwright show-report"
+    "weekly-diff:prd": "python3 scripts/generate-prd-enhanced.py",
+    "report": "playwright show-report",
+    "workflow": "/bin/zsh scripts/run-complete-workflow.sh",
+    "workflow:demo": "/bin/zsh scripts/demo-refresh-auth-session.sh"
   },
   "devDependencies": {
     "@midscene/android": "^1.7.7",

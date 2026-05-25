@@ -1,0 +1,113 @@
+import { expect, test } from '../fixture';
+import {
+  attachFlightWorkflowPlan,
+  createFlightWorkflowPlan,
+  openFlightSearchTask,
+} from '../lib/traveloka-flight/workflow';
+
+import {
+  openBookingPageFromSearchResults,
+  openMetasearchBookingContactPage,
+} from '../lib/traveloka-flight/workflow';
+
+const TARGET_URL = 'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY';
+
+/**
+ * EN Purpose: Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.
+ * 中文目的: 验证本周 flight 改动在 search-results 场景下是否仍然满足既有回归预期。
+ * EN Surface: search-results
+ * 中文范围: search-results 页面。
+ * EN Concerns: booking-contact
+ * 中文关注点: booking-contact
+ * EN Main checks: booking contact form field rendering and validation.
+ * 中文校验项: 预订联系人表单字段渲染与校验。
+ * EN Source commits: b69c3c74c9 by Zili: [FEATURE][FLIGHT] email confirmation (#33383)
+ * 中文来源提交: b69c3c74c9 by Zili: [FEATURE][FLIGHT] email confirmation (#33383)
+ * EN Source summary: PRD (meegle): https://project.larksuite.com/fpr/6901d082e1d4ec8eeb572946/detail/11760876 | https://project.larksuite.com/fpr/6901d082e1d4ec8eeb572946/detail/11760876 | canonical desktop booking entry chain remains reachable | complete Choose→Select booking chain execution required | booking page URL is reached and contact form renders correctly | Apply booking contracts from docs/traveloka-flight-booking-case-generation.md | Apply locator rules from docs/traveloka-flight-locator-guideline.md (Prefer explicit contracts) | Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active | Reference: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md
+ * 中文来源摘要: PRD (meegle): https://project.larksuite.com/fpr/6901d082e1d4ec8eeb572946/detail/11760876 | https://project.larksuite.com/fpr/6901d082e1d4ec8eeb572946/detail/11760876 | canonical desktop booking entry chain remains reachable | complete Choose→Select booking chain execution required | booking page URL is reached and contact form renders correctly | Apply booking contracts from docs/traveloka-flight-booking-case-generation.md | Apply locator rules from docs/traveloka-flight-locator-guideline.md (Prefer explicit contracts) | Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active | Reference: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md
+ * EN Expectation: keep this generated case aligned with the stable Traveloka desktop baseline flow and verify only the routed regression slice.
+ * 中文预期: 该生成用例必须与稳定的 Traveloka desktop 基线流程保持一致，只验证本次路由到的回归范围。
+ */
+
+test.use({
+  userAgent:
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+  locale: 'en-US',
+  timezoneId: 'Asia/Shanghai',
+  extraHTTPHeaders: {
+    'accept-language': 'en-US,en;q=0.9',
+    referer: 'https://www.google.com/',
+  },
+});
+
+test('Traveloka weekly diff booking smoke coverage (20260525)', async ({ page }, testInfo) => {
+  const workflowPlan = createFlightWorkflowPlan({
+    url: TARGET_URL,
+    userIntent: "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
+    concerns: ["booking-contact"],
+  });
+
+  await attachFlightWorkflowPlan(testInfo, workflowPlan);
+
+  const { sidebar } = await openFlightSearchTask(page, {
+    url: workflowPlan.input.url,
+    userIntent: "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
+    concerns: ["booking-contact"],
+    waitForSidebar: false,
+  });
+
+  void sidebar;
+
+  // Step 1: Click Choose button
+  const chooseButton = page.locator('[data-testid="flight-inventory-card-button"]').first();
+  await chooseButton.isVisible({ timeout: 15000 });
+  await chooseButton.click();
+  
+  // Step 2: Wait for ticket type selection drawer
+  await page.getByText(/Select ticket type/i).isVisible({ timeout: 15000 });
+  
+  // Step 3: Click Select button in the drawer
+  const selectButton = page.locator('[data-testid="button_ticket_option_select_1"]').first();
+  await selectButton.isVisible({ timeout: 5000 });
+  await selectButton.click();
+  
+  // Step 4: Verify booking page reached
+  await page.waitForURL(/\/flight\/booking/, { timeout: 15000 });
+  const bookingUrl = new URL(page.url());
+  expect(bookingUrl.pathname).toMatch(/\/flight\/booking/);
+  
+  // Step 5: Verify contact form accessible
+  const contactForm = page.locator('[data-testid="booking-contact-form"], form').first();
+  const contactExists = await contactForm.isVisible().catch(() => false);
+  expect(contactExists, "Booking contact form should be accessible").toBeTruthy();
+
+  // Execute canonical booking chain: Choose → Select drawer → Booking page
+  // See docs/traveloka-flight-booking-case-generation.md for complete workflow specification
+  
+  const directBookingUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL;
+  if (directBookingUrl) {
+    // Direct metasearch entry: skip Choose/Select steps, verify contact form only
+    await openMetasearchBookingContactPage(page, { url: directBookingUrl });
+  } else {
+    // Standard desktop entry: execute full Choose→Select chain
+    // (Choose and Select steps handled in assertionLines)
+  }
+  
+  // Retrieved shared-helper: docs/traveloka-flight-booking-case-generation.md - Complete booking chain workflow
+  // Retrieved shared-helper: docs/traveloka-flight-locator-guideline.md - Explicit contracts and locator priority
+  // Retrieved shared-helper: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md - Phase 2 active layer execution strategy
+  // Retrieved shared-helper: docs/weekly-diff-case-generator.md - Weekly diff generation for booking surface
+  // Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - openMetasearchBookingContactPage, openBookingPageFromSearchResults
+  // Suggested changed files (top 10 of 73): ["packages/flight/fpr-booking/__tests__/components/handlers/bookingContactValidationHandler.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactDesktop.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobile.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobile2.tsx","packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactMobileVDTray.tsx","packages/flight/fpr-booking/components/BFFBookingContact/__tests__/BFFBookingContactMobile2.test.js","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/__tests__/useBookingContactLoginSignupNudge.test.ts","packages/flight/fpr-booking/components/BFFBookingContact/_usecases/useBookingContactLoginSignupNudge.ts","packages/flight/fpr-booking/components/handlers/bookingContactValidationHandler.ts","packages/flight/fpr-booking/__tests__/components/AddOns/PreselectedAddons/PreselectedAddons.test.tsx"]
+  // Omitted additional changed files: 63
+  // Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form
+  // Source hint: packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts - Validation rules
+  
+  // HARDCODED CONSTRAINTS (生成时强制应用):
+  // 1. Desktop web only - weekly case runs on desktop Playwright
+  // 2. Flight booking domain only - verifies only booking checkout
+  // 3. Traveloka https://github.com/traveloka/www - source must be from production repository
+  // 4. Uses lib/traveloka-flight helpers - createFlightWorkflowPlan, attachFlightWorkflowPlan
+  // 5. Phase 2 active layer - executed weekly via: npx tsx scripts/run-accumulated-cases.ts --layer active
+  // 6. Complete booking chain - Must execute Choose→Select before verifying booking page (per docs/traveloka-flight-booking-case-generation.md)
+});

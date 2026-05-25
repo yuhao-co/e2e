@@ -7,15 +7,52 @@ import { stealthInitScript } from '../playwright.config';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Load session data (cookies and localStorage)
+const SESSION_DATA_PATH = path.join(__dirname, '../session-data.json');
+const AUTH_POOL_DIR = path.join(__dirname, '../auth-pool');
+
+// Load or pick session data from auth-pool
 let sessionData: any = null;
+
+function loadSessionFromPool(): any {
+  // Check if auth-pool exists
+  if (!fs.existsSync(AUTH_POOL_DIR)) {
+    return null;
+  }
+
+  // Get all .json files from auth-pool
+  const files = fs.readdirSync(AUTH_POOL_DIR)
+    .filter(f => f.endsWith('.json'))
+    .map(f => path.join(AUTH_POOL_DIR, f));
+
+  if (files.length === 0) {
+    return null;
+  }
+
+  // Pick a random file from the pool
+  const randomFile = files[Math.floor(Math.random() * files.length)];
+  
+  try {
+    const data = JSON.parse(fs.readFileSync(randomFile, 'utf-8'));
+    console.log(`✅ Loaded session from auth pool: ${path.basename(randomFile)}`);
+    return data;
+  } catch (err) {
+    console.warn(`Failed to load session from ${randomFile}:`, err);
+    return null;
+  }
+}
+
+// Try to load session: first from auth-pool, then from legacy session-data.json
 try {
-  const sessionDataPath = path.join(__dirname, '../session-data.json');
-  if (fs.existsSync(sessionDataPath)) {
-    sessionData = JSON.parse(fs.readFileSync(sessionDataPath, 'utf-8'));
+  // Try auth-pool first (for teams)
+  sessionData = loadSessionFromPool();
+  
+  // Fallback to session-data.json (for local development)
+  if (!sessionData && fs.existsSync(SESSION_DATA_PATH)) {
+    sessionData = JSON.parse(fs.readFileSync(SESSION_DATA_PATH, 'utf-8'));
+    console.log('✅ Loaded session data from session-data.json');
   }
 } catch (err) {
-  console.warn('Failed to load session data:', err);
+  console.warn('⚠️  Failed to load session data:', err);
 }
 
 // Helper function to inject localStorage data
@@ -68,13 +105,16 @@ const stealthFixture = {
     await context.addInitScript({ content: combinedScript });
     
     // Add session cookies if available
-    if (sessionData && sessionData.cookies) {
+    if (sessionData && sessionData.cookies && sessionData.cookies.length > 0) {
       try {
         await context.addCookies(sessionData.cookies);
         console.log(`✅ Loaded ${sessionData.cookies.length} session cookies`);
       } catch (err) {
         console.warn('Failed to add cookies:', err);
       }
+    } else {
+      console.log('ℹ️  No session cookies available. Tests requiring auth may fail.');
+      console.log('   To fix: export session data via: npx playwright codegen --save-storage=session-data.json https://www.traveloka.com/en-en/flight');
     }
     
     await use(context);

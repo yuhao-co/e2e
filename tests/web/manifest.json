@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-05-25T04:14:48.038Z",
+  "layers": {
+    "baseline": {
+      "frozen": true,
+      "caseCount": 0,
+      "checksumHash": "",
+      "description": "Core flight booking & search flows (stable)"
+    },
+    "committed": [
+      {
+        "id": "snapshot-2026-05-25T03:00:17.234Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T03:00:17.234Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "05aaee6cf88c2c1d"
+      },
+      {
+        "id": "snapshot-2026-05-25T03:30:51.771Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T03:30:51.771Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "810c69d70c13cfbc"
+      },
+      {
+        "id": "snapshot-2026-05-25T03:51:52.845Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T03:51:52.845Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "cef08f4110109114"
+      },
+      {
+        "id": "snapshot-2026-05-25T04:10:57.131Z",
+        "type": "snapshot",
+        "timestamp": "2026-05-25T04:10:57.131Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "26e5c8057ea9550f"
+      }
+    ]
+  },
+  "statistics": {
+    "totalCases": 8,
+    "byDomain": {
+      "flight-booking": 4,
+      "flight-search": 4
+    },
+    "byStatus": {
+      "active": 8,
+      "deprecated": 0
+    }
+  },
+  "runHistory": []
+}

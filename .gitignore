@@ -6,3 +6,9 @@ playwright-report/
 test-results/
 .DS_Store
 *.log
+
+# Authentication sessions (DO NOT commit)
+auth-pool/*.json
+session-data.json
+!auth-pool/.gitkeep
+!auth-pool/README.md
