@@ -13,6 +13,7 @@ OUTPUT_DIR="${OUTPUT_DIR:-generated-cases/weekly-diff}"
 RUN_WEEKLY_PLAYWRIGHT="${RUN_WEEKLY_PLAYWRIGHT:-1}"
 WEEKLY_NOTIFY="${WEEKLY_NOTIFY:-1}"
 WEEKLY_PLAYWRIGHT_LABEL="${WEEKLY_PLAYWRIGHT_LABEL:-Weekly diff Playwright run}"
+RUN_BUG_DETECTION="${RUN_BUG_DETECTION:-1}"
 
 cd "$REPO_ROOT"
 
@@ -46,6 +47,36 @@ fi
 CMD+=("$@")
 
 "${CMD[@]}"
+
+# Run generic bug detection if enabled
+if [[ "$RUN_BUG_DETECTION" == "1" ]]; then
+  echo ""
+  echo "[bug-detection] Starting generic bug detection..."
+  
+  # Generate PRD for reference
+  if npm run weekly-diff:prd 2>&1 | tail -5; then
+    echo "[bug-detection] PRD generated"
+  else
+    echo "[bug-detection] PRD generation skipped"
+  fi
+  
+  # Run generic bug detection
+  if npm run test:bugs:generic 2>&1 | tail -10; then
+    echo "[bug-detection] Bug detection completed"
+  else
+    echo "[bug-detection] Bug detection encountered issues (continuing...)"
+  fi
+  
+  # Collect bug data for training
+  if npx ts-node scripts/bug-detection-collector.ts stats 2>&1 | tail -10; then
+    echo "[bug-detection] Data collection completed"
+  else
+    echo "[bug-detection] Data collection skipped"
+  fi
+  
+  echo "[bug-detection] Training data available at: data/bug-detection/training-data.jsonl"
+  echo ""
+fi
 
 if [[ "$RUN_WEEKLY_PLAYWRIGHT" != "1" ]]; then
   exit 0
