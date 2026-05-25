@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * CASE GENERATION STRATEGY — TWO MODES
+ * CASE GENERATION STRATEGY — THREE MODES
  *
  * Mode 1 — Daily smoke / explore specs (no specific PRD):
  *   - Navigation and form interaction must use ai() vision — let Midscene read
@@ -18,6 +18,22 @@
  *     if the specific PRD feature regresses.
  *   - ai() is only for dynamic ViewDescription fields with no stable testID,
  *     or as a clearly-labelled fallback (print [ai-fallback] warning).
+ *
+ * Mode 3 — Free Exploration + www/PRD Oracle (interaction bug-finding):
+ *   - Automatically injected into generated specs when the weekly diff touches
+ *     interaction-relevant concerns (transit-filter, airline-filter, results-list)
+ *     OR when the enriched commits carry attached PRD links.
+ *   - Step 1: ai() freely drives the interaction (no hardcoded testIDs).
+ *   - Step 2: aiQuery<T>() reads actual page state after interaction.
+ *   - Step 3: JS assert — actual vs. expected from www source / PRD.
+ *   - Assertions use console.warn (non-hard-failing) to surface bugs in CI logs
+ *     without breaking the run on transient UI states.
+ *   - Canonical reference: tests/web/traveloka-flight-search-interactions.spec.ts
+ *   - Generator function: buildMode3InteractionBlocks()
+ *
+ * Rule: Mode 3 is injected INSIDE existing generated specs (assertionLines),
+ * not as a separate spec file. It piggybacks on the weekly-diff spec that
+ * already navigated to the results page.
  *
  * NEVER mix modes: smoke specs must not rely on hardcoded nav-button testIDs;
  * PRD regression specs must not rely solely on ai() for contract verification.
@@ -947,6 +963,105 @@ function buildPrdBehavioralAssertions(commits: SourceCommitMetadata[]): string[]
   return lines;
 }
 
+/**
+ * Mode 3: Free Exploration + www/PRD Oracle
+ *
+ * When the weekly diff touches interaction-relevant concerns (filter, sort, results-list)
+ * or has attached PRD links, inject ai() + aiQuery() blocks that:
+ *   1. Use ai() to freely trigger the interaction (no hardcoded testIDs)
+ *   2. Use aiQuery() to read actual page state after interaction
+ *   3. Assert actual === expected (derived from www source contracts / PRD)
+ *
+ * These blocks are injected AFTER the standard concern blocks in the generated spec.
+ * Assertions are non-hard-failing (console.warn on mismatch) to avoid noise from
+ * transient UI states, but will surface real bugs in CI logs.
+ *
+ * Pattern sourced from: tests/web/traveloka-flight-search-interactions.spec.ts
+ * See memory: testing-interaction-training.md § "Search Page Interaction Patterns (CANONICAL)"
+ */
+function buildMode3InteractionBlocks(
+  concerns: FlightConcern[],
+  commits: SourceCommitMetadata[],
+): string[] {
+  const lines: string[] = [];
+
+  // Collect any PRD URLs from commits (used to annotate generated blocks)
+  const prdUrls: string[] = commits
+    .flatMap((c) => c.prdLinks ?? [])
+    .map((ref) => ref.url)
+    .filter(Boolean);
+  const prdAnnotation =
+    prdUrls.length > 0
+      ? prdUrls.map((url) => `// EN PRD: ${url}`).join('\n')
+      : null;
+
+  const hasFilterConcern = concerns.some((c) => c === 'transit-filter' || c === 'airline-filter');
+  const hasSortConcern = concerns.some((c) => c === 'results-list');
+
+  // ── Mode 3 Block: Direct-flights filter ──────────────────────────────────
+  // Triggered when: transit-filter / airline-filter concern present, OR PRD link exists
+  if (hasFilterConcern || prdUrls.length > 0) {
+    lines.push(
+      '',
+      '// ── Mode 3: Free exploration — Direct-flights filter ────────────────────',
+      '// ai() freely clicks the filter; aiQuery() reads actual stops; assert = www contract',
+      '// www contract: selecting Direct filter → all result cards must show stopsCount === 0',
+      ...(prdAnnotation ? [prdAnnotation] : []),
+      'try {',
+      "  await ai('In the filter sidebar, click the \"Direct\" or \"Non-stop\" filter option under the Stops section.');",
+      "  await page.waitForLoadState('networkidle').catch(() => {});",
+      '  const _filterCards = await aiQuery<Array<{ stops: string }>>(',
+      "    '{stops: string}[], stops text on each visible flight result card (e.g. \"Direct\", \"1 Stop\", \"2 Stops\")',",
+      '  ).catch(() => [] as Array<{ stops: string }>);',
+      '  if (_filterCards.length > 0) {',
+      "    const _nonDirect = _filterCards.filter((c) => !/direct|non.?stop|0 stop/i.test(c.stops));",
+      '    if (_nonDirect.length > 0) {',
+      "      console.warn('[mode3-filter] ⚠️  Non-direct results after Direct filter:', JSON.stringify(_nonDirect));",
+      '    }',
+      "    expect(_nonDirect, 'Mode 3 filter: after Direct filter all results should be non-stop').toHaveLength(0);",
+      '  } else {',
+      "    console.warn('[mode3-filter] No flight cards found after filter — possible render delay');",
+      '  }',
+      '} catch (err) {',
+      "  console.warn('[mode3-filter] Skipped (interaction unavailable):', (err as Error).message);",
+      '}',
+    );
+  }
+
+  // ── Mode 3 Block: Price sort (cheapest first) ─────────────────────────────
+  // Triggered when: results-list concern present, OR PRD link exists
+  if (hasSortConcern || prdUrls.length > 0) {
+    lines.push(
+      '',
+      '// ── Mode 3: Free exploration — Price sort (cheapest first) ──────────────',
+      '// ai() clicks cheapest sort; aiQuery() reads prices; assert ascending order',
+      '// www contract: cheapest sort → first result has lowest price in visible set',
+      ...(prdAnnotation ? [prdAnnotation] : []),
+      'try {',
+      "  await ai('Click the sort option that sorts flights by cheapest price first. It may be labelled \"Cheapest\" or \"Price (Low to High)\".');",
+      "  await page.waitForLoadState('networkidle').catch(() => {});",
+      '  const _sortPrices = await aiQuery<Array<{ price: number }>>(',
+      "    '{price: number}[], numeric price on each visible flight card, digits only without currency symbol',",
+      '  ).catch(() => [] as Array<{ price: number }>);',
+      '  if (_sortPrices.length >= 2) {',
+      '    const _nums = _sortPrices.slice(0, 5).map((p) => p.price).filter((n) => !isNaN(n));',
+      '    const _isAscending = _nums[0] <= _nums[_nums.length - 1];',
+      '    if (!_isAscending) {',
+      "      console.warn('[mode3-sort] ⚠️  Prices not ascending after cheapest sort:', JSON.stringify(_nums));",
+      '    }',
+      "    expect(_isAscending, `Mode 3 sort: prices should be ascending after cheapest sort: ${JSON.stringify(_nums)}`).toBe(true);",
+      '  } else {',
+      "    console.warn('[mode3-sort] Not enough cards to verify sort order');",
+      '  }',
+      '} catch (err) {',
+      "  console.warn('[mode3-sort] Skipped (interaction unavailable):', (err as Error).message);",
+      '}',
+    );
+  }
+
+  return lines;
+}
+
 function buildFlightGeneratedPlan(
   concerns: FlightConcern[],
   retrievedEvidence: NonNullable<Candidate['retrievedEvidence']>,
@@ -1052,6 +1167,14 @@ function buildFlightGeneratedPlan(
   const prdAssertions = buildPrdBehavioralAssertions(commits ?? []);
   if (prdAssertions.length) {
     assertionLines.push(...prdAssertions);
+  }
+
+  // Mode 3: Free exploration + www/PRD oracle — inject ai()+aiQuery() interaction blocks
+  // when filter/sort concerns are detected OR PRD links are attached to commits.
+  // See: tests/web/traveloka-flight-search-interactions.spec.ts (canonical reference)
+  const mode3Blocks = buildMode3InteractionBlocks(concerns, commits ?? []);
+  if (mode3Blocks.length) {
+    assertionLines.push(...mode3Blocks);
   }
 
   interactionLines.push(

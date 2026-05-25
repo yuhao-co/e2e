@@ -99,6 +99,17 @@ const DOMAIN_MAP: DomainEntry[] = [
     priority: 1,
   },
   {
+    pkgPrefixes: ['fpr-booking', 'fpr-booking-desktop'],
+    domain: 'flight-booking-e2e',
+    label: 'Flight Booking → Payment E2E',
+    // Full search→booking→payment path — runs the dedicated e2e spec, not a simple goto.
+    // The spec itself handles search + booking form + payment navigation.
+    urlTemplate: 'https://www.traveloka.com/en-sg/flight/fullsearch?ap=SIN.JKTA&dt=DEPART_DATE&ps=1.0.0&sc=ECONOMY',
+    pageType: 'flight-booking',
+    priority: 1,
+    subFlow: true,
+  },
+  {
     pkgPrefixes: ['fpr-ohka'],
     domain: 'flight-discover',
     label: 'Flight Discover',
@@ -373,7 +384,6 @@ const SKIP_PREFIXES = [
   'fpr-trpc',
   'fpr-search-result',   // covered by weekly-diff
   'fpr-search-form',     // covered by weekly-diff
-  'fpr-booking-desktop', // covered by weekly-diff
   'fpr-booking-mobile',
   'fpr-booking-addon',
   'fpr-booking-components',
@@ -465,6 +475,14 @@ function getExistingDomains(): Set<string> {
 
   // From spec file names / content
   if (!fs.existsSync(TESTS_WEB_DIR)) return covered;
+
+  // The booking→payment e2e spec permanently covers the booking e2e domain
+  const paymentSpecExists = fs.existsSync(
+    path.join(TESTS_WEB_DIR, 'traveloka-flight-booking-payment-e2e.spec.ts'),
+  );
+  if (paymentSpecExists) {
+    covered.add('flight-booking-e2e');
+  }
 
   const specs = fs.readdirSync(TESTS_WEB_DIR).filter((f) => f.endsWith('.spec.ts'));
   for (const spec of specs) {
