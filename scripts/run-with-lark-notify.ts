@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { config as loadDotenv } from 'dotenv';
 
@@ -5,6 +6,13 @@ type RunResult = {
   exitCode: number;
   durationMs: number;
   outputLines: string[];
+};
+
+type FailureDetail = {
+  specPath: string;
+  errorSnippet: string;
+  commits: string[];
+  prdLinks: string[];
 };
 
 type RunInsights = {
@@ -75,6 +83,61 @@ function formatDuration(durationMs: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+function extractPlaywrightFailures(lines: string[]): Array<{ specPath: string; errorSnippet: string }> {
+  const failures: Array<{ specPath: string; errorSnippet: string }> = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    // Match Playwright list reporter failure lines (both ✘ during run and N) in summary)
+    const specMatch = line.match(/(?:[✘✗×]\s+\d+|\s+\d+\)).*?(?:›\s+)?(tests\/\S+\.spec\.ts)/);
+    if (specMatch?.[1]) {
+      const specPath = specMatch[1].replace(/:\d+:\d+$/, '');
+      // Collect error lines (skip stack frames)
+      const errorLines: string[] = [];
+      for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
+        const next = (lines[j] ?? '').trim();
+        if (!next) continue;
+        if (/^[✘✓✗×]\s+\d+|^\s*\d+\)\s/.test(next)) break;
+        if (/^at\s+\S/.test(next) || /^\s+at\s+/.test(lines[j] ?? '')) break;
+        errorLines.push(next);
+        if (errorLines.length >= 3) break;
+      }
+      // Deduplicate by specPath (keep first occurrence)
+      if (!failures.some((f) => f.specPath === specPath)) {
+        failures.push({ specPath, errorSnippet: errorLines.join(' | ').trim() });
+      }
+    }
+  }
+  return failures;
+}
+
+function readSpecMetadata(specPath: string): { commits: string[]; prdLinks: string[] } {
+  try {
+    const content = readFileSync(specPath, 'utf8');
+    const commits: string[] = [];
+    const prdLinks: string[] = [];
+    for (const line of content.split('\n').slice(0, 60)) {
+      const commitsMatch = line.match(/\*\s+(?:EN\s+)?[Ss]ource commits:\s*(.+)/);
+      if (commitsMatch?.[1]) {
+        commits.push(commitsMatch[1].trim());
+      }
+      const prdMatch = line.match(/PRD\s*\(meegle\):\s*(https:\/\/[^\s|>)"\\]+)/);
+      if (prdMatch?.[1] && !prdLinks.includes(prdMatch[1])) {
+        prdLinks.push(prdMatch[1].trimEnd().replace(/[,;]+$/, ''));
+      }
+    }
+    return { commits, prdLinks };
+  } catch {
+    return { commits: [], prdLinks: [] };
+  }
+}
+
+function buildFailureDetails(outputLines: string[]): FailureDetail[] {
+  return extractPlaywrightFailures(outputLines).map(({ specPath, errorSnippet }) => {
+    const { commits, prdLinks } = readSpecMetadata(specPath);
+    return { specPath, errorSnippet, commits, prdLinks };
+  });
 }
 
 function tailLines(lines: string[], count: number) {
@@ -154,8 +217,9 @@ function buildLarkCard(params: {
   hostname: string;
   summaryLines: string;
   insights: RunInsights;
+  failureDetails?: FailureDetail[];
 }): LarkCardPayload {
-  const { label, command, status, exitCode, durationText, hostname, summaryLines, insights } = params;
+  const { label, command, status, exitCode, durationText, hostname, summaryLines, insights, failureDetails } = params;
   const isSuccess = status === 'SUCCESS';
   const template = isSuccess ? 'green' : 'red';
   const statusEmoji = isSuccess ? '🟢' : '🔴';
@@ -286,6 +350,33 @@ function buildLarkCard(params: {
             content: `**Last output**\n\`\`\`\n${safeSummary}\n\`\`\``,
           },
         },
+        ...((!isSuccess && failureDetails && failureDetails.length > 0)
+          ? [
+              { tag: 'hr' },
+              {
+                tag: 'div',
+                text: {
+                  tag: 'lark_md',
+                  content: `**Failure Details**\n\n${failureDetails
+                    .map((fd) => {
+                      const name = fd.specPath.split('/').pop() ?? fd.specPath;
+                      const lines: string[] = [`**${escapeLarkText(name)}**`];
+                      if (fd.errorSnippet) {
+                        lines.push(`❌ ${escapeLarkText(truncateText(fd.errorSnippet, 200))}`);
+                      }
+                      if (fd.commits.length > 0) {
+                        lines.push(`📝 ${fd.commits.map((c) => escapeLarkText(truncateText(c, 120))).join('\n   ')}`);
+                      }
+                      if (fd.prdLinks.length > 0) {
+                        lines.push(`📋 PRD: ${fd.prdLinks.map((l) => `[${escapeLarkText(l)}](${l})`).join(' · ')}`);
+                      }
+                      return lines.join('\n');
+                    })
+                    .join('\n\n')}`,
+                },
+              },
+            ]
+          : []),
       ],
     },
   };
@@ -400,6 +491,7 @@ async function main() {
 
   const status = exitCode === 0 && !runError ? 'SUCCESS' : 'FAILED';
   const insights = buildInsights(command, outputLines, status);
+  const failureDetails = status === 'FAILED' ? buildFailureDetails(outputLines) : [];
   const summaryLines = tailLines(outputLines, 12)
     .map((line) => line.trimEnd())
     .filter((line) => line.length > 0)
@@ -414,6 +506,7 @@ async function main() {
     hostname,
     summaryLines,
     insights,
+    failureDetails,
   });
 
   try {

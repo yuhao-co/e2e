@@ -356,7 +356,7 @@ export class GenericBugDetector {
       const untranslated: string[] = [];
 
       for (const el of allElements) {
-        const text = el.childNodes
+        const text = Array.from(el.childNodes)
           .filter(n => n.nodeType === Node.TEXT_NODE)
           .map(n => n.textContent?.trim())
           .filter(Boolean);

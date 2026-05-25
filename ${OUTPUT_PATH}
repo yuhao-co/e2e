@@ -2,10 +2,10 @@
   "sourceUrl": "${MEEGLE_URL}",
   "projectId": "${PROJECT_ID}",
   "detailId": "${DETAIL_ID}",
-  "timestamp": "2026-05-25T15:39:01Z",
-  "accessStatus": "not_found",
+  "timestamp": "2026-05-25T07:44:03Z",
+  "accessStatus": "error",
   "prdLink": null,
   "prdTitle": null,
   "summary": null,
-  "errorDetails": "project: ${PROJECT_ID} not found"
+  "errorDetails": "Input placeholders were not resolved. Meegle access failed with: project: ${PROJECT_ID} not found"
 }

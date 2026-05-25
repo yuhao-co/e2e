@@ -88,5 +88,23 @@
     "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-search-weekly-1779694462915.json",
     "addedDate": "2026-05-25T07:32:59.316Z",
     "status": "active"
+  },
+  "flight-booking-weekly-1779695068386": {
+    "id": "flight-booking-weekly-1779695068386",
+    "domain": "flight-booking",
+    "intent": "Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.",
+    "intentHash": "96353a6b81ff93d5",
+    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-booking-weekly-1779695068386.json",
+    "addedDate": "2026-05-25T07:44:28.385Z",
+    "status": "active"
+  },
+  "flight-search-weekly-1779695209501": {
+    "id": "flight-search-weekly-1779695209501",
+    "domain": "flight-search",
+    "intent": "Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.",
+    "intentHash": "bfdee827366de79a",
+    "path": "/Users/yu.hao/Desktop/task/e2e/tests/web/snapshot-2026-05-25/flight-search-weekly-1779695209501.json",
+    "addedDate": "2026-05-25T07:44:28.385Z",
+    "status": "active"
   }
 }
