@@ -19,6 +19,9 @@
  *   tsx scripts/android-online-bug-hunt.ts --no-generate    # skip generation, use existing YAMLs
  *   tsx scripts/android-online-bug-hunt.ts --model gpt-4o   # override AI model
  *   tsx scripts/android-online-bug-hunt.ts --prd-file <f>   # inject PRD context for generation
+ *
+ * Case generation rules & constraints (MUST READ before changing generated YAMLs):
+ *   docs/android-maestro-case-generation.md
  */
 
 import 'dotenv/config';

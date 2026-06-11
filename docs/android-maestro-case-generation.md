@@ -1,0 +1,432 @@
+# Android Maestro Case Generation — Rules & Constraints
+
+Applies to both workflows:
+- `scripts/android-diff-workflow.ts` — weekly diff-triggered pipeline
+- `scripts/android-online-bug-hunt.ts` — full bug-hunting sweep
+
+Both workflows call `scripts/generate-maestro-android.ts` for AI case generation.  
+All rules in this document apply to **every generated YAML file** produced by either workflow.
+
+---
+
+## 1. The One Core Rule: `tapOn` MUST use `id:`
+
+**NEVER use `tapOn: text:` for interactive elements.**
+
+```yaml
+# ✅ CORRECT
+- tapOn:
+    id: "button_direct"
+
+# ❌ WRONG — "Direct" also appears as text inside flight card labels
+- tapOn:
+    text: "Direct"
+```
+
+**Why this breaks:** Traveloka supports EN/ID/TH locales. Text labels change across releases and also appear in non-interactive card content (e.g. "Direct" flight label on inventory cards). `id:` targets the exact view; `text:` can match unintended elements anywhere on screen.
+
+**Only exception in the entire codebase:**
+```yaml
+- tapOn:
+    text: "Flights"   # Home screen product tile has NO android:id and NO testTag — text is the ONLY contract
+```
+
+**Known broken patterns that were causing real test failures:**
+
+| Pattern | Why broken | Correct replacement |
+|---|---|---|
+| `tapOn: text: "Direct"` | Taps flight card label, not filter chip | `tapOn: id: "button_direct"` |
+| `tapOn: text: "Cheapest"` | Text-only, i18n-fragile | `tapOn: id: "radio_button"` + `index: 0` |
+| `tapOn: text: "Sort by..."` | Text is not a stable contract | `tapOn: id: "bm_button"` |
+| `tapOn: text: "Apply"` | Multiple "Apply" strings on page | `tapOn: id: "dbwShow"` |
+
+---
+
+## 2. Canonical Navigation Precondition (Results Page)
+
+Every generated case that targets the flight results page **MUST** use these exact steps. Do not shorten, do not substitute text locators for the intermediate steps.
+
+```yaml
+appId: com.traveloka.android.staging
+---
+- launchApp
+- tapOn:
+    text: "Flights"          # ONLY text: exception — home tile has no android:id
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"         # Blue Search CTA (hangar_widget.xml line 209)
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+```
+
+**Why `assertVisible` before each `tapOn`:** Prevents tapping an ID that exists but belongs to a different screen (e.g. tapping `btn_search` before the search form has rendered causes navigation to fail silently).
+
+---
+
+## 3. Compose Migration — Results Page IDs
+
+The flight search **results page (v4)** is fully Jetpack Compose. The old XML layout file `flight_result_revamp_activity.xml` still exists in source but its `android:id` values are **not exposed to the Accessibility tree** and will always cause "element not found" at runtime.
+
+### ❌ Forbidden XML IDs (results page — will always fail)
+
+```
+result_container, inventory_parent_layout, filter_non_sticky,
+filter_non_sticky_fill, widget_dateflow, layout_navigation,
+text_result_title, text_result_subtitle, image_arrow_back,
+image_change_search, card_result, text_departure_time,
+text_arrival_time, text_displayed_price, text_flight_name,
+text_number_of_transit, tv_duration_transit
+```
+
+### ✅ Compose testTag IDs to use instead
+
+| Compose testTag | Purpose | Source file |
+|---|---|---|
+| `flight_result_v4_navbar_toolbar_title` | Route header (SIN→CGK) | FlightResultV4NavbarView.kt |
+| `flight_result_v4_navbar_toolbar_subtitle_chevron` | Change-search chevron | FlightResultV4NavbarView.kt |
+| `flight_result_v4_filter_button` | Opens filter dialog | FlightResultV4SortAndFilterView.kt |
+| `flight_result_v4_quick_filter_cell` | Stops/Airline/Time chips | FlightResultV4SortAndFilterView.kt |
+| `flight_result_v4_date_flow_row` | Date-price calendar strip (row container only) | FlightResultV4DateFlowComposeView.kt |
+| `flight_result_v4_inventory_card` | Each flight card | FlightResultV4InventoryCardComposeView.kt |
+| `flight_result_v4_inventory_card_price_section` | Price area on card | FlightResultV4InventoryCardComposeView.kt |
+| `flight_result_v4_inventory_card_connector_view` | Duration + stops line | FlightResultV4InventoryCardComposeView.kt |
+
+> **Source verification command:**  
+> `git -C .cache/weekly-diff-repos/github.com_traveloka_android-v3 grep testTag flight/src/main/java/ | grep searchresult/v4`
+
+---
+
+## 4. Sort Tray — UIAutomator-Verified IDs (2026-06-11)
+
+### Opening the sort tray
+
+The sort button exists in **two forms** depending on a flag:
+- `flight_result_v4_sort_button` — only in navbar when `shouldDisplaySortButtonInNavbar=true` (NOT the case in staging)
+- `bm_button` — floating Bloom DS pill at bottom of results (**staging uses this**)
+
+```yaml
+# Open sort tray
+- tapOn:
+    id: "bm_button"          # Bloom DS pill — exactly 1 instance on results page
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+```
+
+### Selecting a sort option
+
+Sort items are generated at runtime by `MDSRadioButtonGroup.setItems()` — they have **no individual `android:id`**. Use `radio_button` by positional index.
+
+```yaml
+- tapOn:
+    id: "radio_button"
+    index: 0                 # 0 = Cheapest (SORT_PRICE_LOWEST)
+```
+
+| `radio_button` index | Sort option | Enum value |
+|---|---|---|
+| 0 | Cheapest | `SORT_PRICE_LOWEST` |
+| 1 | Direct flights first | `SORT_DIRECT_FLIGHT_FIRST` (default) |
+| 2 | Earliest departure | `SORT_DEPARTURE_TIME_EARLIEST` |
+| 3 | Latest departure | `SORT_DEPARTURE_TIME_LATEST` |
+| 4 | Earliest arrival | `SORT_ARRIVAL_TIME_EARLIEST` |
+| 5 | Latest arrival | `SORT_ARRIVAL_TIME_LATEST` |
+| 6 | Shortest duration | `SORT_DURATION_SHORTEST` |
+
+> When `scoreShown=true`, a "Best" option is inserted at index 0 and all others shift +1.
+
+**⚠️ `flight_filter_radiobutton_layout` is NOT in the accessibility tree.** UIAutomator dump confirmed. Never use it.
+
+---
+
+## 5. Filter Dialog — UIAutomator-Verified IDs (2026-06-11)
+
+The filter dialog is **still XML** (not migrated to Compose). These IDs are stable.
+
+```yaml
+# Open full filter dialog via filter button
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 10000
+
+# Apply Direct filter
+- tapOn:
+    id: "button_direct"
+
+# Apply / show results
+- tapOn:
+    id: "dbwShow"            # "Show X results" button
+```
+
+| ID | Purpose | XML file |
+|---|---|---|
+| `layout_filter_dialog` | Dialog root | flight_result_revamp_filter_dialog.xml |
+| `ivClose` | Close button | flight_result_revamp_filter_dialog.xml |
+| `tvReset` | Reset all filters | flight_result_revamp_filter_dialog.xml |
+| `dbwShow` | Apply ("Show X results") | flight_result_revamp_filter_dialog.xml |
+| `button_direct` | Direct flights toggle | flight_result_revamp_filter_transit_layer.xml |
+| `button_one_transit` | 1-stop toggle | flight_result_revamp_filter_transit_layer.xml |
+| `button_two_transit` | 2+ stops toggle | flight_result_revamp_filter_transit_layer.xml |
+| `button_departure_morning` | Morning departure (06–12) | flight_filter_time_layer.xml |
+| `button_departure_afternoon` | Afternoon departure | flight_filter_time_layer.xml |
+| `button_departure_evening` | Evening departure | flight_filter_time_layer.xml |
+
+**Filter dialog layout note:** The dialog is a single-pane scrollable BottomSheet (not tab-based). Time/Price sections may be below the fold — use `scrollUntilVisible` before tapping them.
+
+---
+
+## 6. Fare Selection Screen — UIAutomator-Verified IDs (2026-06-11)
+
+Reached by tapping a `flight_result_v4_inventory_card`.
+
+```yaml
+- tapOn:
+    id: "flight_result_v4_inventory_card"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "flight_summary_activity_ticket_option_section"
+    timeout: 15000
+- assertVisible:
+    id: "flight_summary_activity_ticket_option_section"
+```
+
+| ID | Purpose | Notes |
+|---|---|---|
+| `flight_summary_activity_ticket_option_section` | Fare options section root | ✅ UIAutomator confirmed |
+| `flight_summary_activity_ticket_option_selection_container` | Container inside fare section | ✅ |
+| `flight_ticketOptionPriceDisplay` | Price per fare option | ✅ |
+| `flight_summary_segment_info_container` | Flight segment info | ✅ |
+| `button_detail` | View detail button | ✅ |
+
+**⚠️ `ticket_option_card_container` is NOT in the accessibility tree.** UIAutomator dump confirmed. Never use it.
+
+---
+
+## 7. Maestro 2.x Syntax — Forbidden Patterns
+
+These patterns **crash immediately** at runtime. They are forbidden in generated YAML.
+
+```yaml
+# ❌ FORBIDDEN — does not exist in Maestro 2.x
+- runFlowIfVisible: ...           # use: runFlow: when: visible:
+
+# ❌ FORBIDDEN — inline object syntax invalid
+- tapOn: {id: "view_id"}         # use block syntax: tapOn:\n    id: "view_id"
+
+# ❌ FORBIDDEN — optional is not a tapOn property
+- tapOn:
+    id: "something"
+    optional: true
+
+# ❌ FORBIDDEN — assertVisible does not support timeout sub-key
+- assertVisible:
+    id: "something"
+    timeout: 10000               # remove; use extendedWaitUntil instead
+
+# ❌ FORBIDDEN — removed in Maestro 2.x
+- waitForAnimationsToEnd
+
+# ❌ FORBIDDEN — scroll does not take sub-keys
+- scroll:
+    direction: DOWN              # use bare: - scroll
+
+# ❌ FORBIDDEN — swipeOn does not exist
+- swipeOn: ...                   # use: - scroll
+
+# ❌ FORBIDDEN — never reference external files
+- runFlow:
+    file: "other-flow.yaml"      # ALL steps must be inlined in a single self-contained file
+
+# ❌ FORBIDDEN — hard-coded coordinates
+- tapOn:
+    point: "50%,50%"
+```
+
+### ✅ Correct patterns (verified working)
+
+```yaml
+# Tap by resource id
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+# Assert with id
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+# Wait until element visible (preferred over assertVisible for async loads)
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Conditional flow (NOT runFlowIfVisible)
+- runFlow:
+    when:
+      visible:
+        id: "some_dismiss_button"
+    file: "dismiss-overlay.yaml"
+
+# Tap radio by index
+- tapOn:
+    id: "radio_button"
+    index: 0
+
+# Scroll (bare, no sub-keys)
+- scroll
+
+# System back
+- back
+```
+
+---
+
+## 8. No External File References
+
+**Every generated YAML must be a single self-contained file.** `runFlow: file:` references are forbidden in all generated cases because:
+- External files may not exist at the path the generator assumes
+- Each P0/scenario should be independently runnable for isolated debugging
+- Conditional `runFlow` with `when:` is only allowed for dismissing overlays **if the target file is known to exist** (e.g. `_navigate_to_results.yaml`)
+
+```yaml
+# ❌ WRONG — generator cannot guarantee external file exists
+- runFlow:
+    file: "dismiss-overlay.yaml"
+
+# ✅ CORRECT — inline the dismiss logic, or use conditional runFlow only for known subflows
+- runFlow:
+    when:
+      visible:
+        id: "some_known_overlay_id"
+    file: "maestro/flows/android/_navigate_to_results.yaml"
+```
+
+---
+
+## 9. How to Discover New IDs
+
+When an existing contract doesn't cover a new screen or element, follow this lookup order:
+
+### Step 1 — UIAutomator dump (ground truth)
+
+```bash
+export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools"
+
+# Dump the current UI hierarchy
+adb -s emulator-5554 shell uiautomator dump /sdcard/x.xml
+adb pull /sdcard/x.xml /tmp/x.xml
+
+# List all resource IDs in the dump
+grep -oE 'resource-id="[^"]+"' /tmp/x.xml | sort -u
+
+# Search for IDs matching a keyword
+grep -i "filter\|sort\|fare" /tmp/x.xml | grep -oE 'resource-id="[^"]+"'
+```
+
+UIAutomator dump shows exactly what is in the accessibility tree at runtime — if an ID is not in the dump, it cannot be used in Maestro.
+
+### Step 2 — android-v3 source search (offline)
+
+```bash
+REPO=".cache/weekly-diff-repos/github.com_traveloka_android-v3"
+
+# Find XML layout files for a feature area
+find "$REPO/flight/src/main/res/layout" -name "*filter*" -o -name "*sort*" | head -10
+
+# Extract all android:id values from a layout file
+grep -oE '@\+id/[^"]+' "$REPO/flight/src/main/res/layout/flight_result_revamp_filter_dialog.xml"
+
+# Find Compose testTag usage in Kotlin source
+git -C "$REPO" grep -n 'testTag' flight/src/main/java/ | grep -i "result\|filter\|sort"
+
+# Grep for a specific ID to find its declaring file
+git -C "$REPO" grep -rn '"button_direct"' flight/src/main/res/layout/
+```
+
+### Step 3 — Update the contract tables
+
+After confirming an ID via dump + source, add it to:
+1. `accessibilityIds` in `DEFAULT_SOURCE_CONTEXT` (in `scripts/generate-maestro-android.ts`)
+2. `/memories/repo/www-source-selector-contracts.md` — Android section
+
+Mark unconfirmed IDs with `(verify before use — not yet UIAutomator-confirmed)`.
+
+---
+
+## 10. AI Generation Model Configuration
+
+Both workflows use the same client configuration:
+
+```typescript
+// GitHub Models API (no separate key — uses gh auth token)
+baseURL: 'https://models.inference.ai.azure.com'
+model:   'gpt-4o-mini'          // higher rate limit vs gpt-4o
+maxRetries: 0                    // no silent 429 retry loops
+timeout: 60_000                  // 60s per request
+// + AbortController(90s) as outer guard per generateYaml() call
+```
+
+**Why `gpt-4o-mini` and not `gpt-4o`:** GitHub Models enforces per-day limits. `gpt-4o` caps at ~150 requests/day; `gpt-4o-mini` allows bulk generation without hitting limits mid-workflow.
+
+**Why `maxRetries: 0`:** The SDK's default retry strategy silently queues retries on 429 errors. With a large scenario set this causes the workflow to stall indefinitely. With `maxRetries: 0` each failure is surfaced immediately.
+
+---
+
+## 11. Generator Source Context Injection
+
+`buildUserPrompt()` injects two ID sets into every AI generation call:
+
+1. **`accessibilityIds` block** — all UIAutomator-verified IDs from `DEFAULT_SOURCE_CONTEXT.accessibilityIds`, labeled "VERIFIED ACCESSIBILITY IDs — USE THESE, DO NOT GUESS"
+2. **`querySourceIdsForScenario()` result** — live grep of `android-v3` layout XMLs for IDs relevant to the scenario being generated
+
+If `android-v3` is not cloned at `.cache/weekly-diff-repos/github.com_traveloka_android-v3`, the source query is skipped and generation falls back to the static `accessibilityIds` list only.
+
+To ensure the repo is available:
+```bash
+REPO_DIR=.cache/weekly-diff-repos/github.com_traveloka_android-v3
+gh repo clone traveloka/android-v3 "$REPO_DIR" -- --depth=1 --branch develop
+```
+
+---
+
+## 12. P0 Test Suite — Verified Passing Cases (as of 2026-06-11)
+
+| File | Status | Key IDs used |
+|---|---|---|
+| `android-results-smoke.yaml` | ✅ | `search_tab`, `btn_search`, `flight_result_v4_navbar_toolbar_title`, `flight_result_v4_inventory_card` |
+| `android-results-filter-direct.yaml` | ✅ | `flight_result_v4_filter_button`, `layout_filter_dialog`, `button_direct`, `dbwShow` |
+| `android-results-sort-cheapest.yaml` | ✅ | `bm_button`, `layout_tray`, `radio_button` index 0 |
+| `android-results-select-flight.yaml` | ✅ | `flight_result_v4_inventory_card` index 0, `flight_summary_activity_ticket_option_section` |
+
+Run P0 suite:
+```bash
+npm run maestro:android:run:p0
+```
+
+---
+
+## 13. Quick Failure Diagnosis
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| "Element not found: result_container" | Forbidden XML ID on Compose page | Replace with `flight_result_v4_*` equivalent |
+| "Element not found: ticket_option_card_container" | Not in accessibility tree | Use `flight_summary_activity_ticket_option_section` |
+| "Element not found: flight_filter_radiobutton_layout" | Not in accessibility tree | Use `radio_button` with correct `index:` |
+| Test taps wrong element (card instead of filter) | Used `tapOn: text:` where text appears in multiple places | Replace with `tapOn: id:` |
+| Navigation stuck on home screen | `precondition` skipped intermediate `assertVisible` gates | Copy canonical precondition from Section 2 |
+| "Invalid file path" or missing flow | `runFlow: file:` referencing external YAML that doesn't exist | Inline all steps; never reference external files |
+| Maestro crash on load | `runFlowIfVisible` or inline object `tapOn: {id}` syntax | Fix syntax per Section 7 |
+| Sort tray doesn't open | Used `flight_result_v4_sort_button` (navbar flag off in staging) | Use `bm_button` |

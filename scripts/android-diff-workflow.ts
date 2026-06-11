@@ -19,6 +19,9 @@
  *   tsx scripts/android-diff-workflow.ts --no-fix      # skip AI fix stage
  *   tsx scripts/android-diff-workflow.ts --dry-run     # skip run/fix, just generate
  *   tsx scripts/android-diff-workflow.ts --priority p0 # run P0 only
+ *
+ * Case generation rules & constraints (MUST READ before changing generated YAMLs):
+ *   docs/android-maestro-case-generation.md
  */
 
 import 'dotenv/config';
