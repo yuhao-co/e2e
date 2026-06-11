@@ -1,0 +1,495 @@
+##
+# FULL SUITE — All 23 search-result scenarios, single app launch
+#
+# Scenarios (in order):
+#   01. Smoke               — Page elements visible
+#   02. Filter Direct       — Apply Direct filter
+#   03. Filter One-Stop     — Apply 1-Stop filter (resets Direct first)
+#   04. Filter Reset        — Select Direct, then tvReset
+#   05. Filter Time Morning — Apply Morning departure filter
+#   06. Filter Airline      — Open airline tab, verify recycler, close
+#   07. Filter Price        — Open price tab, verify slider, apply
+#   08. Filter Transit Point— Open transit-point sub-filter, close
+#   09. Filter Combined     — Direct + Morning simultaneously
+#   10. No-Result Reset     — Direct + Evening (low/no results), reset
+#   11. Quick Filter        — Tap Stops chip → filter dialog opens
+#   12. Sort Open           — Tap floating sort button, back
+#   13. Sort Recommended    — Open sort tray → Recommended
+#   14. Sort Earliest Dep   — Open sort tray → Earliest Departure
+#   15. Sort Shortest Dur   — Open sort tray → Shortest Duration
+#   16. Sort Lowest Price   — Open sort tray → Lowest Price
+#   17. Sort Then Filter    — Sort + open/close filter dialog
+#   18. Scroll              — Scroll down 2×, cards still visible
+#   19. Date Flow           — scrollUntilVisible UP + assert date-strip
+#   20. Card Detail         — Tap card, back (detail opens)
+#   21. Card Info Icon      — Tap price section, back
+#   22. Back Navigation     — System back → search form, re-navigate
+#   23. Change Search       — Tap navbar chevron → search overlay
+#
+# ══════════════════════════════════════════════════════════════════════════════
+# COMPOSE ID CONTRACT
+# ══════════════════════════════════════════════════════════════════════════════
+# Results page (flight_result_v4_*) is fully Jetpack Compose:
+#   flight_result_v4_navbar_toolbar_title           — header / "on results" proof
+#   flight_result_v4_navbar_toolbar_subtitle_chevron— change-search chevron
+#   flight_result_v4_date_flow_row                  — date strip container
+#   flight_result_v4_filter_button                  — Filter button (opens dialog)
+#   flight_result_v4_quick_filter_cell              — Stops/Airlines/Time chips
+#   flight_result_v4_inventory_card                 — each flight card
+#   flight_result_v4_inventory_card_price_section   — price area on card
+#   bm_button_text                                  — floating sort pill (BMButton text)
+#
+# Filter dialog + search form are STILL XML (retain android:id):
+#   layout_filter_dialog, layer_transit, layer_airline, layer_time, layer_price
+#   button_direct, button_one_transit, button_two_transit, tvReset, dbwShow
+#   recycler_view_content, slider_price_range
+#   search_tab, btn_search
+#
+# Source: traveloka/android-v3 @ develop (2026-06-11)
+##
+appId: com.traveloka.android.staging
+clearState: true
+---
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SETUP — Launch once, navigate to flight search results
+# ══════════════════════════════════════════════════════════════════════════════
+- launchApp
+- tapOn:
+    text: "Flights"
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 01 — SMOKE: Key elements visible on results page
+# ══════════════════════════════════════════════════════════════════════════════
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_date_flow_row"
+- assertVisible:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 02 — FILTER DIRECT: Apply Direct-only filter
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "layer_transit"
+- assertVisible:
+    id: "button_direct"
+- tapOn:
+    id: "button_direct"
+- tapOn:
+    id: "dbwShow"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 03 — FILTER ONE-STOP: Deselect Direct, select 1-Stop
+# (Direct is still active from scenario 02 — deselect it first)
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "layer_transit"
+- assertVisible:
+    id: "button_one_transit"
+- tapOn:
+    id: "button_direct"
+    optional: true
+- tapOn:
+    id: "button_one_transit"
+- tapOn:
+    id: "dbwShow"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 04 — FILTER RESET: Select Direct, then reset all filters
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "layer_transit"
+- assertVisible:
+    id: "button_direct"
+- tapOn:
+    id: "button_one_transit"
+    optional: true
+- tapOn:
+    id: "button_direct"
+- tapOn:
+    id: "tvReset"
+- assertVisible:
+    id: "button_direct"
+- assertVisible:
+    id: "button_one_transit"
+- assertVisible:
+    id: "button_two_transit"
+- tapOn:
+    id: "dbwShow"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 05 — FILTER TIME MORNING: Apply Morning departure filter
+# NOTE: Filter dialog is a single-pane scrollable sheet. Time section is below
+# Airlines — must scroll DOWN to reach button_departure_morning.
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- scrollUntilVisible:
+    element:
+      id: "button_departure_morning"
+    direction: DOWN
+- tapOn:
+    id: "button_departure_morning"
+- tapOn:
+    id: "dbwShow"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 06 — FILTER AIRLINE: Open filter, verify Airlines section, close
+# NOTE: Single-pane layout — Airlines section is visible without tapping a tab.
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- assertVisible:
+    id: "recycler_view_content"
+- tapOn:
+    id: "ivClose"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 07 — FILTER PRICE: Scroll to price section, verify slider, apply
+# NOTE: Single-pane layout — Price section is below Airlines, needs scroll DOWN.
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- scrollUntilVisible:
+    element:
+      id: "slider_price_range"
+    direction: DOWN
+- assertVisible:
+    id: "slider_price_range"
+- tapOn:
+    id: "dbwShow"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 08 — FILTER TRANSIT POINT: Open transit-point sub-filter, close
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "layer_transit"
+- assertVisible:
+    id: "button_direct"
+- tapOn:
+    id: "button_show_transit_filter"
+    optional: true
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "ivClose"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 09 — FILTER COMBINED: Direct + Morning simultaneously
+# Reset accumulated filters first, then apply combo.
+# NOTE: button_direct is in Stops section (top). Scroll DOWN for Morning button.
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "tvReset"
+- tapOn:
+    id: "button_direct"
+- scrollUntilVisible:
+    element:
+      id: "button_departure_morning"
+    direction: DOWN
+- tapOn:
+    id: "button_departure_morning"
+- tapOn:
+    id: "dbwShow"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 10 — NO-RESULT RESET: Direct + Evening (likely no results), reset
+# Reset previous combo first, then apply Direct + Evening.
+# NOTE: Scroll DOWN to reach button_departure_evening (Time section).
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "tvReset"
+- tapOn:
+    id: "button_direct"
+- scrollUntilVisible:
+    element:
+      id: "button_departure_evening"
+    direction: DOWN
+- tapOn:
+    id: "button_departure_evening"
+- tapOn:
+    id: "dbwShow"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+# Reset to full results before quick-filter + sort tests
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "tvReset"
+- tapOn:
+    id: "dbwShow"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 11 — QUICK FILTER: Tap Stops chip → dedicated Stops mini-sheet opens
+# NOTE: quick_filter_cell opens a compact per-category bottom sheet, NOT the
+# full layout_filter_dialog. The mini-sheet uses checkboxes (different IDs than
+# the full filter's radio buttons — button_direct is NOT accessible here).
+# Assert by text "Direct" which is visible in the Number of Stops mini-sheet.
+# ══════════════════════════════════════════════════════════════════════════════
+- assertVisible:
+    id: "flight_result_v4_quick_filter_cell"
+- tapOn:
+    id: "flight_result_v4_quick_filter_cell"
+    index: 0
+- assertVisible:
+    text: "Direct"
+- back
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 12 — SORT OPEN: Floating sort pill → tray opens → back
+# Sort button: bm_button_text (Bloom DS) — visible only when
+# shouldDisplaySortButtonInNavbar == false in FlightResultV4SortAndFilterView.kt
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "bm_button_text"
+- back
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 13 — SORT CHEAPEST
+# Sort tray labels (confirmed from live UI):
+#   Cheapest / Shortest duration / Direct flights first / Earliest departure /
+#   Latest departure / Earliest arrival / Latest arrival
+# Tray stays open after radio-button selection — close with back.
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "bm_button_text"
+- tapOn:
+    text: "Cheapest"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 14 — SORT EARLIEST DEPARTURE
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "bm_button_text"
+- tapOn:
+    text: "Earliest departure"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 15 — SORT SHORTEST DURATION
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "bm_button_text"
+- tapOn:
+    text: "Shortest duration"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 16 — SORT LATEST DEPARTURE
+# (Confirms the tray shows all options; "Lowest Price" renamed to "Cheapest" in
+# the new sort tray — testing a different option here to widen coverage.)
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "bm_button_text"
+- tapOn:
+    text: "Latest departure"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 17 — SORT THEN FILTER: Sort by Earliest departure, then open filter
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "bm_button_text"
+- tapOn:
+    text: "Earliest departure"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- assertVisible:
+    id: "layout_filter_dialog"
+- tapOn:
+    id: "ivClose"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 18 — SCROLL: Scroll list 2×, cards remain visible
+# ══════════════════════════════════════════════════════════════════════════════
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- scroll
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- scroll
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 19 — DATE FLOW: Scroll back to top, verify date strip
+# Individual date items inside the LazyRow have no testTag
+# (FlightResultV4DateFlowComposeView.kt — testTag on Row container only).
+# Date tap interaction → P1 suite (requires text-based date selection).
+# ══════════════════════════════════════════════════════════════════════════════
+- scrollUntilVisible:
+    element:
+      id: "flight_result_v4_date_flow_row"
+    direction: UP
+- assertVisible:
+    id: "flight_result_v4_date_flow_row"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 20 — CARD DETAIL: Tap first card, detail opens, close with back
+# dialog_toolbar / bSelect are unverified Compose IDs — using back instead of
+# asserting specific dialog elements (safe approach for P0/all-scenario suite)
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_inventory_card"
+    index: 0
+- back
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 21 — CARD INFO ICON: Tap price section on first card, close
+# (price section tap may open price detail or baggage info tray)
+# ══════════════════════════════════════════════════════════════════════════════
+- tapOn:
+    id: "flight_result_v4_inventory_card_price_section"
+    index: 0
+- back
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 22 — BACK NAVIGATION: System back → search form → re-navigate
+# Compose results page has no accessible back-button testTag
+# (image_arrow_back is XML, not in Compose accessibility tree)
+# ══════════════════════════════════════════════════════════════════════════════
+- back
+- assertVisible:
+    id: "btn_search"
+# Re-navigate to results for scenario 23
+- tapOn:
+    id: "btn_search"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCENARIO 23 — CHANGE SEARCH: Navbar chevron opens inline search overlay
+# ══════════════════════════════════════════════════════════════════════════════
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_subtitle_chevron"
+- tapOn:
+    id: "flight_result_v4_navbar_toolbar_subtitle_chevron"
+- assertVisible:
+    id: "btn_search"

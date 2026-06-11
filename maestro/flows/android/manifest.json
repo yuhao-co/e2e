@@ -1,25 +1,227 @@
 [
-  { "id": "android-results-smoke", "name": "Results page loads with cards, header, date-flow and filter bar visible", "category": "smoke", "file": "generated/android-results-smoke.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-filter-direct", "name": "Filter: Direct flights only via button_direct", "category": "filter", "file": "generated/android-results-filter-direct.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-filter-one-stop", "name": "Filter: 1-stop flights via button_one_transit", "category": "filter", "file": "generated/android-results-filter-one-stop.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-filter-reset", "name": "Filter: Reset all filters via tvReset", "category": "filter", "file": "generated/android-results-filter-reset.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-filter-time-morning", "name": "Filter: Morning departure time via button_departure_morning", "category": "filter", "file": "generated/android-results-filter-time-morning.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-filter-airline", "name": "Filter: Airline layer opens and shows airline list", "category": "filter", "file": "generated/android-results-filter-airline.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-filter-price", "name": "Filter: Price range slider is accessible", "category": "filter", "file": "generated/android-results-filter-price.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-filter-combined", "name": "Filter: Combine Direct + Morning departure in one session", "category": "filter", "file": "generated/android-results-filter-combined.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-filter-transit-point", "name": "Filter: Expand transit point section to show airport checkboxes", "category": "filter", "file": "generated/android-results-filter-transit-point.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-no-result-reset", "name": "Filter: Narrow filter may produce no-result state with reset CTA", "category": "filter", "file": "generated/android-results-no-result-reset.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-sort-open", "name": "Sort: Tapping sort area opens sort tray", "category": "sort", "file": "generated/android-results-sort-open.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-sort-recommended", "name": "Sort: Select Recommended", "category": "sort", "file": "generated/android-results-sort-recommended.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-sort-lowest-price", "name": "Sort: Select Lowest Price", "category": "sort", "file": "generated/android-results-sort-lowest-price.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-sort-earliest-departure", "name": "Sort: Earliest Departure", "category": "sort", "file": "generated/android-results-sort-earliest-departure.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-sort-shortest-duration", "name": "Sort: Shortest Duration", "category": "sort", "file": "generated/android-results-sort-shortest-duration.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-sort-then-filter", "name": "Regression: Sort state persists when filter dialog opened then closed", "category": "regression", "file": "generated/android-results-sort-then-filter.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-card-detail", "name": "Card: Tap card_result opens detail dialog", "category": "card", "file": "generated/android-results-card-detail.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-card-info-icon", "name": "Card: Tap image_info_detail shows sliding_tabs", "category": "card", "file": "generated/android-results-card-info-icon.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-scroll", "name": "Scroll: Scrolling down loads more flight cards", "category": "scroll", "file": "generated/android-results-scroll.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-quick-filter", "name": "Quick Filter: Tap first pill chip in quick-filter row", "category": "filter", "file": "generated/android-results-quick-filter.yaml", "priority": "p1", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-date-flow", "name": "Date Flow: Tap adjacent date in price-calendar strip triggers new search", "category": "navigation", "file": "generated/android-results-date-flow.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-back-navigation", "name": "Navigation: Back arrow returns to search form", "category": "navigation", "file": "generated/android-results-back-navigation.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] },
-  { "id": "android-results-change-search", "name": "Navigation: Jogress opens search form overlay", "category": "navigation", "file": "generated/android-results-change-search.yaml", "priority": "p0", "generatedAt": "2026-06-11T00:00:00+08:00", "warnings": [] }
+  {
+    "id": "android-all-scenarios-suite",
+    "name": "Full Suite — All 23 search-result scenarios, single app launch",
+    "category": "full-suite",
+    "file": "generated/android-all-scenarios-suite.yaml",
+    "priority": "p0",
+    "generatedAt": "2026-06-11T00:00:00.000Z",
+    "warnings": []
+  },
+  {
+    "id": "android-p0-suite",
+    "name": "P0 Flight Results Suite (all 9 scenarios, single launch)",
+    "category": "smoke",
+    "file": "generated/android-p0-suite.yaml",
+    "priority": "p0",
+    "generatedAt": "2026-06-11T00:00:00.000Z",
+    "warnings": []
+  },
+  {
+    "id": "android-results-smoke",
+    "name": "Results page loads with cards, header, date-flow and filter bar visible",
+    "category": "smoke",
+    "file": "generated/android-results-smoke.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-filter-direct",
+    "name": "Filter: Direct flights only via button_direct",
+    "category": "filter",
+    "file": "generated/android-results-filter-direct.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-filter-one-stop",
+    "name": "Filter: 1-stop flights via button_one_transit",
+    "category": "filter",
+    "file": "generated/android-results-filter-one-stop.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-filter-reset",
+    "name": "Filter: Reset all filters via tvReset",
+    "category": "filter",
+    "file": "generated/android-results-filter-reset.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-filter-time-morning",
+    "name": "Filter: Morning departure time via button_departure_morning",
+    "category": "filter",
+    "file": "generated/android-results-filter-time-morning.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-filter-airline",
+    "name": "Filter: Airline layer opens and shows airline list",
+    "category": "filter",
+    "file": "generated/android-results-filter-airline.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-filter-price",
+    "name": "Filter: Price range slider is accessible",
+    "category": "filter",
+    "file": "generated/android-results-filter-price.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-filter-combined",
+    "name": "Filter: Combine Direct + Morning departure in one session",
+    "category": "filter",
+    "file": "generated/android-results-filter-combined.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-filter-transit-point",
+    "name": "Filter: Expand transit point section to show airport checkboxes",
+    "category": "filter",
+    "file": "generated/android-results-filter-transit-point.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-no-result-reset",
+    "name": "Filter: Narrow filter may produce no-result state with reset CTA",
+    "category": "filter",
+    "file": "generated/android-results-no-result-reset.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-sort-open",
+    "name": "Sort: Tapping sort area opens sort tray",
+    "category": "sort",
+    "file": "generated/android-results-sort-open.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-sort-recommended",
+    "name": "Sort: Select Recommended",
+    "category": "sort",
+    "file": "generated/android-results-sort-recommended.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-sort-lowest-price",
+    "name": "Sort: Select Lowest Price",
+    "category": "sort",
+    "file": "generated/android-results-sort-lowest-price.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-sort-earliest-departure",
+    "name": "Sort: Earliest Departure",
+    "category": "sort",
+    "file": "generated/android-results-sort-earliest-departure.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-sort-shortest-duration",
+    "name": "Sort: Shortest Duration",
+    "category": "sort",
+    "file": "generated/android-results-sort-shortest-duration.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-sort-then-filter",
+    "name": "Regression: Sort state persists when filter dialog opened then closed",
+    "category": "regression",
+    "file": "generated/android-results-sort-then-filter.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-card-detail",
+    "name": "Card: Tap card_result opens detail dialog",
+    "category": "card",
+    "file": "generated/android-results-card-detail.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-card-info-icon",
+    "name": "Card: Tap image_info_detail shows sliding_tabs",
+    "category": "card",
+    "file": "generated/android-results-card-info-icon.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-scroll",
+    "name": "Scroll: Scrolling down loads more flight cards",
+    "category": "scroll",
+    "file": "generated/android-results-scroll.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-quick-filter",
+    "name": "Quick Filter: Tap first pill chip in quick-filter row",
+    "category": "filter",
+    "file": "generated/android-results-quick-filter.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-date-flow",
+    "name": "Date Flow: Tap adjacent date in price-calendar strip triggers new search",
+    "category": "navigation",
+    "file": "generated/android-results-date-flow.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-back-navigation",
+    "name": "Navigation: Back arrow returns to search form",
+    "category": "navigation",
+    "file": "generated/android-results-back-navigation.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  },
+  {
+    "id": "android-results-change-search",
+    "name": "Navigation: Jogress opens search form overlay",
+    "category": "navigation",
+    "file": "generated/android-results-change-search.yaml",
+    "priority": "p1",
+    "generatedAt": "2026-06-11T00:00:00+08:00",
+    "warnings": []
+  }
 ]

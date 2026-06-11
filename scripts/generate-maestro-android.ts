@@ -51,6 +51,75 @@ const RUN_ALL_PATH = path.resolve('maestro/flows/android/run-all-android.yaml');
 const APP_ID = 'com.traveloka.android.staging';
 
 // ---------------------------------------------------------------------------
+// COMPOSE MIGRATION CONSTRAINT
+// ---------------------------------------------------------------------------
+// The flight search results page (v4) is fully Jetpack Compose.
+// Old android:id values from flight_result_revamp_activity.xml and
+// flight_result_card.xml do NOT appear in the Accessibility tree.
+// Any test using these IDs will ALWAYS fail with "element not found".
+//
+// Source verification:
+//   git grep testTag flight/src/main/java/**/searchresult/v4/**/*.kt
+// Last audited: 2026-06-11 (traveloka/android-v3 @ develop)
+// ---------------------------------------------------------------------------
+
+/** Old XML android:id values that NO LONGER exist in the Accessibility tree */
+const FORBIDDEN_XML_IDS: string[] = [
+  // flight_result_revamp_activity.xml — migrated to Compose
+  'result_container',
+  'inventory_parent_layout',
+  'filter_non_sticky',
+  'filter_non_sticky_fill',
+  'widget_dateflow',
+  'layout_navigation',
+  'text_result_title',
+  'text_result_subtitle',
+  'image_arrow_back',
+  'image_change_search',
+  // flight_result_card.xml — migrated to Compose
+  'card_result',
+  'text_departure_time',
+  'text_arrival_time',
+  'text_displayed_price',
+  'text_flight_name',
+  'text_number_of_transit',
+  'tv_duration_transit',
+  // sort/filter composite — Compose
+  'layout_tray',
+  'rbg_sort',
+  // date flow items — no testTag on individual items
+  'text_date',
+  'text_price',
+  // card detail dialog — verify before use
+  'dialog_toolbar',
+  'bSelect',
+];
+
+/**
+ * Canonical mapping: old XML android:id → new Compose testTag
+ * Use these in generated YAML files.
+ * Source: flight/src/main/java/com/traveloka/android/flight/ui/searchresult/v4/route/view/
+ */
+const COMPOSE_ID_MAP: Record<string, string> = {
+  // flight_result_revamp_activity.xml → Compose
+  result_container:        'flight_result_v4_navbar_toolbar_title',
+  inventory_parent_layout: 'flight_result_v4_inventory_card',
+  card_result:             'flight_result_v4_inventory_card',
+  filter_non_sticky:       'flight_result_v4_filter_button',
+  widget_dateflow:         'flight_result_v4_date_flow_row',
+  text_result_title:       'flight_result_v4_navbar_toolbar_title',
+  image_change_search:     'flight_result_v4_navbar_toolbar_subtitle_chevron',
+  layout_tray:             'flight_result_v4_sort_button',
+  rbg_sort:                'flight_result_v4_sort_button',
+  // Sort floating button (when shouldDisplaySortButtonInNavbar=false):
+  //   Use tapOn: id: "bm_button_text" — the Bloom DS button text inside the floating sort pill
+  //   NOTE: flight_result_v4_sort_button only appears in navbar when shouldDisplaySortButtonInNavbar=true
+  // NOT Compose-migrated (XML IDs still valid):
+  //   layout_filter_dialog, layer_transit, button_direct, tvReset, dbwShow
+  //   search_tab, btn_search, layout_search_form
+};
+
+// ---------------------------------------------------------------------------
 // Auth resolution — GitHub token preferred (no separate key needed)
 // ---------------------------------------------------------------------------
 function resolveGitHubToken(): string | null {
@@ -139,26 +208,40 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
     filterSheet: ['Apply', 'Reset'],
   },
 
-  // Android resource IDs extracted from traveloka/android-v3 layout XMLs.
-  // Source: flight/src/main/res/layout/
-  // These are locale-independent — always prefer these for tapOn/assertVisible.
+  // ── COMPOSE semantic testTags (flight search results v4) ─────────────────
+  // Source: traveloka/android-v3 → flight/src/main/java/…/searchresult/v4/route/view/
+  // Audited: 2026-06-11 via `git grep testTag`
+  // ⚠️  The results page is fully Compose. Old android:id values (result_container,
+  //    card_result, inventory_parent_layout, widget_dateflow, etc.) do NOT exist
+  //    in the Accessibility tree. Always use the flight_result_v4_* IDs below.
   accessibilityIds: {
-    // flight_result_revamp_activity.xml
-    resultContainer:        'result_container',
-    backButton:             'image_arrow_back',
-    changeSearch:           'image_change_search',
-    routeWidget:            'widget_route',
-    departureLegInfo:       'depart_leg_info',
+    // ── Results page: COMPOSE IDs (FlightResultV4*) ──────────────────────────
+    // FlightResultV4NavbarView.kt
+    navbarTitle:            'flight_result_v4_navbar_toolbar_title',       // route header (SIN→CGK)
+    navbarChevron:          'flight_result_v4_navbar_toolbar_subtitle_chevron', // change-search
+    navbarPriceAlert:       'flight_result_v4_navbar_price_alert_icon',
 
-    // flight_result_revamp_route_widget.xml (sticky filter bar)
-    quickFilterRecycler:    'recycler_view_quick_filter',   // RecyclerView with filter chips
-    includeBaggagePill:     'pill_include_baggage',
+    // FlightResultV4SortAndFilterView.kt
+    filterButton:           'flight_result_v4_filter_button',              // opens filter dialog
+    sortButton:             'flight_result_v4_sort_button',                // opens sort tray
+    quickFilterCell:        'flight_result_v4_quick_filter_cell',          // Stops/Airlines/Time chips
 
-    // flight_result_revamp_filter_dialog.xml (full filter bottom sheet)
+    // FlightResultV4DateFlowComposeView.kt (testTag on ROW container, not individual dates)
+    dateFlowRow:            'flight_result_v4_date_flow_row',              // price calendar strip
+    // ⚠️  Individual date items have NO testTag — use text: "Sat, 13 Jun" for taps
+
+    // FlightResultV4InventoryCardComposeView.kt
+    inventoryCard:          'flight_result_v4_inventory_card',             // each flight card
+    cardPriceSection:       'flight_result_v4_inventory_card_price_section',
+    cardConnector:          'flight_result_v4_inventory_card_connector_view', // duration/stops
+    cardAirlineSection:     'flight_result_v4_inventory_card_airline_logo_and_baggage_section',
+    topPickCampaign:        'flight_result_v4_top_pick_campaign_container',
+
+    // ── Filter dialog: STILL XML (flight_result_revamp_filter_dialog.xml) ────
     filterDialog:           'layout_filter_dialog',
     filterClose:            'ivClose',
     filterReset:            'tvReset',
-    filterApply:            'tvResult',                     // "Show X results" apply button
+    filterApply:            'dbwShow',   // "Show X results" button
     filterTransitLayer:     'layer_transit',
     filterAirlineLayer:     'layer_airline',
     filterTimeLayer:        'layer_time',
@@ -170,27 +253,14 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
     filterTwoStop:          'button_two_transit',
 
     // flight_filter_time_layer.xml
-    filterDepartEarlyMorning: 'button_departure_early_morning',
     filterDepartMorning:    'button_departure_morning',
     filterDepartAfternoon:  'button_departure_afternoon',
     filterDepartEvening:    'button_departure_evening',
-    filterArriveEarlyMorning: 'button_arrival_early_morning',
-    filterArriveMorning:    'button_arrival_morning',
 
-    // flight_sort_tray_widget.xml
-    sortRadioGroup:         'rbg_sort',                     // RadioButtonGroup; tap child by index
-
-    // flight_search_result_card_item.xml (per flight card in list)
-    cardContainer:          'flight_result_container_view', // tap to open detail
-    cardDepartTime:         'depart_time',
-    cardArrivalTime:        'arrival_time',
-    cardPrice:              'text_view_real_price',
-    cardAirlineName:        'text_flight_name',
-    cardDurationStops:      'tv_duration_transit',
-
-    // flight_quick_filter_item.xml (chips inside recycler_view_quick_filter)
-    quickFilterChip:        'quick_filter_item',
-    quickFilterChipText:    'quick_filter_item_name',
+    // ── Search form: STILL XML (flight_search_form_activity.xml) ─────────────
+    searchTab:              'search_tab',
+    searchButton:           'btn_search',
+    searchFormLayout:       'layout_search_form',
   },
 
   enums: {
@@ -540,33 +610,59 @@ const SCENARIOS: ScenarioDefinition[] = [
 // AI prompt builder
 // ---------------------------------------------------------------------------
 function buildSystemPrompt(): string {
+  const forbiddenIdList = FORBIDDEN_XML_IDS.map(id => {
+    const replacement = COMPOSE_ID_MAP[id];
+    return replacement ? `  "${id}" → use "${replacement}"` : `  "${id}" (no direct replacement)`;
+  }).join('\n');
+
   return `You are an expert mobile test engineer who writes Maestro YAML test cases for Android apps.
 Maestro is a mobile UI testing framework that uses YAML-based test flows.
 
 CRITICAL RULE — MULTI-LANGUAGE APP:
 This app supports multiple languages (EN, ID, TH, etc.).
 - INTERACTIONS (tapOn, longPressOn, scrollUntilVisible) MUST use resource IDs, NEVER text.
-  ✅ CORRECT:  tapOn:\n    id: "button_direct"
+  ✅ CORRECT:  tapOn:\\n    id: "button_direct"
   ❌ WRONG:    tapOn: "Direct"
 - ASSERTIONS (assertVisible, extendedWaitUntil) MAY use text, but prefer IDs when available.
-  ✅ For page-loaded proof: extendedWaitUntil:\n    visible:\n      id: "result_container"
+  ✅ For page-loaded proof: assertVisible:\\n    id: "flight_result_v4_navbar_toolbar_title"
   ✅ For content verification: assertVisible: "Direct"  (ok — you WANT to verify the text)
 
-MAESTRO YAML SYNTAX RULES:
+CRITICAL RULE — COMPOSE MIGRATION (flight search results page):
+The flight search RESULTS page has been fully migrated to Jetpack Compose (v4).
+Old android:id values from XML layout files NO LONGER appear in the Accessibility tree.
+Using them will ALWAYS cause "element not found" failures.
+
+FORBIDDEN XML IDs (never use for the results page) and their replacements:
+${forbiddenIdList}
+
+CORRECT Compose testTag IDs (source: searchresult/v4/route/view/**/*.kt):
+  "flight_result_v4_navbar_toolbar_title"            → results page header
+  "flight_result_v4_navbar_toolbar_subtitle_chevron" → change-search chevron
+  "flight_result_v4_date_flow_row"                   → date-price calendar strip
+  "flight_result_v4_filter_button"                   → Filter button
+  "flight_result_v4_sort_button"                     → Sort button
+  "flight_result_v4_quick_filter_cell"               → Stops/Airlines/Time chips
+  "flight_result_v4_inventory_card"                  → each flight card
+  "flight_result_v4_inventory_card_price_section"    → price area on card
+  "flight_result_v4_inventory_card_connector_view"   → duration/stops on card
+
+STILL XML (retain their android:id and work normally):
+  Filter dialog: layout_filter_dialog, layer_transit, button_direct,
+                 button_one_transit, button_two_transit, tvReset, dbwShow
+  Search form:   search_tab, btn_search, layout_search_form
+
+MAESTRO 2.x SYNTAX RULES:
 1. Start every flow with appId on line 1, then --- on line 2
-2. Tap by resource ID:     tapOn:\n    id: "view_resource_id"
-3. Wait by resource ID:    extendedWaitUntil:\n    visible:\n      id: "view_id"\n    timeout: 30000
-4. Assert by ID:           assertVisible:\n    id: "view_resource_id"
-5. Assert by text:         assertVisible: "some text"   (only for content-level assertions)
-6. Scroll:                 scrollUntilVisible:\n    element:\n      id: "view_id"\n    direction: DOWN
-7. Swipe gesture:          swipe:\n    direction: UP\n    duration: 400
-8. Conditional step:       runFlow:\n    when:\n      visible:\n        id: "view_id"\n    commands:\n      - tapOn:\n          id: "..."
-9. Screenshot:             takeScreenshot: "test-results/android/<caseid>-step.png"
-10. Timeouts: 30000ms for network-loaded results, 10000ms for UI transitions
-11. Add comments (# ...) explaining each step and its source file
-12. NEVER use hard-coded coordinates
-13. ALWAYS include precondition (launch → navigate to results page)
-14. Add "# [layout: filename.xml]" comment showing which layout file the ID comes from
+2. Tap by resource ID:  tapOn:\\n    id: "view_resource_id"
+3. Assert by ID:        assertVisible:\\n    id: "view_resource_id"
+4. Assert by text:      assertVisible: "some text"
+5. System back:         - back
+6. Simple scroll:       - scroll   (no properties; direction/duration NOT supported in 2.x)
+7. NEVER use assertVisible.timeout (not supported in Maestro 2.x)
+8. NEVER use waitForAnimationsToEnd (removed in Maestro 2.x)
+9. NEVER use scroll.direction or scroll.duration (use bare "- scroll" only)
+10. NEVER use hard-coded coordinates
+11. Add comments explaining each step and its source file
 
 Return ONLY the YAML content, no markdown fences, no explanation.`;
 }
@@ -642,7 +738,7 @@ async function generateYaml(
 }
 
 // ---------------------------------------------------------------------------
-// YAML validation (basic sanity check)
+// YAML validation — includes Compose ID enforcement
 // ---------------------------------------------------------------------------
 function validateYaml(yaml: string, scenario: ScenarioDefinition): string[] {
   const warnings: string[] = [];
@@ -652,6 +748,23 @@ function validateYaml(yaml: string, scenario: ScenarioDefinition): string[] {
     warnings.push('No assertions found — case may not verify anything');
   if (yaml.includes('coordinates:') || /\(\d+,\s*\d+\)/.test(yaml))
     warnings.push('Hard-coded coordinates detected — remove them');
+
+  // ── COMPOSE ID ENFORCEMENT ───────────────────────────────────────────────
+  // These old XML android:id values no longer appear in the Accessibility tree
+  // after the flight results page was migrated to Jetpack Compose (v4).
+  // Any generated YAML using them will always fail at runtime.
+  for (const forbiddenId of FORBIDDEN_XML_IDS) {
+    const pattern = new RegExp(`id:\\s*["']?${forbiddenId}["']?`);
+    if (pattern.test(yaml)) {
+      const replacement = COMPOSE_ID_MAP[forbiddenId];
+      const hint = replacement ? ` → use "${replacement}" instead` : ' (no direct replacement; see COMPOSE_ID_MAP)';
+      warnings.push(
+        `COMPOSE_MIGRATION_ERROR: id "${forbiddenId}" is a forbidden old XML android:id.` +
+        ` This ID does not exist in the Accessibility tree (Compose migration).${hint}`
+      );
+    }
+  }
+
   return warnings;
 }
 
