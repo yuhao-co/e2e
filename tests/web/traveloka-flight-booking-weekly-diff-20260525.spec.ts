@@ -5,6 +5,7 @@ import {
   openFlightSearchTask,
   clickByIdOrAi,
 } from '../lib/traveloka-flight/workflow';
+import { buildFlightSourceContextFromFiles } from '../lib/traveloka-flight/source-map';
 
 import {
   openBookingPageFromSearchResults,
@@ -12,7 +13,14 @@ import {
 } from '../lib/traveloka-flight/workflow';
 import { GenericBugDetector } from '../lib/generic-bug-detector';
 
-const TARGET_URL = 'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY';
+const ROUTED_SOURCE_FILES = [
+  'packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactForm.tsx',
+  'packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts',
+];
+const TARGET_URL = buildFlightSourceContextFromFiles(
+  ROUTED_SOURCE_FILES,
+  'Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.',
+).url;
 
 /**
  * EN Purpose: Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.
@@ -72,15 +80,15 @@ test('Traveloka weekly diff booking smoke coverage (20260525)', async ({ page, a
     await ai('click the Choose button on the first flight result card');
   }
   
-  // Step 2: Wait for ticket type selection drawer
-  const ticketTypeVisible = await page.getByText(/Select ticket type/i).isVisible({ timeout: 15000 }).catch(() => false);
+  // Step 2: Wait for ticket type selection drawer via testid (fsv2 bundle tray)
+  const ticketTypeVisible = await page.locator('[data-testid="view_fsv2_ticket_option_card_0"]').isVisible({ timeout: 15000 }).catch(() => false);
   if (!ticketTypeVisible) {
-    console.warn('[ai-fallback] Select ticket type drawer not detected via text — using Midscene AI');
+    console.warn('[ai-fallback] Ticket option card_0 not found — using Midscene AI');
     await ai('wait for the ticket type selection drawer to appear');
   }
   
   // Step 3: Click Select button in the drawer (try data-testid first, fall back to AI)
-  const selectButton = page.locator('[data-testid="button_ticket_option_select_1"]').first();
+  const selectButton = page.locator('[data-testid="button_fsv2_ticket_option_select_0"]').first();
   const selectVisible = await selectButton.isVisible({ timeout: 5000 }).catch(() => false);
   if (selectVisible) {
     await selectButton.click();

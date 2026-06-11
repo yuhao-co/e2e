@@ -1,0 +1,54 @@
+##
+# SCENARIO 20 — Filter: Combined Direct + Morning departure (compound filter)
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   layer_transit → button_direct
+#   layer_time    → button_departure_morning
+#   dbwShow       → apply button
+#
+# This tests that multiple filter layers can be combined in one session.
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Open filter
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+- assertVisible:
+    id: "layout_filter_dialog"
+# ── Transit layer: select Direct ──────────────────────────────────────────────
+- tapOn:
+    id: "layer_transit"
+
+- assertVisible:
+    id: "button_direct"
+- tapOn:
+    id: "button_direct"
+
+# ── Time layer: select Morning ────────────────────────────────────────────────
+- tapOn:
+    id: "layer_time"
+
+- assertVisible:
+    id: "button_departure_morning"
+- tapOn:
+    id: "button_departure_morning"
+
+# ── Apply combined filter ─────────────────────────────────────────────────────
+- tapOn:
+    id: "dbwShow"
+
+# ── Assertions ────────────────────────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- assertVisible:
+    id: "text_departure_time"
+- assertVisible:
+    id: "text_number_of_transit"

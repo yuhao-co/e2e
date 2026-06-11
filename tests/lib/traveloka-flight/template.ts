@@ -5,6 +5,8 @@ export type FlightCaseTemplateInput = {
   testName: string;
   url: string;
   userIntent: string;
+  confidence?: 'high' | 'medium' | 'low';
+  runtimeRoutingPaths?: string[];
   importPrefix?: string;
   extraImportBlock?: string;
   concerns?: FlightConcern[];
@@ -12,6 +14,14 @@ export type FlightCaseTemplateInput = {
   sourceSummaryLines?: string[];
   assertionLines?: string[];
   interactionLines?: string[];
+  actionContracts?: Array<{
+    stepName: string;
+    scopeHint: string;
+    expectedContracts: string[];
+    preconditions?: string[];
+    postconditions?: string[];
+    confidence: 'high' | 'medium' | 'low';
+  }>;
 };
 
 function indent(lines: string[], spaces = 4) {
@@ -65,8 +75,10 @@ export function createFlightCaseTemplate(input: FlightCaseTemplateInput): string
   });
   const importPrefix = input.importPrefix ?? './';
   const concerns = input.concerns?.length ? input.concerns : normalized.concerns;
+  const runtimeRoutingPaths = input.runtimeRoutingPaths?.length ? input.runtimeRoutingPaths : null;
   const sourceCommitLines = input.sourceCommitLines ?? [];
   const sourceSummaryLines = input.sourceSummaryLines ?? [];
+  const actionContracts = input.actionContracts ?? [];
   const assertions = input.assertionLines?.length
     ? input.assertionLines
     : [
@@ -86,6 +98,21 @@ export function createFlightCaseTemplate(input: FlightCaseTemplateInput): string
   const sourceSummary = sourceSummaryLines.length
     ? sourceSummaryLines.join(' | ')
     : null;
+  const caseConfidence = input.confidence ?? 'medium';
+  const actionContractLines = actionContracts.length
+    ? [
+        `EN Action contract confidence: ${caseConfidence}`,
+        `中文动作契约置信度: ${caseConfidence}`,
+        ...actionContracts.map(
+          (action) =>
+            `EN Action ${action.stepName}: scope=${action.scopeHint}; contracts=${action.expectedContracts.join(' | ')}; confidence=${action.confidence}`,
+        ),
+        ...actionContracts.map(
+          (action) =>
+            `中文动作 ${action.stepName}: 范围=${action.scopeHint}；契约=${action.expectedContracts.join(' | ')}；置信度=${action.confidence}`,
+        ),
+      ]
+    : [];
   const caseSummaryBlock = `/**
 ${toCommentLines([
   `EN Purpose: ${normalized.rawUserIntent}`,
@@ -104,6 +131,7 @@ ${toCommentLines([
         `中文来源摘要: ${sourceSummary}`,
       ]
     : []),
+  ...actionContractLines,
   'EN Expectation: keep this generated case aligned with the stable Traveloka desktop baseline flow and verify only the routed regression slice.',
   '中文预期: 该生成用例必须与稳定的 Traveloka desktop 基线流程保持一致，只验证本次路由到的回归范围。',
 ])}
@@ -136,6 +164,16 @@ import {
   runFlightWorkflow,
   clickByIdOrAi,
 } from '${importPrefix}lib/traveloka-flight/workflow';`;
+  const runtimeRoutingImportBlock = runtimeRoutingPaths
+    ? `import { buildFlightSourceContextFromFiles } from '${importPrefix}lib/traveloka-flight/source-map';`
+    : '';
+  const targetUrlBlock = runtimeRoutingPaths
+    ? `const ROUTED_SOURCE_FILES = ${JSON.stringify(runtimeRoutingPaths, null, 2)};
+const TARGET_URL = buildFlightSourceContextFromFiles(
+  ROUTED_SOURCE_FILES,
+  ${JSON.stringify(normalized.rawUserIntent)},
+).url;`
+    : `const TARGET_URL = '${input.url}';`;
 
   const navigationBlock = useSearchWorkflow
     ? `  const { sidebar } = await openFlightSearchTask(page, {
@@ -163,11 +201,14 @@ import {
     },
   ]);`;
 
-  return `${importBlock}
+  return `${importBlock}${runtimeRoutingImportBlock ? `
+${runtimeRoutingImportBlock}` : ''}
 ${input.extraImportBlock ? `
 ${input.extraImportBlock}` : ''}
 
-const TARGET_URL = '${input.url}';
+${targetUrlBlock}
+
+const GENERATED_ACTION_CONTRACTS = ${JSON.stringify(actionContracts, null, 2)};
 
 ${caseSummaryBlock}
 
@@ -176,12 +217,10 @@ ${testUseBlock}
 test('${input.testName}', async ({ page, ai, aiQuery }, testInfo) => {
   // GENERATION MODE: PRD-driven regression spec.
   // Navigation strategy:
-  //   - Use ai() for ALL proceed/continue/submit button clicks (reads visible text like a human).
-  //   - Use data-testid contracts from www source ONLY for page-root anchors and PRD-specific
-  //     element assertions (not for nav buttons).
-  //   - Use waitForResponse() to intercept BFF API responses for dynamic redirect params.
-  // If this spec was generated WITHOUT a specific PRD, treat all selectors as candidates —
-  // replace any hardcoded nav-button testIDs with: await ai('click the button to proceed').
+  //   - Use explicit www-derived contracts for navigation and form interaction.
+  //   - If a required contract is missing at runtime, attach a shadow proposal artifact
+  //     via aiQuery() for diagnosis, then fail loudly instead of letting AI continue the flow.
+  //   - Keep ai()/aiQuery() as discovery or post-failure analysis tools, not the main executor.
   const workflowPlan = createFlightWorkflowPlan({
     url: TARGET_URL,
     userIntent: ${JSON.stringify(normalized.rawUserIntent)},
@@ -189,6 +228,16 @@ test('${input.testName}', async ({ page, ai, aiQuery }, testInfo) => {
   });
 
   await attachFlightWorkflowPlan(testInfo, workflowPlan);
+
+  if (GENERATED_ACTION_CONTRACTS.length > 0) {
+    await testInfo.attach('generated-action-contracts.json', {
+      body: Buffer.from(JSON.stringify({
+        caseConfidence: ${JSON.stringify(caseConfidence)},
+        actionContracts: GENERATED_ACTION_CONTRACTS,
+      }, null, 2)),
+      contentType: 'application/json',
+    });
+  }
 
 ${navigationBlock}
 

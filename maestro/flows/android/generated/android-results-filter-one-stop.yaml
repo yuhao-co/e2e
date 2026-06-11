@@ -1,0 +1,45 @@
+##
+# SCENARIO 03 — Filter: 1-stop flights only
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_result_revamp_filter_transit_layer.xml → button_one_transit
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# ── Open filter dialog ───────────────────────────────────────────────────────
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+- assertVisible:
+    id: "layout_filter_dialog"
+# ── Reset any previous filters first ─────────────────────────────────────────
+- tapOn:
+    id: "tvReset"
+    optional: true
+
+# ── Transit layer ─────────────────────────────────────────────────────────────
+- tapOn:
+    id: "layer_transit"
+
+- assertVisible:
+    id: "button_one_transit"
+# Select 1-stop only
+- tapOn:
+    id: "button_one_transit"
+
+# ── Apply ─────────────────────────────────────────────────────────────────────
+- tapOn:
+    id: "dbwShow"
+
+# ── Assertions ────────────────────────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- assertVisible:
+    id: "text_number_of_transit"

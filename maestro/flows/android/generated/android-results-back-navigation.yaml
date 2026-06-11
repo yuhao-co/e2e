@@ -1,0 +1,28 @@
+##
+# SCENARIO 15 — Navigation: Back button returns to search form
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_result_revamp_activity.xml  →  image_arrow_back
+#   FlightResultScreen.kt  →  fun clickBackButton() = btnArrowBack.click()
+#   flight_search_form_activity.xml   →  layout_search_form, btn_search
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Verify we are on results
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+# Tap back arrow (NOT Android back gesture — explicit header button)
+- tapOn:
+    id: "image_arrow_back"
+
+# ── Assertions: Back on search form ──────────────────────────────────────────
+- assertVisible:
+    id: "btn_search"
+- assertVisible:
+    id: "layout_search_form"

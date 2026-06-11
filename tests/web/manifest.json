@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastUpdated": "2026-05-25T08:34:30.886Z",
+  "lastUpdated": "2026-06-11T03:00:28.317Z",
   "layers": {
     "baseline": {
       "frozen": true,
@@ -24,16 +24,223 @@
         ],
         "status": "active",
         "checksumHash": "1ecb273f78b5afe7"
+      },
+      {
+        "id": "explore-20260526",
+        "type": "snapshot",
+        "timestamp": "2026-05-26T04:00:55.494Z",
+        "caseCount": 3,
+        "domains": [
+          "flight-discover"
+        ],
+        "intentHashes": [
+          "2f00c53e3d0d32dc",
+          "f07df56fc0d53dae",
+          "d1f4411f208233af"
+        ],
+        "status": "active",
+        "checksumHash": "577786a10a3d79b9"
+      },
+      {
+        "id": "explore-20260527",
+        "type": "snapshot",
+        "timestamp": "2026-05-27T04:00:02.333Z",
+        "caseCount": 3,
+        "domains": [
+          "flight-cheapest-date"
+        ],
+        "intentHashes": [
+          "87a0b488cd74a59c",
+          "c99420533395d6df",
+          "c302768340837bb6"
+        ],
+        "status": "active",
+        "checksumHash": "cac269153221b1f6"
+      },
+      {
+        "id": "explore-20260528",
+        "type": "snapshot",
+        "timestamp": "2026-05-28T04:00:03.983Z",
+        "caseCount": 3,
+        "domains": [
+          "flight-reschedule-info"
+        ],
+        "intentHashes": [
+          "eaea42d1782a1d04",
+          "06a532a717e1bfd4",
+          "2511db34bb11ee80"
+        ],
+        "status": "active",
+        "checksumHash": "635014478ab4d1fe"
+      },
+      {
+        "id": "explore-20260529",
+        "type": "snapshot",
+        "timestamp": "2026-05-29T04:00:06.892Z",
+        "caseCount": 9,
+        "domains": [
+          "flight-refund-info"
+        ],
+        "intentHashes": [
+          "1c476ca46ac2c513",
+          "11dfe0fbf35f9b8a",
+          "11bb6a5b54d2bd0f",
+          "f4e65f67b842af1b",
+          "928f1ff5ab7c08a3",
+          "0a3b6385022a1f83",
+          "7a7ec029cc50eeae",
+          "0661ec3fcc369b24",
+          "7c38619ac5a2b6e0"
+        ],
+        "status": "active",
+        "checksumHash": "ab57073c2178f61c"
+      },
+      {
+        "id": "explore-20260601",
+        "type": "snapshot",
+        "timestamp": "2026-06-01T04:00:07.442Z",
+        "caseCount": 3,
+        "domains": [
+          "flight-airport-page"
+        ],
+        "intentHashes": [
+          "8acab6c3ebc7b82d",
+          "8ba812365c6461f3",
+          "56a6358c4fb12890"
+        ],
+        "status": "active",
+        "checksumHash": "fa3b72991fb44e97"
+      },
+      {
+        "id": "explore-20260602",
+        "type": "snapshot",
+        "timestamp": "2026-06-02T04:00:07.014Z",
+        "caseCount": 3,
+        "domains": [
+          "flight-safe-travel"
+        ],
+        "intentHashes": [
+          "8cc1247df0e2afb4",
+          "af3a1d055ce7a66c",
+          "823869328ec6e6e7"
+        ],
+        "status": "active",
+        "checksumHash": "b195994061800989"
+      },
+      {
+        "id": "explore-20260603",
+        "type": "snapshot",
+        "timestamp": "2026-06-03T04:00:06.392Z",
+        "caseCount": 3,
+        "domains": [
+          "flight-carbon-offset"
+        ],
+        "intentHashes": [
+          "e4c7c8d5fad0c3aa",
+          "3946beb80301bb50",
+          "8eedcfcd43d2f857"
+        ],
+        "status": "active",
+        "checksumHash": "1efdad6948053487"
+      },
+      {
+        "id": "explore-20260604",
+        "type": "snapshot",
+        "timestamp": "2026-06-04T04:00:05.878Z",
+        "caseCount": 1,
+        "domains": [
+          "flight-visa-info"
+        ],
+        "intentHashes": [
+          "cdde87c21682803a"
+        ],
+        "status": "active",
+        "checksumHash": "9f8cde6ec90796d7"
+      },
+      {
+        "id": "snapshot-2026-06-05T03:00:17.798Z",
+        "type": "snapshot",
+        "timestamp": "2026-06-05T03:00:17.798Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "e1b1ef8673e67192"
+      },
+      {
+        "id": "snapshot-2026-06-08T03:01:56.734Z",
+        "type": "snapshot",
+        "timestamp": "2026-06-08T03:01:56.734Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "7074b0245c841347"
+      },
+      {
+        "id": "snapshot-2026-06-09T03:01:33.571Z",
+        "type": "snapshot",
+        "timestamp": "2026-06-09T03:01:33.571Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "24c1db2ca3b82cd5"
+      },
+      {
+        "id": "snapshot-2026-06-10T03:00:19.271Z",
+        "type": "snapshot",
+        "timestamp": "2026-06-10T03:00:19.271Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "d88b63e88ef83c39"
+      },
+      {
+        "id": "snapshot-2026-06-11T03:00:28.217Z",
+        "type": "snapshot",
+        "timestamp": "2026-06-11T03:00:28.217Z",
+        "caseCount": 2,
+        "domains": [
+          "flight-booking",
+          "flight-search"
+        ],
+        "intentHashes": [],
+        "status": "active",
+        "checksumHash": "f05d33166d2baf4b"
       }
     ]
   },
   "statistics": {
-    "totalCases": 3,
+    "totalCases": 41,
     "byDomain": {
-      "flight-homepage": 3
+      "flight-homepage": 3,
+      "flight-discover": 3,
+      "flight-cheapest-date": 3,
+      "flight-reschedule-info": 3,
+      "flight-refund-info": 9,
+      "flight-airport-page": 3,
+      "flight-safe-travel": 3,
+      "flight-carbon-offset": 3,
+      "flight-visa-info": 1,
+      "flight-booking": 5,
+      "flight-search": 5
     },
     "byStatus": {
-      "active": 3,
+      "active": 41,
       "deprecated": 0
     }
   },

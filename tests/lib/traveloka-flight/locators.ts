@@ -166,7 +166,11 @@ export function getSelectTicketTypeDialog(page: Page): Locator {
 }
 
 export function getTicketOptionSelectButton(page: Page): Locator {
-  return page.getByTestId('button_ticket_option_select_1').first();
+  // Primary: verified testid from TicketOptionCard.tsx (www source)
+  // Fallback: role-based Select button for flights that render different indices
+  return page.locator('[data-testid="button_fsv2_ticket_option_select_0"]')
+    .or(page.getByRole('button', { name: /^Select$/i }))
+    .first();
 }
 
 export function getTicketTypeSelectButton(page: Page): Locator {

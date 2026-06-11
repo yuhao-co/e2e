@@ -16,6 +16,11 @@ WEEKLY_PLAYWRIGHT_LABEL="${WEEKLY_PLAYWRIGHT_LABEL:-Weekly diff Playwright run}"
 # Skip git fetch when cache repo exists (saves ~1-2 min). Set FORCE_FETCH=1 to override.
 FORCE_FETCH="${FORCE_FETCH:-0}"
 RUN_BUG_DETECTION="${RUN_BUG_DETECTION:-1}"
+RUN_WEEKLY_QUALITY_PLANNING="${RUN_WEEKLY_QUALITY_PLANNING:-1}"
+RUN_WEEKLY_QUALITY_TRIAGE="${RUN_WEEKLY_QUALITY_TRIAGE:-1}"
+RUN_WEEKLY_QUALITY_CALIBRATION="${RUN_WEEKLY_QUALITY_CALIBRATION:-1}"
+RUN_WEEKLY_QUALITY_PROMOTION="${RUN_WEEKLY_QUALITY_PROMOTION:-1}"
+RUN_WEEKLY_QUALITY_NOTIFY="${RUN_WEEKLY_QUALITY_NOTIFY:-1}"
 
 cd "$REPO_ROOT"
 
@@ -87,6 +92,18 @@ fi
 CMD+=("$@")
 
 "${CMD[@]}"
+
+if [[ "$RUN_WEEKLY_QUALITY_PLANNING" == "1" ]]; then
+  SUMMARY_FILE="$REPO_ROOT/$OUTPUT_DIR/latest/summary.json"
+  if [[ -f "$SUMMARY_FILE" ]]; then
+    echo "[weekly-quality] generating standalone quality plan from latest summary.json"
+    if ! npx tsx scripts/plan-weekly-quality-scenarios.ts --summary-file "$SUMMARY_FILE"; then
+      echo "[weekly-quality] ⚠️ planning failed (non-blocking)"
+    fi
+  else
+    echo "[weekly-quality] latest summary.json not found — planning skipped"
+  fi
+fi
 
 # Run generic bug detection if enabled
 if [[ "$RUN_BUG_DETECTION" == "1" ]]; then
@@ -166,9 +183,48 @@ echo "[weekly-diff] running accumulated weekly flight specs: ${#WEEKLY_SPECS[@]}
 printf ' - %s\n' "${WEEKLY_SPECS[@]}"
 
 if [[ "$WEEKLY_NOTIFY" == "1" ]]; then
-  npx tsx scripts/run-with-lark-notify.ts --label "$WEEKLY_PLAYWRIGHT_LABEL" -- "${TEST_CMD[@]}"
+  PLAYWRIGHT_EXIT_CODE=0
+  if npx tsx scripts/run-with-lark-notify.ts --label "$WEEKLY_PLAYWRIGHT_LABEL" -- "${TEST_CMD[@]}"; then
+    PLAYWRIGHT_EXIT_CODE=0
+  else
+    PLAYWRIGHT_EXIT_CODE=$?
+  fi
 else
-  "${TEST_CMD[@]}"
+  PLAYWRIGHT_EXIT_CODE=0
+  if "${TEST_CMD[@]}"; then
+    PLAYWRIGHT_EXIT_CODE=0
+  else
+    PLAYWRIGHT_EXIT_CODE=$?
+  fi
+fi
+
+if [[ "$RUN_WEEKLY_QUALITY_TRIAGE" == "1" ]]; then
+  echo "[weekly-quality] generating standalone failure triage"
+  if ! npx tsx scripts/triage-weekly-failures.ts; then
+    echo "[weekly-quality] ⚠️ triage failed (non-blocking)"
+  fi
+fi
+
+if [[ "$RUN_WEEKLY_QUALITY_CALIBRATION" == "1" ]]; then
+  echo "[weekly-quality] calibrating capability feedback and scoped reruns"
+  if ! npx tsx scripts/calibrate-weekly-quality.ts; then
+    echo "[weekly-quality] ⚠️ calibration failed (non-blocking)"
+  fi
+fi
+
+if [[ "$RUN_WEEKLY_QUALITY_PROMOTION" == "1" ]]; then
+  echo "[weekly-quality] promoting verified lessons into learning memory"
+  if ! npx tsx scripts/promote-weekly-learning.ts; then
+    echo "[weekly-quality] ⚠️ learning promotion failed (non-blocking)"
+  fi
+fi
+
+if [[ "$RUN_WEEKLY_QUALITY_NOTIFY" == "1" ]]; then
+  echo "[weekly-quality] sending weekly quality summary notification"
+  if ! npx tsx scripts/send-weekly-quality-notification.ts --label "Weekly quality summary"; then
+    echo "[weekly-quality] ⚠️ quality summary notification failed (non-blocking)"
+  fi
 fi
 
 echo "[weekly-diff] playwright report available at playwright-report/index.html"
+exit ${PLAYWRIGHT_EXIT_CODE:-0}

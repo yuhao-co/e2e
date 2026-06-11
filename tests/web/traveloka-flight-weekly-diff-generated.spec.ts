@@ -4,11 +4,18 @@ import {
   createFlightWorkflowPlan,
   openFlightSearchTask,
 } from '../lib/traveloka-flight/workflow';
+import { buildFlightSourceContextFromFiles } from '../lib/traveloka-flight/source-map';
 
 import { travelokaFlightSearchResultsSelectors } from '../lib/traveloka-flight/locators';
 import { getTaggedFlightResultCards, tagVisibleFlightResultCards } from '../lib/traveloka-flight/locators';
 
-const TARGET_URL = 'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';
+const ROUTED_SOURCE_FILES = [
+  'packages/flight/fpr-search-result-v2/components/FlightSearchSidebar/FlightSearchSidebarFilter.tsx',
+];
+const TARGET_URL = buildFlightSourceContextFromFiles(
+  ROUTED_SOURCE_FILES,
+  'Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.',
+).url;
 
 /**
  * EN Purpose: Open the desktop Traveloka flight search results page and validate the weekly regression areas covering results-list rendering and sidebar filter readiness. Prefer search-results coverage, filters, sorting, price visibility, and results-list behavior.

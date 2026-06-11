@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-06-10T08:32:35.685Z",
+  "lessons": [
+    {
+      "packId": "flight-booking-contact",
+      "lessonKey": "flight-booking-contact::ticket type drawer not visible::wait for view_fsv2_ticket_option_card_0 then click button_fsv2_ticket_option_select_0",
+      "trigger": "ticket type drawer not visible",
+      "action": "Wait for [data-testid=\"view_fsv2_ticket_option_card_0\"] (TicketOptionCard.tsx anchor), then click [data-testid=\"button_fsv2_ticket_option_select_0\"]. Pattern is button_fsv2_ticket_option_select_${index} where index=0 for first option. NEVER use button_ticket_option_select_1 or ticket-type-drawer — confirmed wrong from www source.",
+      "sourceFailureClasses": [
+        "selector-drift",
+        "wrong-testid"
+      ],
+      "observedRunIds": [
+        "manual-session-20260529",
+        "manual-session-20260529-fix"
+      ],
+      "successfulReruns": 2,
+      "firstVerifiedAt": "2026-05-29T08:00:00.000Z",
+      "lastVerifiedAt": "2026-05-29T08:00:00.000Z",
+      "status": "promoted",
+      "promotedAt": "2026-05-29T08:00:00.000Z"
+    },
+    {
+      "packId": "flight-booking-contact",
+      "lessonKey": "flight-booking-contact::ai-fallback triggered for ticket drawer::use www contract view_fsv2_ticket_option_card_0 not text-based detection",
+      "trigger": "ai-fallback triggered for ticket drawer",
+      "action": "Root cause: spec used wrong testid. Fix: source selector from TicketOptionCard.tsx via `git show HEAD:packages/flight/fpr-bundle/StackedBundleSummaryTray/TicketOptionsTray/TicketOptionsSection/TicketOptionCard.tsx | grep testID`. Do NOT rely on ai() as primary for this step.",
+      "sourceFailureClasses": [
+        "selector-drift",
+        "ai-fallback-overuse"
+      ],
+      "observedRunIds": [
+        "manual-session-20260529"
+      ],
+      "successfulReruns": 2,
+      "firstVerifiedAt": "2026-05-29T08:00:00.000Z",
+      "lastVerifiedAt": "2026-05-29T08:00:00.000Z",
+      "status": "promoted",
+      "promotedAt": "2026-05-29T08:00:00.000Z"
+    },
+    {
+      "packId": "flight-booking-payment",
+      "lessonKey": "flight-booking-payment::booking chain reached payment successfully::full chain confirmed working 20260529",
+      "trigger": "booking chain reached payment successfully",
+      "action": "Full booking chain confirmed working 2026-05-29: search → Choose ([data-testid=\"flight-inventory-card-button\"]) → wait view_fsv2_ticket_option_card_0 → Select button_fsv2_ticket_option_select_0 → booking form → contact/traveler fill via ai() → bff-next-page → bff-submit-page → payment. CC form inside #creditCardPaymentFormIframe (cross-origin, use frame.locator). Do NOT submit payment.",
+      "sourceFailureClasses": [],
+      "observedRunIds": [
+        "manual-session-20260529"
+      ],
+      "successfulReruns": 2,
+      "firstVerifiedAt": "2026-05-29T08:00:00.000Z",
+      "lastVerifiedAt": "2026-05-29T08:00:00.000Z",
+      "status": "promoted",
+      "promotedAt": "2026-05-29T08:00:00.000Z"
+    },
+    {
+      "packId": "flight-booking-contact",
+      "lessonKey": "flight-booking-contact::www cache is bare repo no working tree::must use git show to read source files",
+      "trigger": "www cache is bare repo no working tree",
+      "action": "www source at .cache/weekly-diff-repos/github.com_traveloka_www is a BARE git repo. grep -r on filesystem returns nothing. Must use: `git -C .cache/weekly-diff-repos/github.com_traveloka_www show HEAD:<relative-path> | grep testID`. Never guess testids.",
+      "sourceFailureClasses": [
+        "wrong-testid",
+        "selector-drift"
+      ],
+      "observedRunIds": [
+        "manual-session-20260529"
+      ],
+      "successfulReruns": 2,
+      "firstVerifiedAt": "2026-05-29T08:00:00.000Z",
+      "lastVerifiedAt": "2026-05-29T08:00:00.000Z",
+      "status": "promoted",
+      "promotedAt": "2026-05-29T08:00:00.000Z"
+    }
+  ]
+}

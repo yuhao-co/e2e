@@ -139,15 +139,45 @@ const stealthInitScript = `
     Object.defineProperty(window, 'outerHeight', { get: () => window.innerHeight + 85 });
   }
 
-  // ── iframe contentWindow.navigator.webdriver ─────────────────────────────
-  const origAttachShadow = Element.prototype.attachShadow;
-  HTMLIFrameElement.prototype.__defineGetter__ && HTMLIFrameElement.prototype.__defineGetter__('contentWindow', function () {
-    const win = this.contentWindow;
-    if (win) {
-      try { Object.defineProperty(win.navigator, 'webdriver', { get: () => undefined }); } catch (_) {}
+  // ── document.referrer patch for CC SDK iframe (payfrm.pay.traveloka.com) ─
+  // The CC SDK checks document.referrer.startsWith('https://www.traveloka.com')
+  // and calls parent.location.replace() if the check fails. Playwright sessions
+  // captured from Google may carry a google.com referrer. Patch document.referrer
+  // in all frames to ensure the Traveloka origin check passes.
+  (function () {
+    var ref = document.referrer;
+    if (!ref || !ref.startsWith('https://www.traveloka.com')) {
+      try {
+        Object.defineProperty(document, 'referrer', {
+          configurable: true,
+          get: function () { return 'https://www.traveloka.com'; }
+        });
+      } catch (e) {}
     }
-    return win;
-  });
+  })();
+
+  // ── iframe contentWindow (depth-guarded to prevent Playwright CDP recursion) ─
+  // Playwright's CDP layer overrides the native contentWindow getter; without
+  // this guard the CC payment SDK's iframe initialisation causes infinite
+  // recursion → RangeError: Maximum call stack size exceeded.
+  (function () {
+    var desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+    if (!desc || !desc.get) return;
+    var origGet = desc.get;
+    var depth = 0;
+    Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+      configurable: true,
+      enumerable: true,
+      get: function () {
+        if (depth > 0) {
+          try { return (this.contentDocument && this.contentDocument.defaultView) || null; }
+          catch (e) { return null; }
+        }
+        depth++;
+        try { return origGet.call(this); } finally { depth--; }
+      }
+    });
+  })();
 })();
 `;
 

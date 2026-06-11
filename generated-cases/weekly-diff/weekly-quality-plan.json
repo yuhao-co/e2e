@@ -1,0 +1,481 @@
+{
+  "generatedAt": "2026-06-11T03:00:34.237Z",
+  "mode": "standalone",
+  "changedFiles": [],
+  "signals": [
+    "results-list",
+    "booking-contact",
+    "search-form"
+  ],
+  "generatedCandidates": [
+    {
+      "id": "flight-booking-weekly",
+      "domain": "flight-booking",
+      "confidence": "high",
+      "concerns": [
+        "booking-contact"
+      ],
+      "actionContractCount": 0,
+      "webSpecFileName": "traveloka-flight-booking-weekly-diff-20260522.spec.ts"
+    },
+    {
+      "id": "flight-search-weekly",
+      "domain": "flight-search",
+      "confidence": "high",
+      "concerns": [
+        "results-list"
+      ],
+      "actionContractCount": 0,
+      "webSpecFileName": "traveloka-flight-weekly-diff-20260522.spec.ts"
+    }
+  ],
+  "suggestedPacks": [
+    {
+      "id": "flight-search-results",
+      "title": "Flight search results canary",
+      "surfaces": [
+        "flight-search"
+      ],
+      "concernClusters": [
+        "search-form",
+        "results-list",
+        "date-flow"
+      ],
+      "owningDocs": [
+        "docs/weekly-diff-case-generator.md",
+        "docs/traveloka-flight-booking-case-generation.md"
+      ],
+      "owningBaselines": [
+        "tests/web/traveloka-flight-weekly-diff-generated.spec.ts"
+      ],
+      "sourcePackages": [
+        "packages/flight/fpr-search-result-v2",
+        "packages/flight/fpr-search-results",
+        "packages/flight/app-desktop/pages"
+      ],
+      "entryStrategy": "Route from shared flight source-map to desktop results surface, not guessed deep links.",
+      "routePatterns": [
+        "/flight/fullsearch",
+        "/flight/fulltwosearch"
+      ],
+      "criticalSelectors": [
+        "[data-testid=\"desktop-default-form\"]",
+        "[data-testid=\"flight-inventory-card-button\"]",
+        "[data-id=\"desktop-default-search-button\"]"
+      ],
+      "steps": [
+        {
+          "id": "open-results-surface",
+          "description": "Open the stable desktop search or results surface via shared routing.",
+          "routePattern": "/flight/(fullsearch|fulltwosearch)"
+        },
+        {
+          "id": "search-form-interaction",
+          "description": "Exercise the search form or ensure it remains actionable on the results surface.",
+          "selectors": [
+            "[data-testid=\"desktop-default-form\"]",
+            "[data-id=\"desktop-default-search-button\"]"
+          ],
+          "frameScope": "main-page"
+        },
+        {
+          "id": "results-card-visible",
+          "description": "Verify result cards remain visible and actionable.",
+          "selectors": [
+            "[data-testid=\"flight-inventory-card-button\"]"
+          ],
+          "frameScope": "main-page"
+        }
+      ],
+      "repairHints": [
+        {
+          "trigger": "results CTA missing",
+          "action": "Re-read the owning WWW sidebar or inventory-card component before changing selectors."
+        },
+        {
+          "trigger": "route mismatch",
+          "action": "Re-check shared route constants and redirects before introducing a new URL."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        }
+      ]
+    },
+    {
+      "id": "flight-booking-contact",
+      "title": "Booking contact canary",
+      "surfaces": [
+        "flight-booking"
+      ],
+      "concernClusters": [
+        "booking-contact"
+      ],
+      "owningDocs": [
+        "docs/traveloka-flight-booking-case-generation.md"
+      ],
+      "owningBaselines": [
+        "tests/web/traveloka-flight-booking-weekly-diff-20260527.spec.ts"
+      ],
+      "sourcePackages": [
+        "packages/flight/fpr-booking",
+        "packages/flight/fpr-booking-desktop"
+      ],
+      "entryStrategy": "Reach booking from search results chain instead of hardcoding a booking URL.",
+      "routePatterns": [
+        "/flight/booking"
+      ],
+      "criticalSelectors": [
+        "[data-testid=\"bff-next-page\"]",
+        "[data-testid=\"bff-submit-page\"]",
+        "[data-testid=\"contact_form_chunk2_save_button\"]"
+      ],
+      "steps": [
+        {
+          "id": "open-booking-from-results",
+          "description": "Use Choose then Select to land on booking. Ticket option drawer anchor: view_fsv2_ticket_option_card_0. Select button: button_fsv2_ticket_option_select_${index} (index=0).",
+          "selectors": [
+            "[data-testid=\"flight-inventory-card-button\"]",
+            "[data-testid=\"view_fsv2_ticket_option_card_0\"]",
+            "[data-testid=\"button_fsv2_ticket_option_select_0\"]"
+          ]
+        },
+        {
+          "id": "fill-contact",
+          "description": "Fill contact and traveler chunks using WWW-derived contracts.",
+          "selectors": [
+            "[data-testid=\"contact_form_chunk2_save_button\"]",
+            "[data-testid=\"bff-next-page\"]"
+          ]
+        },
+        {
+          "id": "submit-booking",
+          "description": "Use authoritative booking submit CTA.",
+          "selectors": [
+            "[data-testid=\"bff-submit-page\"]"
+          ]
+        }
+      ],
+      "repairHints": [
+        {
+          "trigger": "contact fields drift",
+          "action": "Refresh the booking contract from fpr-booking source rather than using placeholder selectors."
+        },
+        {
+          "trigger": "ticket type drawer not found",
+          "action": "Confirmed www source (TicketOptionCard.tsx): wait for [data-testid=\"view_fsv2_ticket_option_card_0\"], then click [data-testid=\"button_fsv2_ticket_option_select_0\"]. NEVER use button_ticket_option_select_1 or ticket-type-drawer — those are wrong."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "learning:ticket type drawer not visible",
+          "action": "Wait for [data-testid=\"view_fsv2_ticket_option_card_0\"] (TicketOptionCard.tsx anchor), then click [data-testid=\"button_fsv2_ticket_option_select_0\"]. Pattern is button_fsv2_ticket_option_select_${index} where index=0 for first option. NEVER use button_ticket_option_select_1 or ticket-type-drawer — confirmed wrong from www source."
+        },
+        {
+          "trigger": "learning:ai-fallback triggered for ticket drawer",
+          "action": "Root cause: spec used wrong testid. Fix: source selector from TicketOptionCard.tsx via `git show HEAD:packages/flight/fpr-bundle/StackedBundleSummaryTray/TicketOptionsTray/TicketOptionsSection/TicketOptionCard.tsx | grep testID`. Do NOT rely on ai() as primary for this step."
+        },
+        {
+          "trigger": "learning:www cache is bare repo no working tree",
+          "action": "www source at .cache/weekly-diff-repos/github.com_traveloka_www is a BARE git repo. grep -r on filesystem returns nothing. Must use: `git -C .cache/weekly-diff-repos/github.com_traveloka_www show HEAD:<relative-path> | grep testID`. Never guess testids."
+        },
+        {
+          "trigger": "ticket type drawer not visible",
+          "action": "Wait for [data-testid=\"view_fsv2_ticket_option_card_0\"] (TicketOptionCard.tsx anchor), then click [data-testid=\"button_fsv2_ticket_option_select_0\"]. Pattern is button_fsv2_ticket_option_select_${index} where index=0 for first option. NEVER use button_ticket_option_select_1 or ticket-type-drawer — confirmed wrong from www source."
+        },
+        {
+          "trigger": "ai-fallback triggered for ticket drawer",
+          "action": "Root cause: spec used wrong testid. Fix: source selector from TicketOptionCard.tsx via `git show HEAD:packages/flight/fpr-bundle/StackedBundleSummaryTray/TicketOptionsTray/TicketOptionsSection/TicketOptionCard.tsx | grep testID`. Do NOT rely on ai() as primary for this step."
+        },
+        {
+          "trigger": "www cache is bare repo no working tree",
+          "action": "www source at .cache/weekly-diff-repos/github.com_traveloka_www is a BARE git repo. grep -r on filesystem returns nothing. Must use: `git -C .cache/weekly-diff-repos/github.com_traveloka_www show HEAD:<relative-path> | grep testID`. Never guess testids."
+        }
+      ]
+    }
+  ],
+  "suggestedOracleBundles": [
+    {
+      "id": "flight-search-route-health",
+      "title": "Search route and result health",
+      "appliesTo": [
+        "search-form",
+        "results-list",
+        "date-flow"
+      ],
+      "checks": [
+        {
+          "id": "search-route-family",
+          "kind": "route-pattern",
+          "description": "Page remains on a valid flight search route family.",
+          "severity": "P1",
+          "routePattern": "/flight/(fullsearch|fulltwosearch)"
+        },
+        {
+          "id": "results-cta-visible",
+          "kind": "element-visible",
+          "description": "At least one results CTA remains visible.",
+          "severity": "P1",
+          "selector": "[data-testid=\"flight-inventory-card-button\"]"
+        },
+        {
+          "id": "restricted-page-absent",
+          "kind": "restricted-page-absent",
+          "description": "Traveloka block or restricted page is not rendered.",
+          "severity": "P0"
+        },
+        {
+          "id": "fatal-console-errors",
+          "kind": "console-health",
+          "description": "No fatal console failures around the search slice.",
+          "severity": "P2"
+        }
+      ]
+    },
+    {
+      "id": "booking-contact-oracles",
+      "title": "Booking contact and submit integrity",
+      "appliesTo": [
+        "booking-contact"
+      ],
+      "checks": [
+        {
+          "id": "booking-route-family",
+          "kind": "route-pattern",
+          "description": "Workflow lands on the booking route family.",
+          "severity": "P1",
+          "routePattern": "/flight/booking"
+        },
+        {
+          "id": "booking-submit-visible",
+          "kind": "element-visible",
+          "description": "Authoritative booking submit CTA remains visible.",
+          "severity": "P1",
+          "selector": "[data-testid=\"bff-submit-page\"]"
+        },
+        {
+          "id": "booking-submit-actionable",
+          "kind": "element-actionable",
+          "description": "Authoritative booking submit CTA remains actionable.",
+          "severity": "P0",
+          "selector": "[data-testid=\"bff-submit-page\"]"
+        }
+      ]
+    },
+    {
+      "id": "payment-chain-oracles",
+      "title": "Booking to payment handoff integrity",
+      "appliesTo": [
+        "payment-chain",
+        "booking-contact"
+      ],
+      "checks": [
+        {
+          "id": "payment-handoff-detected",
+          "kind": "handoff-detected",
+          "description": "Booking submit causes handoff into payment selection.",
+          "severity": "P0",
+          "routePattern": "/payment/(v2/)?selection"
+        },
+        {
+          "id": "credit-card-option-visible",
+          "kind": "element-visible",
+          "description": "Credit card option remains visible on payment selection.",
+          "severity": "P1",
+          "selector": "[data-testid*=\"paymentOptionGroup-Credit Card\"]"
+        },
+        {
+          "id": "payment-pay-button-visible",
+          "kind": "element-visible",
+          "description": "Main-page paymentPayButton remains visible.",
+          "severity": "P0",
+          "selector": "[data-testid=\"paymentPayButton\"]"
+        },
+        {
+          "id": "payment-network-health",
+          "kind": "network-health",
+          "description": "No payment-related 4xx or 5xx failure dominates the run.",
+          "severity": "P0",
+          "networkPattern": "(payment|checkout|pay)"
+        },
+        {
+          "id": "payment-step-timing",
+          "kind": "timing-budget",
+          "description": "Payment handoff completes within a bounded budget.",
+          "severity": "P2",
+          "timingBudgetMs": 30000
+        }
+      ]
+    }
+  ],
+  "rationale": [
+    "This planner is standalone and does not modify existing weekly generator behavior.",
+    "PRD or weekly diff should supply the user-intent and changed-file signals; this planner only maps them into reusable capability and oracle layers.",
+    "Detected concern clusters: results-list, booking-contact, search-form",
+    "Read 2 generated candidate signals from weekly summary (0 main-lane eligible, 0 gated, 0 structured action contracts).",
+    "Applied capability feedback overlay from prior weekly triage to keep unstable packs in scope.",
+    "Applied promoted learning memory from prior successful reruns."
+  ]
+}

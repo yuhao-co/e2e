@@ -1,0 +1,36 @@
+appId: com.traveloka.android.staging
+---
+# 1. Launch app (pre-filled: Singapore SIN → Jakarta CGK from last session)
+- launchApp
+
+# 2. Dismiss onboarding if present
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+
+# 3. Wait for home screen
+- extendedWaitUntil:
+    visible: "Flights"
+    timeout: 20000
+
+# 4. Tap the Flights tile
+- tapOn: "Flights"
+
+# 5. Wait for search form (fields show airport codes, not "From"/"To" labels on Android)
+- extendedWaitUntil:
+    visible: "Singapore (SIN)"
+    timeout: 10000
+
+# 6. Assert origin and destination are correct
+- assertVisible: "Singapore (SIN)"
+
+# 7. Tap Search
+- tapOn: "Search"
+
+# 8. Verify results page has Direct filter
+- extendedWaitUntil:
+    visible: "Direct"
+    timeout: 30000
+- assertVisible: "Direct"

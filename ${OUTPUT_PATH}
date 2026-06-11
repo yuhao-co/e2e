@@ -2,10 +2,10 @@
   "sourceUrl": "${MEEGLE_URL}",
   "projectId": "${PROJECT_ID}",
   "detailId": "${DETAIL_ID}",
-  "timestamp": "2026-05-25T15:47:22Z",
-  "accessStatus": "error",
+  "timestamp": "2026-05-28T11:00:39Z",
+  "accessStatus": "not_found",
   "prdLink": null,
   "prdTitle": null,
   "summary": null,
-  "errorDetails": "Input placeholders were not resolved. Meegle lookup failed with: project: ${PROJECT_ID} not found. Lark read was not attempted."
+  "errorDetails": "Meegle lookup failed: project: ${PROJECT_ID} not found (logid: 202605281100398A768DA48A7F7C0F4BE4)"
 }

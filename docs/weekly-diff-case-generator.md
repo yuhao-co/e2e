@@ -13,6 +13,8 @@ For flight-related changes, the generator now also derives a canonical workflow 
 
 Current working mode for this repo is flight-first. The local wrapper script defaults to `https://github.com/traveloka/www` plus `--focus-domain flight-search`, so weekly runs inspect Traveloka WWW flight changes unless you explicitly override that behavior.
 
+For `flight-booking => payment` related changes, the generator must also pull locked local evidence from [docs/traveloka-flight-booking-payment-chain-lock.md](/Users/yu.hao/Desktop/task/e2e/docs/traveloka-flight-booking-payment-chain-lock.md) and the proven executable example [tests/web/traveloka-flight-booking-payment-e2e.spec.ts](/Users/yu.hao/Desktop/task/e2e/tests/web/traveloka-flight-booking-payment-e2e.spec.ts). This is a hard constraint for payment-sensitive weekly booking generation in this repository.
+
 If you also want the generator to materialize an executable Playwright case under `tests/web`, set `EMIT_WEB_SPEC=1` in the wrapper environment or pass `--emit-web-spec` to the script directly.
 
 ## Manual run
@@ -122,3 +124,8 @@ Logs are written to `logs/weekly-diff-generator.log` inside this repository.
 - If the target repository is unavailable or your machine is off on Friday night, nothing runs.
 - The first remote run must be able to clone the repository over the network; later runs use the local cache plus `git fetch`.
 - Flight target inference is still conservative: it maps known results/filter paths to a stable desktop results URL first, rather than discovering arbitrary deep links.
+
+<!-- AUTO_PROMOTED_LESSONS_START -->
+## Verified Stable Lessons
+- No promoted lessons yet.
+<!-- AUTO_PROMOTED_LESSONS_END -->

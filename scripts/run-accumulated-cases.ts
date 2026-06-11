@@ -128,11 +128,11 @@ function loadManifest(manifestPath: string): Manifest | null {
  * - deep_archive: 按需执行，已下线/retired
  */
 function getTestCasesFromLayer(
-  manifestPath: string,
+  outputDir: string,
   layer: 'active' | 'archive' | 'deep_archive',
 ): string[] {
   try {
-    const manifest = new AccumulationManifest(manifestPath);
+    const manifest = new AccumulationManifest(outputDir);
     const cases = manifest.getCasesToRunByLayer(layer);
     
     if (cases.length === 0) {
@@ -372,21 +372,19 @@ async function main() {
   }
 
   // Load manifest
-  const manifest = loadManifest(manifestPath);
-
-  if (!manifest) {
-    console.log('[run-cases] ⚠️  No manifest found. Run generate-cases-from-weekly-diff first.');
-    process.exit(1);
-  }
-
   // Get cases to run (Phase 2: support layer-based execution)
   let testCases: string[] = [];
-  
+
   if (args.layer) {
-    // 新增：使用分层策略获取用例 (Phase 2)
+    // Layer-based execution: uses AccumulationManifest directly (no run-manifest required)
     console.log(`[run-cases] Using layer-based execution strategy`);
-    testCases = getTestCasesFromLayer(manifestPath, args.layer);
+    testCases = getTestCasesFromLayer(args.outputDir, args.layer);
   } else {
+    const manifest = loadManifest(manifestPath);
+    if (!manifest) {
+      console.log('[run-cases] ⚠️  No manifest found. Run generate-cases-from-weekly-diff first.');
+      process.exit(1);
+    }
     // 既有逻辑：使用旧的模式策略
     testCases = getTestCasesToRun(args.outputDir, manifest, args.mode, args.prNumber);
   }

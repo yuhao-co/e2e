@@ -1,0 +1,41 @@
+# Maestro Web Demo — Traveloka Flight Search Results Interactions
+# Target: Flight search results page (SIN → JKT)
+# Platform: Web (Chrome on macOS)
+# Equivalent to: Midscene AI test "traveloka-flight-search-interactions"
+#
+# HOW TO RUN:
+#   maestro test maestro/flows/traveloka-flight-results-filter.yaml
+#
+# Time to write this case manually: ~40 minutes (need to inspect DOM for element IDs)
+# Time for AI (Midscene) to generate equivalent: ~15 seconds
+
+appId: com.google.Chrome
+---
+# 1. Open search results directly via URL (pre-set date SIN→JKT)
+- openLink: "https://www.traveloka.com/en-sg/flight/fullsearch?ap=SIN.JKTA&dt=18-6-2026&ps=1.0.0&sc=ECONOMY"
+
+# 2. Wait for flight cards to load
+- assertVisible:
+    text: "Direct"
+    timeout: 20000
+
+# 3. --- TEST: Apply "Direct" filter ---
+- tapOn:
+    text: "Direct"
+
+# 4. Verify filtered results still show
+- assertVisible:
+    text: "Direct"
+    timeout: 10000
+
+# 5. --- TEST: Sort by Cheapest ---
+- tapOn:
+    text: "Cheapest"
+
+# 6. Assert results updated (page still has flight cards)
+- assertVisible:
+    text: "SGD"
+    timeout: 10000
+
+# 7. Screenshot the sorted result for the report
+- takeScreenshot: "results/sorted-by-cheapest.png"

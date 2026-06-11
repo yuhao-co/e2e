@@ -4,13 +4,21 @@ import {
   createFlightWorkflowPlan,
   openFlightSearchTask,
 } from '../lib/traveloka-flight/workflow';
+import { buildFlightSourceContextFromFiles } from '../lib/traveloka-flight/source-map';
 
 import {
   openBookingPageFromSearchResults,
   openMetasearchBookingContactPage,
 } from '../lib/traveloka-flight/workflow';
 
-const TARGET_URL = 'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY';
+const ROUTED_SOURCE_FILES = [
+  'packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactForm.tsx',
+  'packages/flight/fpr-booking/handlers/bookingContactValidationHandler.ts',
+];
+const TARGET_URL = buildFlightSourceContextFromFiles(
+  ROUTED_SOURCE_FILES,
+  'Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.',
+).url;
 
 /**
  * EN Purpose: Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.

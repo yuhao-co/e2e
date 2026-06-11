@@ -44,6 +44,7 @@ const WWW_REPO = path.resolve(
   '../.cache/weekly-diff-repos/github.com_traveloka_www',
 );
 const TESTS_WEB_DIR = path.resolve(__dirname, '../tests/web');
+const BOOKING_FIXTURE_PATH = path.resolve(__dirname, '../data/booking-fixture.json');
 
 // ---------------------------------------------------------------------------
 // Domain map: fpr-* package name prefix → exploration target
@@ -71,6 +72,13 @@ interface DomainEntry {
    * The spec only checks there is no JS crash / P0 bug / 5xx before or after redirect.
    */
   subFlow?: boolean;
+  /**
+   * Requires a real invoiceId from a previous successful booking run.
+   * The spec reads data/booking-fixture.json written by the payment e2e spec.
+   * If no fixture exists, the spec is skipped with a warning (not failed).
+   * urlTemplate may contain INVOICE_ID / AUTH_TOKEN placeholders.
+   */
+  requiresBooking?: boolean;
 }
 
 // Dates 14 and 21 days from today, formatted as D-M-YYYY (Traveloka URL format)
@@ -176,15 +184,17 @@ const DOMAIN_MAP: DomainEntry[] = [
     urlTemplate: 'https://www.traveloka.com/en-sg/flight/reschedule',
     pageType: 'flight-booking',
     priority: 3,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-reschedule'],
     domain: 'flight-reschedule-info',
     label: 'Flight Reschedule Info',
-    urlTemplate: 'https://www.traveloka.com/en-sg/flight/reschedule/info/TEST_BOOKING_ID',
+    urlTemplate: 'https://www.traveloka.com/en-sg/flight/reschedule/info/INVOICE_ID',
     pageType: 'flight-booking',
     priority: 3,
     subFlow: true,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-reschedule'],
@@ -194,6 +204,7 @@ const DOMAIN_MAP: DomainEntry[] = [
     pageType: 'flight-booking',
     priority: 3,
     subFlow: true,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-refund'],
@@ -202,60 +213,67 @@ const DOMAIN_MAP: DomainEntry[] = [
     urlTemplate: 'https://www.traveloka.com/en-sg/flight/refund/alternative',
     pageType: 'flight-booking',
     priority: 3,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-refund'],
     domain: 'flight-refund-info',
     label: 'Flight Refund Info',
-    urlTemplate: 'https://www.traveloka.com/en-sg/flight/refund/info/TEST_BOOKING_ID',
+    urlTemplate: 'https://www.traveloka.com/en-sg/flight/refund/info/INVOICE_ID',
     pageType: 'flight-booking',
     priority: 3,
     subFlow: true,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-check-in'],
     domain: 'flight-checkin-entry',
     label: 'Flight Check-in',
-    urlTemplate: 'https://www.traveloka.com/en-sg/flight/checkin/airline/TEST_ROUTE_ID',
+    urlTemplate: 'https://www.traveloka.com/en-sg/flight/checkin/airline/INVOICE_ID',
     pageType: 'flight-booking',
     priority: 3,
     subFlow: true,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-extra-baggages'],
     domain: 'flight-add-baggage',
     label: 'Flight Add Baggage',
-    urlTemplate: 'https://www.traveloka.com/en-sg/flight/add-baggage/TEST_BOOKING_ID',
+    urlTemplate: 'https://www.traveloka.com/en-sg/flight/add-baggage/INVOICE_ID',
     pageType: 'flight-booking',
     priority: 3,
     subFlow: true,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-ancillary'],
     domain: 'flight-ancillary',
     label: 'Flight Ancillary Add-ons',
-    urlTemplate: 'https://www.traveloka.com/en-sg/flight/ancillary/TEST_SPEC',
+    urlTemplate: 'https://www.traveloka.com/en-sg/flight/ancillary/INVOICE_ID',
     pageType: 'flight-booking',
     priority: 3,
     subFlow: true,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-post-seat'],
     domain: 'flight-seat-selection',
     label: 'Flight Seat Selection',
-    urlTemplate: 'https://www.traveloka.com/en-sg/flight/seat-selection/TEST_BOOKING_ID',
+    urlTemplate: 'https://www.traveloka.com/en-sg/flight/seat-selection/INVOICE_ID',
     pageType: 'flight-booking',
     priority: 3,
     subFlow: true,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-preflight'],
     domain: 'flight-preflight',
     label: 'Flight Pre-flight Check',
-    urlTemplate: 'https://www.traveloka.com/en-sg/flight/preflight/landingPage/TEST_BOOKING/TEST_ITINERARY',
+    urlTemplate: 'https://www.traveloka.com/en-sg/flight/preflight/landingPage/INVOICE_ID/INVOICE_ID',
     pageType: 'flight-booking',
     priority: 3,
     subFlow: true,
+    requiresBooking: true,
   },
   {
     pkgPrefixes: ['fpr-travel-credit'],
@@ -568,20 +586,40 @@ function buildIntentHash(domain: string): string {
   return crypto.createHash('sha256').update(key).digest('hex').substring(0, 16);
 }
 
-function buildUrl(template: string): string {
+function buildUrl(template: string, invoiceId?: string): string {
   return template
     .replace('DEPART_DATE', travelokaDate(14))
-    .replace('RETURN_DATE', travelokaDate(21));
+    .replace('RETURN_DATE', travelokaDate(21))
+    .replace(/INVOICE_ID/g, invoiceId ?? 'TEST_BOOKING_ID');
 }
 
-function generateSpecContent(gap: CoverageGap, date: string): string {
+function readBookingFixture(): { invoiceId: string; auth: string; capturedAt: string } | null {
+  try {
+    if (!fs.existsSync(BOOKING_FIXTURE_PATH)) return null;
+    const fixture = JSON.parse(fs.readFileSync(BOOKING_FIXTURE_PATH, 'utf8'));
+    // Fixture expires after 48 hours (payment URL tokens are time-limited)
+    const age = Date.now() - new Date(fixture.capturedAt).getTime();
+    if (age > 48 * 60 * 60 * 1000) {
+      console.warn(`⚠️  booking-fixture.json is stale (${Math.round(age / 3600000)}h old) — skipping requiresBooking specs`);
+      return null;
+    }
+    return fixture;
+  } catch {
+    return null;
+  }
+}
+
+function generateSpecContent(gap: CoverageGap, date: string, fixture?: { invoiceId: string; auth: string; capturedAt: string } | null): string {
   const { entry } = gap;
-  const url = buildUrl(entry.urlTemplate);
+  const url = buildUrl(entry.urlTemplate, fixture?.invoiceId);
   const specTitle = `Traveloka flight ${entry.label} smoke coverage (${date})`;
   const pkgList = gap.packages.join(', ');
 
   const subFlowNote = entry.subFlow
     ? `\n *   Sub-flow: navigates with a dummy ID. Auth redirect or error state is acceptable.\n *   Only fails on P0 bugs / JS crashes / 5xx before or after redirect.`
+    : '';
+  const requiresBookingNote = entry.requiresBooking
+    ? `\n *   Requires booking: reads invoiceId from data/booking-fixture.json (written by payment e2e).\n *   Skipped (not failed) when no fresh fixture is available.`
     : '';
 
   const subFlowAssertion = entry.subFlow ? `
@@ -598,18 +636,34 @@ function generateSpecContent(gap: CoverageGap, date: string): string {
   }
 ` : '';
 
+  const requiresBookingBlock = entry.requiresBooking ? `
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+const BOOKING_FIXTURE_PATH = path.resolve(__dirname, '../../data/booking-fixture.json');
+
+function loadBookingFixture(): { invoiceId: string; auth: string } | null {
+  try {
+    if (!fs.existsSync(BOOKING_FIXTURE_PATH)) return null;
+    const f = JSON.parse(fs.readFileSync(BOOKING_FIXTURE_PATH, 'utf8'));
+    const age = Date.now() - new Date(f.capturedAt).getTime();
+    if (age > 48 * 60 * 60 * 1000) return null; // stale after 48h
+    return f;
+  } catch { return null; }
+}` : '';
+
   return `import { test, expect } from '../fixture';
 import { GenericBugDetector } from '../lib/generic-bug-detector';
-
+${requiresBookingBlock}
 /**
- * EN Purpose: Auto-generated smoke spec for ${entry.label}.${subFlowNote}
+ * EN Purpose: Auto-generated smoke spec for ${entry.label}.${subFlowNote}${requiresBookingNote}
  *   Navigates to the ${entry.domain} surface and runs P0 generic bug detection.
  *   Promoted from candidate → stable once it passes consistently for 3+ weeks.
  * EN Source: explore-coverage-gaps.ts — gap scan of www packages: ${pkgList}
  * EN Domain: ${entry.domain}
  * EN Lifecycle: candidate
  * EN Surface: desktop
- * EN Concerns: page-load, p0-detection${entry.subFlow ? ', sub-flow-redirect' : ''}
+ * EN Concerns: page-load, p0-detection${entry.subFlow ? ', sub-flow-redirect' : ''}${entry.requiresBooking ? ', requires-booking-fixture' : ''}
  * EN Generated: ${new Date().toISOString()}
  */
 
@@ -626,7 +680,14 @@ test.use({
   },
 });
 
-test('${specTitle}', async ({ page }) => {
+test('${specTitle}', async ({ page }) => {${entry.requiresBooking ? `
+  const fixture = loadBookingFixture();
+  if (!fixture) {
+    console.warn('[skip] No fresh booking fixture — run traveloka-flight-booking-payment-e2e.spec.ts first to generate data/booking-fixture.json');
+    test.skip();
+    return;
+  }
+  console.log('[fixture] invoiceId:', fixture.invoiceId);` : ''}
   await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
 ${subFlowAssertion}
   // Basic load sanity: page must have a non-empty title
@@ -764,7 +825,16 @@ async function main() {
       continue;
     }
 
-    const content = generateSpecContent(gap, date);
+    // requiresBooking: read fixture once and pass to generator
+    let fixture: { invoiceId: string; auth: string; capturedAt: string } | null = null;
+    if (gap.entry.requiresBooking) {
+      fixture = readBookingFixture();
+      if (!fixture) {
+        console.log(`⏭  ${gap.entry.domain}: requires booking fixture (data/booking-fixture.json not found or stale) — spec generated with skip guard`);
+      }
+    }
+
+    const content = generateSpecContent(gap, date, fixture);
     const specId = `explore-${date}-${gap.entry.domain}`;
 
     if (DRY_RUN) {

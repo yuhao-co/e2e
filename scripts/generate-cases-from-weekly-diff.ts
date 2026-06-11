@@ -16,8 +16,8 @@
  *     testIDs and contracts before generating the spec.
  *   - Use data-testid contracts as ground truth. These tests should FAIL loudly
  *     if the specific PRD feature regresses.
- *   - ai() is only for dynamic ViewDescription fields with no stable testID,
- *     or as a clearly-labelled fallback (print [ai-fallback] warning).
+ *   - ai()/aiQuery() may attach a shadow proposal AFTER explicit-contract failure,
+ *     but must not take over the main execution path.
  *
  * Mode 3 — Free Exploration + www/PRD Oracle (interaction bug-finding):
  *   - Automatically injected into generated specs when the weekly diff touches
@@ -45,7 +45,6 @@ import { execFileSync, execSync } from 'node:child_process';
 
 import {
   buildFlightSourceContextFromFiles,
-  DEFAULT_FLIGHT_BOOKING_ENTRY_URL,
   type FlightConcern,
 } from '../tests/lib/traveloka-flight/source-map';
 import { createFlightCaseTemplate } from '../tests/lib/traveloka-flight/template';
@@ -77,6 +76,10 @@ type Candidate = {
   id: string;
   domain: 'flight-search' | 'flight-booking' | 'web-i18n' | 'android-home' | 'generic-web';
   confidence: 'high' | 'medium' | 'low';
+  confidenceScore?: number;
+  confidenceReasons?: string[];
+  mainLaneEligible?: boolean;
+  mainLaneGateReason?: string;
   title: string;
   action: 'modify-existing' | 'create-new';
   reason: string;
@@ -84,6 +87,7 @@ type Candidate = {
   howToSolve?: string;
   changedFiles: string[];
   targetTests: string[];
+  userIntent: string;
   suggestedUserIntent: string;
   targetUrl?: string;
   concerns?: string[];
@@ -100,12 +104,22 @@ type Candidate = {
     prSummary?: string;
     prTestPlan?: string;
     prdLinks?: PrdReference[];
+    prdStatuses?: PrdLinkStatus[];
   }>;
   retrievedEvidence?: Array<{
     kind: 'existing-test' | 'shared-helper';
     path: string;
     reason: string;
     summary: string;
+  }>;
+  prdProcessing?: CandidatePrdProcessing;
+  actionContracts?: Array<{
+    stepName: string;
+    scopeHint: string;
+    expectedContracts: string[];
+    preconditions?: string[];
+    postconditions?: string[];
+    confidence: 'high' | 'medium' | 'low';
   }>;
   draftFileName?: string;
   draftContent?: string;
@@ -142,7 +156,114 @@ type FlightGeneratedPlan = {
   extraImportBlock: string;
   assertionLines: string[];
   interactionLines: string[];
+  actionContracts: NonNullable<Candidate['actionContracts']>;
 };
+
+type ConfidenceAssessment = {
+  score: number;
+  confidence: Candidate['confidence'];
+  reasons: string[];
+};
+
+function confidenceFromScore(score: number): Candidate['confidence'] {
+  if (score >= 80) {
+    return 'high';
+  }
+
+  if (score >= 55) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+function assessCandidateConfidence(parts: Array<{ points: number; reason: string }>): ConfidenceAssessment {
+  const score = Math.max(0, Math.min(100, parts.reduce((sum, part) => sum + part.points, 0)));
+  return {
+    score,
+    confidence: confidenceFromScore(score),
+    reasons: parts.map((part) => `${part.points >= 0 ? '+' : ''}${part.points} ${part.reason}`),
+  };
+}
+
+function isWeeklyMainLaneEligible(candidate: Candidate): boolean {
+  return candidate.confidence === 'high' && Boolean(candidate.webSpecFileName && candidate.webSpecContent);
+}
+
+function getWeeklyMainLaneGateReason(candidate: Candidate): string {
+  if (candidate.confidence !== 'high') {
+    return `Candidate confidence is ${candidate.confidence}; only high-confidence runnable cases enter the weekly main lane.`;
+  }
+
+  if (!candidate.webSpecFileName || !candidate.webSpecContent) {
+    return 'Candidate does not have a runnable web spec artifact.';
+  }
+
+  return 'Eligible for weekly main lane execution.';
+}
+
+function assessFlightSearchCandidateConfidence(input: {
+  hasStrongEvidence: boolean;
+  isDominant: boolean;
+  retrievedEvidenceCount: number;
+  actionContractCount: number;
+  targetTestCount: number;
+}): ConfidenceAssessment {
+  return assessCandidateConfidence([
+    { points: 20, reason: 'weekly flight-search candidate base score' },
+    { points: input.hasStrongEvidence ? 30 : 5, reason: 'WWW/source evidence strength' },
+    { points: input.isDominant ? 20 : -10, reason: 'concern-cluster dominance' },
+    { points: Math.min(input.retrievedEvidenceCount, 4) * 5, reason: 'retrieved evidence support' },
+    { points: Math.min(input.actionContractCount, 4) * 4, reason: 'structured action contracts' },
+    { points: Math.min(input.targetTestCount, 3) * 3, reason: 'existing target-test coverage' },
+  ]);
+}
+
+function assessFlightBookingCandidateConfidence(input: {
+  hasStrongEvidence: boolean;
+  paymentFocused: boolean;
+  retrievedEvidenceCount: number;
+  actionContractCount: number;
+  targetTestCount: number;
+}): ConfidenceAssessment {
+  return assessCandidateConfidence([
+    { points: 25, reason: 'weekly flight-booking candidate base score' },
+    { points: input.hasStrongEvidence ? 35 : 10, reason: 'WWW/source evidence strength' },
+    { points: input.paymentFocused ? 5 : 0, reason: 'payment-chain baseline alignment' },
+    { points: Math.min(input.retrievedEvidenceCount, 4) * 5, reason: 'retrieved evidence support' },
+    { points: Math.min(input.actionContractCount, 4) * 4, reason: 'structured action contracts' },
+    { points: Math.min(input.targetTestCount, 3) * 2, reason: 'existing target-test coverage' },
+  ]);
+}
+
+function assessSupportCandidateConfidence(baseScore: number, reason: string): ConfidenceAssessment {
+  return assessCandidateConfidence([{ points: baseScore, reason }]);
+}
+
+type LocatorShadowProposalConfig = {
+  stepName: string;
+  contractDescription: string;
+  expectedContracts: string[];
+  analysisPrompt: string;
+  failureMessage: string;
+  scopeHint?: string;
+};
+
+function buildLocatorShadowProposalLines(config: LocatorShadowProposalConfig): string[] {
+  return [
+    '  await attachLocatorShadowProposal({',
+    '    page,',
+    '    testInfo,',
+    '    aiQuery,',
+    `    stepName: ${JSON.stringify(config.stepName)},`,
+    `    contractDescription: ${JSON.stringify(config.contractDescription)},`,
+    `    expectedContracts: ${JSON.stringify(config.expectedContracts)},`,
+    ...(config.scopeHint ? [`    scopeHint: ${JSON.stringify(config.scopeHint)},`] : []),
+    `    analysisPrompt: ${JSON.stringify(config.analysisPrompt)},`,
+    '  });',
+    `  throw new Error(${JSON.stringify(config.failureMessage)});`,
+  ];
+}
 
 type FlightConcernFocus = {
   concerns: FlightConcern[];
@@ -175,6 +296,7 @@ type SourceCommitMetadata = {
   prSummary?: string;
   prTestPlan?: string;
   prdLinks?: PrdReference[];
+  prdStatuses?: PrdLinkStatus[];
 };
 
 type GitHubRepoIdentity = {
@@ -185,6 +307,26 @@ type GitHubRepoIdentity = {
 type PrdReference = {
   url: string;
   kind: 'lark-wiki' | 'meegle-fpr';
+};
+
+type PrdLinkStatus = {
+  sourceUrl: string;
+  sourceKind: PrdReference['kind'];
+  resolutionStatus: 'direct-lark' | 'resolved-from-meegle' | 'meegle-resolution-failed';
+  resolvedUrls: string[];
+};
+
+type CandidatePrdProcessing = {
+  references: PrdLinkStatus[];
+  extractionStatus:
+    | 'pending'
+    | 'extracted'
+    | 'cache-hit'
+    | 'failed'
+    | 'skipped-no-link'
+    | 'skipped-unresolved-link';
+  selectedResolvedUrl?: string;
+  extractedPath?: string;
 };
 
 type MeeglePrdResolutionPayload = {
@@ -666,6 +808,66 @@ function resolvePrdReferences(references: PrdReference[]) {
   );
 }
 
+function resolvePrdReferencesWithStatus(references: PrdReference[]) {
+  const statuses: PrdLinkStatus[] = [];
+  const resolvedReferences: PrdReference[] = [];
+
+  for (const reference of references) {
+    if (reference.kind === 'lark-wiki') {
+      statuses.push({
+        sourceUrl: reference.url,
+        sourceKind: reference.kind,
+        resolutionStatus: 'direct-lark',
+        resolvedUrls: [reference.url],
+      });
+      resolvedReferences.push(reference);
+      continue;
+    }
+
+    const resolved = resolveMeeglePrdReference(reference);
+    const resolvedLarkUrls = resolved
+      .filter((candidate) => candidate.kind === 'lark-wiki')
+      .map((candidate) => candidate.url);
+
+    statuses.push({
+      sourceUrl: reference.url,
+      sourceKind: reference.kind,
+      resolutionStatus: resolvedLarkUrls.length ? 'resolved-from-meegle' : 'meegle-resolution-failed',
+      resolvedUrls: resolvedLarkUrls,
+    });
+
+    resolvedReferences.push(...resolved);
+  }
+
+  return {
+    references: Array.from(
+      new Map(resolvedReferences.map((reference) => [reference.url, reference])).values(),
+    ),
+    statuses,
+  };
+}
+
+function collectCandidatePrdProcessing(
+  commits: SourceCommitMetadata[],
+): CandidatePrdProcessing | undefined {
+  const references = Array.from(
+    new Map(
+      commits
+        .flatMap((commit) => commit.prdStatuses ?? [])
+        .map((status) => [status.sourceUrl, status]),
+    ).values(),
+  );
+
+  if (!references.length) {
+    return undefined;
+  }
+
+  return {
+    references,
+    extractionStatus: 'pending',
+  };
+}
+
 function isSpecificPullRequestText(text: string | undefined) {
   if (!text) {
     return false;
@@ -743,13 +945,14 @@ function fetchPullRequestContext(repoPath: string, prNumber: number) {
     const body = payload.body ?? '';
     const summary = extractPullRequestBodySection(body, 'Summary');
     const testPlan = extractPullRequestBodySection(body, 'Test Plan');
-    const prdLinks = resolvePrdReferences(extractPrdReferences(body));
+    const prdResolution = resolvePrdReferencesWithStatus(extractPrdReferences(body));
 
     return {
       title: payload.title?.trim() || null,
       summary,
       testPlan,
-      prdLinks,
+      prdLinks: prdResolution.references,
+      prdStatuses: prdResolution.statuses,
     };
   } catch {
     return null;
@@ -779,6 +982,7 @@ function enrichRelevantCommitsWithPullRequestContext(
       prSummary: pullRequestContext.summary ?? undefined,
       prTestPlan: pullRequestContext.testPlan ?? undefined,
       prdLinks: pullRequestContext.prdLinks?.length ? pullRequestContext.prdLinks : undefined,
+      prdStatuses: pullRequestContext.prdStatuses?.length ? pullRequestContext.prdStatuses : undefined,
     };
   });
 }
@@ -882,6 +1086,65 @@ function collectFlightRetrievedEvidence(
   }
 
   return [...specs, ...helpers]
+    .map((item) => {
+      const content = readWorkspaceFile(workspaceRoot, item.path);
+      if (!content) {
+        return null;
+      }
+
+      return {
+        kind: /\.spec\./.test(item.path) ? 'existing-test' : 'shared-helper',
+        path: item.path,
+        reason: item.reason,
+        summary: summarizeEvidenceFile(item.path, content),
+      };
+    })
+    .filter(Boolean) as Candidate['retrievedEvidence'];
+}
+
+function collectFlightBookingRetrievedEvidence(
+  workspaceRoot: string,
+  paymentFocused: boolean,
+): Candidate['retrievedEvidence'] {
+  const items: Array<{ path: string; reason: string }> = [
+    {
+      path: 'docs/traveloka-flight-booking-case-generation.md',
+      reason: 'Locked booking entry-chain specification for generated booking cases.',
+    },
+    {
+      path: 'docs/traveloka-flight-booking-payment-chain-lock.md',
+      reason: 'Locked booking-to-payment chain specification for payment-sensitive generated cases.',
+    },
+    {
+      path: 'docs/weekly-diff-case-generator.md',
+      reason: 'Weekly-diff generation policy and locked local evidence expectations.',
+    },
+    {
+      path: 'docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md',
+      reason: 'Phase 2 active-layer execution constraints for weekly cases.',
+    },
+    {
+      path: 'tests/lib/traveloka-flight/workflow.ts',
+      reason: 'Shared Traveloka flight workflow helpers used by generated booking cases.',
+    },
+    {
+      path: 'tests/web/traveloka-flight-metasearch-email-confirmation.spec.ts',
+      reason: 'Existing booking-surface regression case used as booking baseline.',
+    },
+    {
+      path: 'tests/web/traveloka-flight-booking-payment-e2e.spec.ts',
+      reason: 'Proven desktop booking-to-payment smoke chain with cross-origin payment handling.',
+    },
+  ];
+
+  if (paymentFocused) {
+    items.push({
+      path: 'tests/web/traveloka-generic-bug-detection.spec.ts',
+      reason: 'Generated-suite bug-detection enforcement for booking and payment-related specs.',
+    });
+  }
+
+  return items
     .map((item) => {
       const content = readWorkspaceFile(workspaceRoot, item.path);
       if (!content) {
@@ -1070,6 +1333,7 @@ function buildFlightGeneratedPlan(
   commits?: SourceCommitMetadata[],
 ): FlightGeneratedPlan {
   const importLines = new Set<string>();
+  const actionContracts: NonNullable<Candidate['actionContracts']> = [];
   const assertionLines = [
     'const currentUrl = new URL(page.url());',
     'expect(currentUrl.pathname).toBe(new URL(TARGET_URL).pathname);',
@@ -1101,6 +1365,7 @@ function buildFlightGeneratedPlan(
     ),
   ];
 
+  importLines.add('import { attachLocatorShadowProposal } from ../lib/locator-shadow-proposal;');
   importLines.add('import { travelokaFlightSearchResultsSelectors } from ../lib/traveloka-flight/locators;');
   assertionLines.push(
     'await expect(page.getByText(travelokaFlightSearchResultsSelectors.headings.flights)).toBeVisible({ timeout: 15000 });',
@@ -1111,22 +1376,39 @@ function buildFlightGeneratedPlan(
     importLines.add('import { clickTransitCountFilter, expectTransitCountFilterChecked, getTransitCountSection } from ../lib/traveloka-flight/locators;');
     assertionLines.push('await expect(getTransitCountSection(page)).toBeVisible({ timeout: 30000 });');
     interactionLines.push(
-      '// Transit filter: try DOM contract first, fall back to Midscene AI if not found.',
+      '// Transit filter: use DOM contract only; attach shadow proposal if contract is missing.',
       'try {',
       "  await clickTransitCountFilter(page, 'ONE_TRANSIT');",
       '} catch {',
-      "  console.warn('[ai-fallback] transit filter DOM contract missing — using Midscene AI');",
-      "  await ai('click the \"1 Transit\" or \"One Transit\" filter option in the sidebar');",
+      "  console.warn('[shadow-proposal] transit filter DOM contract missing — attaching diagnostic proposal');",
+      ...buildLocatorShadowProposalLines({
+        stepName: 'transit-filter-one-transit',
+        contractDescription: 'One-transit filter option in the flight sidebar',
+        expectedContracts: ['clickTransitCountFilter(page, \"ONE_TRANSIT\")', 'getTransitCountSection(page)'],
+        scopeHint: 'Flight results sidebar > Stops / Transit section',
+        analysisPrompt:
+          'Identify the visible filter option that most likely represents one transit and describe its surrounding section and label text.',
+        failureMessage:
+          'Explicit transit-filter locator contract missing. Shadow proposal attached; main execution intentionally stopped.',
+      }),
       '}',
       "await page.waitForLoadState('networkidle').catch(() => {});",
       "await expectTransitCountFilterChecked(page, 'ONE_TRANSIT').catch(() => {});",
     );
+    actionContracts.push({
+      stepName: 'transit-filter-one-transit',
+      scopeHint: 'Flight results sidebar > Stops / Transit section',
+      expectedContracts: ['clickTransitCountFilter(page, "ONE_TRANSIT")', 'getTransitCountSection(page)'],
+      preconditions: ['Search results sidebar is visible', 'Transit section is visible'],
+      postconditions: ['One-transit option is checked or reflected in sidebar state'],
+      confidence: 'high',
+    });
   }
 
   if (concerns.includes('airline-filter')) {
     importLines.add('import { discoverFlightFilterOptionsInSection, getTaggedFlightResultCards, tagVisibleFlightResultCards } from ../lib/traveloka-flight/locators;');
     interactionLines.push(
-      '// Airline filter: try DOM discovery first, fall back to Midscene AI if sidebar structure changed.',
+      '// Airline filter: use DOM discovery only; attach shadow proposal if sidebar contracts fail.',
       'let _airlinesClicked = false;',
       'try {',
       "  const discoveredAirlines = await discoverFlightFilterOptionsInSection(sidebar, 'Airline', 'data-weekly-airline-option-idx');",
@@ -1139,9 +1421,17 @@ function buildFlightGeneratedPlan(
       '  await sidebar.locator(`[data-weekly-airline-option-idx="${chosenAirline.filterOptionIdx}"]`).click({ force: true });',
       '  _airlinesClicked = true;',
       '} catch {',
-      "  console.warn('[ai-fallback] airline filter DOM discovery failed — using Midscene AI');",
-      "  await ai('click the first airline option in the flight filter sidebar');",
-      '  _airlinesClicked = true;',
+      "  console.warn('[shadow-proposal] airline filter DOM discovery failed — attaching diagnostic proposal');",
+      ...buildLocatorShadowProposalLines({
+        stepName: 'airline-filter-first-option',
+        contractDescription: 'First airline option in the flight sidebar',
+        expectedContracts: ['discoverFlightFilterOptionsInSection(sidebar, \"Airline\", ...)'],
+        scopeHint: 'Flight results sidebar > Airline section',
+        analysisPrompt:
+          'Identify the first visible airline filter option, including the airline label and the specific container or row where it appears.',
+        failureMessage:
+          'Explicit airline-filter locator contract missing. Shadow proposal attached; main execution intentionally stopped.',
+      }),
       '}',
       'if (_airlinesClicked) {',
       "  await page.waitForLoadState('networkidle').catch(() => {});",
@@ -1151,6 +1441,14 @@ function buildFlightGeneratedPlan(
       '  await expect(cards.first()).toBeVisible({ timeout: 15000 });',
       '}',
     );
+    actionContracts.push({
+      stepName: 'airline-filter-first-option',
+      scopeHint: 'Flight results sidebar > Airline section',
+      expectedContracts: ['discoverFlightFilterOptionsInSection(sidebar, "Airline", "data-weekly-airline-option-idx")'],
+      preconditions: ['Search results sidebar is visible', 'At least one airline option can be discovered'],
+      postconditions: ['Visible flight result cards remain present after airline selection'],
+      confidence: 'medium',
+    });
   } else if (concerns.includes('results-list')) {
     importLines.add('import { getTaggedFlightResultCards, tagVisibleFlightResultCards } from ../lib/traveloka-flight/locators;');
     interactionLines.push(
@@ -1161,6 +1459,14 @@ function buildFlightGeneratedPlan(
       'const firstCardText = await cards.first().innerText();',
       "expect(firstCardText).toMatch(/flight details|fare\\s*&\\s*benefits/i);",
     );
+    actionContracts.push({
+      stepName: 'results-list-first-visible-card',
+      scopeHint: 'Visible flight results list on the desktop search surface',
+      expectedContracts: ['tagVisibleFlightResultCards(page, "data-weekly-flight-card-idx")', 'getTaggedFlightResultCards(page, "data-weekly-flight-card-idx")'],
+      preconditions: ['Flight results page headings are visible'],
+      postconditions: ['At least one tagged visible result card is present'],
+      confidence: 'high',
+    });
   }
 
   // PRD behavioral assertions: extracted from PR Summary / Test Plan "should" sentences
@@ -1196,6 +1502,7 @@ function buildFlightGeneratedPlan(
       .join('\n'),
     assertionLines,
     interactionLines,
+    actionContracts,
   };
 }
 
@@ -1544,6 +1851,13 @@ function buildFlightCandidate(
     fileWeights,
     enrichedSourceCommits,
   );
+  const confidenceAssessment = assessFlightSearchCandidateConfidence({
+    hasStrongEvidence,
+    isDominant: focus.isDominant,
+    retrievedEvidenceCount: retrievedEvidence.length,
+    actionContractCount: generatedPlan.actionContracts.length,
+    targetTestCount: generatedPlan.targetTests.length,
+  });
   const webSpecFileName = `traveloka-flight-weekly-diff-${weeklyCaseStamp}.spec.ts`;
   
   // 🔒 HARDCODED CONSTRAINTS (生成时强制应用):
@@ -1556,10 +1870,13 @@ function buildFlightCandidate(
     testName: `Traveloka weekly diff generated flight results coverage (${weeklyCaseStamp})`,
     url: sourceContext.url,
     userIntent: suggestedUserIntent,
+    confidence: confidenceAssessment.confidence,
+    runtimeRoutingPaths: focus.focusedFiles,
     importPrefix: '../',
     extraImportBlock: `${generatedPlan.extraImportBlock}
 import { GenericBugDetector } from '../lib/generic-bug-detector';`,
     concerns: generatedPlan.concerns,
+    actionContracts: generatedPlan.actionContracts,
     sourceCommitLines: enrichedSourceCommits.map(
       (commit: { sha: string; author: string; subject: string }) =>
         `${commit.sha} by ${commit.author}: ${commit.subject}`,
@@ -1608,7 +1925,17 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`,
   return {
     id: 'flight-search-weekly',
     domain: 'flight-search',
-    confidence: canEmitRunnableSpec ? 'high' : hasStrongEvidence ? 'medium' : 'low',
+    confidence: confidenceAssessment.confidence,
+    confidenceScore: confidenceAssessment.score,
+    confidenceReasons: confidenceAssessment.reasons,
+    mainLaneEligible: canEmitRunnableSpec && confidenceAssessment.confidence === 'high',
+    mainLaneGateReason: canEmitRunnableSpec && confidenceAssessment.confidence === 'high'
+      ? 'Eligible: dominant concern cluster with strong www evidence produced a runnable spec.'
+      : canEmitRunnableSpec
+      ? `Gated: runnable spec exists, but confidence score ${confidenceAssessment.score} is below the high-confidence threshold.`
+      : hasStrongEvidence
+      ? 'Not eligible: evidence exists, but concern dominance is not strong enough for weekly main lane execution.'
+      : 'Not eligible: direct source evidence is too weak for weekly main lane execution.',
     title: 'Weekly flight search regression coverage',
     action: 'modify-existing',
     reason:
@@ -1634,12 +1961,15 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`,
           'tests/web/traveloka-flight-filter.spec.ts',
           'tests/web/traveloka-flight-random-filter.spec.ts',
         ],
+    userIntent: suggestedUserIntent,
     suggestedUserIntent,
     targetUrl: sourceContext.url,
     concerns: focus.concerns,
     sourceHints: sourceContext.sourceHints,
     sourceCommits: enrichedSourceCommits,
     retrievedEvidence,
+    prdProcessing: collectCandidatePrdProcessing(enrichedSourceCommits),
+    actionContracts: generatedPlan.actionContracts,
     webSpecFileName: canEmitRunnableSpec ? webSpecFileName : undefined,
     webSpecContent: canEmitRunnableSpec ? webSpecContent : undefined,
   };
@@ -1677,13 +2007,25 @@ function buildFlightBookingCandidate(
       commit.prTestPlan ?? '',
     ]),
   ].some((value) => /retention|exit[-\s]?intent|drop\s*off/i.test(value));
+  const paymentFocused = [
+    ...changedFiles,
+    ...enrichedSourceCommits.flatMap((commit) => [
+      commit.subject,
+      commit.prTitle ?? '',
+      commit.prSummary ?? '',
+      commit.prTestPlan ?? '',
+    ]),
+  ].some((value) => /payment|checkout|credit\s*card|paymentpaybutton|payauth|payment\/v2|cybersource/i.test(value));
+  const retrievedEvidence = collectFlightBookingRetrievedEvidence(workspaceRoot, paymentFocused) ?? [];
 
-  const suggestedUserIntent = retentionFocused
+  const suggestedUserIntent = paymentFocused
+    ? 'Open the desktop Traveloka flight booking flow from search results, preserve the canonical booking => payment chain contracts, and verify payment-selection, credit-card setup, and pay-CTA behavior for the routed weekly regression slice.'
+    : retentionFocused
     ? 'Open the desktop Traveloka flight booking flow from search results, verify the canonical booking page remains reachable, and capture booking-page state for retention-popup related weekly review.'
     : 'Open the desktop Traveloka flight booking flow from search results and verify the canonical booking page remains reachable for the routed weekly regression slice.';
 
-  const bookingEntryUrl = process.env.TRAVELOKA_METASEARCH_BOOKING_DESKTOP_URL
-    || DEFAULT_FLIGHT_BOOKING_ENTRY_URL;
+  const bookingSourceContext = buildFlightSourceContextFromFiles(changedFiles, suggestedUserIntent);
+  const bookingEntryUrl = bookingSourceContext.url;
 
   const highlightedChangedFiles = changedFiles
     .slice()
@@ -1710,15 +2052,61 @@ function buildFlightBookingCandidate(
   openBookingPageFromSearchResults,
   openMetasearchBookingContactPage,
 } from '../lib/traveloka-flight/workflow';
+import { attachLocatorShadowProposal } from '../lib/locator-shadow-proposal';
 import { GenericBugDetector } from '../lib/generic-bug-detector';`;
+
+  const bookingActionContracts: NonNullable<Candidate['actionContracts']> = [
+    {
+      stepName: 'booking-chain-choose-first-flight',
+      scopeHint: 'First visible flight result card on the search results page',
+      expectedContracts: ['[data-testid="flight-inventory-card-button"]'],
+      preconditions: ['A visible search result card exists'],
+      postconditions: ['Ticket type drawer or selection surface is reachable'],
+      confidence: 'high',
+    },
+    {
+      stepName: 'booking-chain-ticket-type-drawer',
+      scopeHint: 'Ticket type selection overlay after choosing a flight',
+      expectedContracts: ['[data-testid="view_fsv2_ticket_option_card_0"]', '[data-testid="button_fsv2_ticket_option_select_0"]'],
+      preconditions: ['Choose action succeeded'],
+      postconditions: ['Selection surface is visible'],
+      confidence: 'high',
+    },
+    {
+      stepName: 'booking-chain-select-ticket-option',
+      scopeHint: 'Ticket type drawer or selection overlay',
+      expectedContracts: ['[data-testid="button_fsv2_ticket_option_select_0"]'],
+      preconditions: ['Ticket type drawer is visible'],
+      postconditions: ['Booking page URL is reached'],
+      confidence: 'high',
+    },
+    {
+      stepName: 'booking-contact-form-visible',
+      scopeHint: 'Booking page contact section on desktop web',
+      expectedContracts: ['[data-testid="booking-contact-form"]', 'form'],
+      preconditions: ['Booking page route is reached'],
+      postconditions: ['Booking contact form is accessible'],
+      confidence: 'medium',
+    },
+  ];
+  const confidenceAssessment = assessFlightBookingCandidateConfidence({
+    hasStrongEvidence,
+    paymentFocused,
+    retrievedEvidenceCount: retrievedEvidence.length,
+    actionContractCount: bookingActionContracts.length,
+    targetTestCount: paymentFocused ? 2 : 1,
+  });
 
   const webSpecContent = createFlightCaseTemplate({
     testName: `Traveloka weekly diff booking smoke coverage (${weeklyCaseStamp})`,
     url: bookingEntryUrl,
     userIntent: suggestedUserIntent,
+    confidence: confidenceAssessment.confidence,
+    runtimeRoutingPaths: highlightedChangedFiles,
     importPrefix: '../',
     extraImportBlock: bookingImportBlock,
     concerns: ['booking-contact'],
+    actionContracts: bookingActionContracts,
     sourceCommitLines: enrichedSourceCommits.map(
       (commit: { sha: string; author: string; subject: string }) =>
         `${commit.sha} by ${commit.author}: ${commit.subject}`,
@@ -1729,37 +2117,70 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`;
       'complete Choose→Select booking chain execution required',
       'booking page URL is reached and contact form renders correctly',
       'Apply booking contracts from docs/traveloka-flight-booking-case-generation.md',
+      ...(paymentFocused
+        ? [
+            'Apply locked booking=>payment contracts from docs/traveloka-flight-booking-payment-chain-lock.md',
+            'When payment is in scope, treat credit-card fields as iframe-scoped and paymentPayButton as main-page CTA',
+          ]
+        : []),
       'Apply locator rules from docs/traveloka-flight-locator-guideline.md (Prefer explicit contracts)',
       'Phase 2 active layer execution (weekly): npx tsx scripts/run-accumulated-cases.ts --layer active',
       'Reference: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md',
     ],
     assertionLines: [
-      '// Step 1: Click Choose button (try data-testid first, fall back to AI)',
+      '// Step 1: Click Choose button via explicit contract; attach shadow proposal if missing.',
       'const chooseButton = page.locator(\'[data-testid="flight-inventory-card-button"]\').first();',
       'const chooseVisible = await chooseButton.isVisible({ timeout: 15000 }).catch(() => false);',
       'if (chooseVisible) {',
       '  await chooseButton.click();',
       '} else {',
-      "  console.warn('[ai-fallback] Choose button testid not found — using Midscene AI');",
-      "  await ai('click the Choose button on the first flight result card');",
+      "  console.warn('[shadow-proposal] Choose button contract missing — attaching diagnostic proposal');",
+      ...buildLocatorShadowProposalLines({
+        stepName: 'booking-chain-choose-first-flight',
+        contractDescription: 'Choose button on the first flight result card',
+        expectedContracts: ['[data-testid="flight-inventory-card-button"]'],
+        scopeHint: 'First visible flight result card on the search results page',
+        analysisPrompt:
+          'Identify the most likely Choose or equivalent booking-entry control on the first visible flight result card, including any visible button text and card context.',
+        failureMessage:
+          'Choose button contract missing. Shadow proposal attached; main execution intentionally stopped.',
+      }),
       '}',
       '',
       '// Step 2: Wait for ticket type selection drawer',
-      'const ticketTypeDrawer = page.locator(\'[data-testid="ticket-type-drawer"], [data-testid="button_ticket_option_select_1"]\').first();',
+      'const ticketTypeDrawer = page.locator(\'[data-testid="view_fsv2_ticket_option_card_0"], [data-testid="button_fsv2_ticket_option_select_0"]\').first();',
       'const ticketTypeVisible = await ticketTypeDrawer.isVisible({ timeout: 15000 }).catch(() => false);',
       'if (!ticketTypeVisible) {',
-      "  console.warn('[ai-fallback] ticket type drawer not found — using Midscene AI to click first option');",
-      "  await ai('click the first Select or Choose option in the ticket type selection panel');",
+      "  console.warn('[shadow-proposal] Ticket type drawer contract missing — attaching diagnostic proposal');",
+      ...buildLocatorShadowProposalLines({
+        stepName: 'booking-chain-ticket-type-drawer',
+        contractDescription: 'Ticket type selection drawer after clicking Choose',
+        expectedContracts: ['[data-testid="view_fsv2_ticket_option_card_0"]', '[data-testid="button_fsv2_ticket_option_select_0"]'],
+        scopeHint: 'Ticket type selection overlay or drawer after opening a result card',
+        analysisPrompt:
+          'Identify the visible ticket type selection panel or first selectable option that should appear after choosing a flight.',
+        failureMessage:
+          'Ticket type selection drawer contract missing. Shadow proposal attached; main execution intentionally stopped.',
+      }),
       '}',
       '',
-      '// Step 3: Click Select button in the drawer (try data-testid first, fall back to AI)',
-      'const selectButton = page.locator(\'[data-testid="button_ticket_option_select_1"]\').first();',
+      '// Step 3: Click Select button in the drawer via explicit contract; attach shadow proposal if missing.',
+      'const selectButton = page.locator(\'[data-testid="button_fsv2_ticket_option_select_0"]\').first();',
       'const selectVisible = await selectButton.isVisible({ timeout: 5000 }).catch(() => false);',
       'if (selectVisible) {',
       '  await selectButton.click();',
       '} else if (ticketTypeVisible) {',
-      "  console.warn('[ai-fallback] Select button testid not found — using Midscene AI');",
-      "  await ai('click the Select button in the ticket type drawer');",
+      "  console.warn('[shadow-proposal] Select button contract missing — attaching diagnostic proposal');",
+      ...buildLocatorShadowProposalLines({
+        stepName: 'booking-chain-select-ticket-option',
+        contractDescription: 'Select button in the ticket type drawer',
+        expectedContracts: ['[data-testid="button_fsv2_ticket_option_select_0"]'],
+        scopeHint: 'Ticket type drawer or selection overlay',
+        analysisPrompt:
+          'Identify the visible Select control inside the ticket type drawer that should advance to booking.',
+        failureMessage:
+          'Select button contract missing. Shadow proposal attached; main execution intentionally stopped.',
+      }),
       '}',
       '',
       '// Step 4: Verify booking page reached',
@@ -1787,10 +2208,17 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`;
       '}',
       '',
       '// Retrieved shared-helper: docs/traveloka-flight-booking-case-generation.md - Complete booking chain workflow',
+      '// Retrieved shared-helper: docs/traveloka-flight-booking-payment-chain-lock.md - Locked booking=>payment chain contracts',
       '// Retrieved shared-helper: docs/traveloka-flight-locator-guideline.md - Explicit contracts and locator priority',
       '// Retrieved shared-helper: docs/PHASE2_WORKFLOW_INTEGRATION_SUMMARY.md - Phase 2 active layer execution strategy',
       '// Retrieved shared-helper: docs/weekly-diff-case-generator.md - Weekly diff generation for booking surface',
       '// Retrieved shared-helper: tests/lib/traveloka-flight/workflow.ts - openMetasearchBookingContactPage, openBookingPageFromSearchResults',
+      ...(paymentFocused
+        ? [
+            '// Retrieved shared-helper: tests/web/traveloka-flight-booking-payment-e2e.spec.ts - Proven desktop booking=>payment smoke chain',
+            '// Payment-sensitive weekly generation rule: preserve payfrm iframe referer reload and main-page paymentPayButton contracts',
+          ]
+        : []),
       `// Suggested changed files (top ${highlightedChangedFiles.length}${omittedCount ? ` of ${changedFiles.length}` : ''}): ${JSON.stringify(highlightedChangedFiles)}`,
       `${omittedCount ? `// Omitted additional changed files: ${omittedCount}` : ''}`,
       '// Source hint: packages/flight/fpr-booking/components/BFFBookingContact - Desktop booking contact form',
@@ -1803,6 +2231,12 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`;
       '// 4. Uses lib/traveloka-flight helpers - createFlightWorkflowPlan, attachFlightWorkflowPlan',
       '// 5. Phase 2 active layer - executed weekly via: npx tsx scripts/run-accumulated-cases.ts --layer active',
       '// 6. Complete booking chain - Must execute Choose→Select before verifying booking page (per docs/traveloka-flight-booking-case-generation.md)',
+      ...(paymentFocused
+        ? [
+            '// 7. Payment-sensitive diffs must preserve locked booking=>payment chain contracts (per docs/traveloka-flight-booking-payment-chain-lock.md)',
+            '// 8. paymentPayButton stays on the main payment page; credit-card fields stay inside #creditCardPaymentFormIframe',
+          ]
+        : []),
       '',
       '// P0 Critical Bug Detection',
       'const detector = new GenericBugDetector(page);',
@@ -1823,7 +2257,15 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`;
   return {
     id: 'flight-booking-weekly',
     domain: 'flight-booking',
-    confidence: hasStrongEvidence ? 'high' : 'medium',
+    confidence: confidenceAssessment.confidence,
+    confidenceScore: confidenceAssessment.score,
+    confidenceReasons: confidenceAssessment.reasons,
+    mainLaneEligible: hasStrongEvidence && confidenceAssessment.confidence === 'high',
+    mainLaneGateReason: hasStrongEvidence && confidenceAssessment.confidence === 'high'
+      ? 'Eligible: booking source evidence is strong enough for runnable weekly main lane coverage.'
+      : hasStrongEvidence
+      ? `Gated: runnable booking spec exists, but confidence score ${confidenceAssessment.score} is below the high-confidence threshold.`
+      : 'Not eligible: booking evidence is not strong enough for weekly main lane execution.',
     title: retentionFocused
       ? 'Weekly flight booking retention-entry regression coverage'
       : 'Weekly flight booking entry regression coverage',
@@ -1838,10 +2280,16 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`;
       ? 'Use packages/flight/fpr-booking evidence to route the candidate, preserve PRD references in markdown, and emit the generated web spec through the shared booking helper.'
       : 'Keep target URL and source hints, but suppress web spec emission until fpr-booking source is in the diff.',
     changedFiles,
-    targetTests: ['tests/web/traveloka-flight-metasearch-email-confirmation.spec.ts'],
+    targetTests: paymentFocused
+      ? [
+          'tests/web/traveloka-flight-booking-payment-e2e.spec.ts',
+          'tests/web/traveloka-flight-metasearch-email-confirmation.spec.ts',
+        ]
+      : ['tests/web/traveloka-flight-metasearch-email-confirmation.spec.ts'],
+    userIntent: suggestedUserIntent,
     suggestedUserIntent,
     targetUrl: bookingEntryUrl,
-    concerns: ['booking-contact'],
+    concerns: paymentFocused ? ['booking-contact', 'payment-chain'] : ['booking-contact'],
     sourceHints: [
       {
         sourcePath: 'packages/flight/fpr-booking/components/BFFBookingContact/BFFBookingContactForm.tsx',
@@ -1853,6 +2301,9 @@ import { GenericBugDetector } from '../lib/generic-bug-detector';`;
       },
     ],
     sourceCommits: enrichedSourceCommits,
+    retrievedEvidence,
+    prdProcessing: collectCandidatePrdProcessing(enrichedSourceCommits),
+    actionContracts: bookingActionContracts,
     webSpecFileName: hasStrongEvidence ? webSpecFileName : undefined,
     webSpecContent: hasStrongEvidence ? webSpecContent : undefined,
   };
@@ -1863,7 +2314,16 @@ function buildI18nCandidate(changedFiles: string[]): Candidate {
   return {
     id: 'web-i18n-weekly',
     domain: 'web-i18n',
-    confidence: 'medium',
+    ...(() => {
+      const assessment = assessSupportCandidateConfidence(50, 'i18n candidates stay support-lane only');
+      return {
+        confidence: assessment.confidence,
+        confidenceScore: assessment.score,
+        confidenceReasons: assessment.reasons,
+      };
+    })(),
+    mainLaneEligible: false,
+    mainLaneGateReason: 'Not eligible: weekly main lane is reserved for desktop flight runnable specs.',
     title: 'Weekly web i18n regression coverage',
     action: 'modify-existing',
     reason:
@@ -1875,6 +2335,8 @@ function buildI18nCandidate(changedFiles: string[]): Candidate {
       'tests/traveloka-i18n-audit.spec.ts',
       'tests/traveloka-home-i18n.spec.ts',
     ],
+    userIntent:
+      `Review weekly i18n changes touching ${keywords.join(', ') || 'locale content'} and update the existing locale audit cases to cover them.`,
     suggestedUserIntent:
       `Review weekly i18n changes touching ${keywords.join(', ') || 'locale content'} and update the existing locale audit cases to cover them.`,
   };
@@ -1885,7 +2347,16 @@ function buildAndroidCandidate(changedFiles: string[]): Candidate {
   return {
     id: 'android-home-weekly',
     domain: 'android-home',
-    confidence: 'medium',
+    ...(() => {
+      const assessment = assessSupportCandidateConfidence(45, 'android-home candidates stay support-lane only');
+      return {
+        confidence: assessment.confidence,
+        confidenceScore: assessment.score,
+        confidenceReasons: assessment.reasons,
+      };
+    })(),
+    mainLaneEligible: false,
+    mainLaneGateReason: 'Not eligible: weekly main lane is reserved for desktop flight runnable specs.',
     title: 'Weekly Android home regression coverage',
     action: 'modify-existing',
     reason:
@@ -1898,6 +2369,8 @@ function buildAndroidCandidate(changedFiles: string[]): Candidate {
       'tests/traveloka-android-audit.spec.ts',
       'tests/traveloka-home-i18n.ts',
     ],
+    userIntent:
+      `Review weekly Android changes touching ${keywords.join(', ') || 'home and account surfaces'} and update the Android home/account cases accordingly.`,
     suggestedUserIntent:
       `Review weekly Android changes touching ${keywords.join(', ') || 'home and account surfaces'} and update the Android home/account cases accordingly.`,
   };
@@ -1908,7 +2381,16 @@ function buildGenericWebCandidate(changedFiles: string[]): Candidate {
   return {
     id: 'generic-web-weekly',
     domain: 'generic-web',
-    confidence: 'low',
+    ...(() => {
+      const assessment = assessSupportCandidateConfidence(25, 'generic-web candidates are summary-first until stronger evidence exists');
+      return {
+        confidence: assessment.confidence,
+        confidenceScore: assessment.score,
+        confidenceReasons: assessment.reasons,
+      };
+    })(),
+    mainLaneEligible: false,
+    mainLaneGateReason: 'Not eligible: generic-web candidates are summary-only until stronger ownership evidence exists.',
     title: 'Weekly generic web regression coverage',
     action: 'create-new',
     reason:
@@ -1917,6 +2399,8 @@ function buildGenericWebCandidate(changedFiles: string[]): Candidate {
     howToSolve: 'Ask for stronger ownership evidence or build a new domain-specific template before generating executable tests.',
     changedFiles,
     targetTests: [],
+    userIntent:
+      `Generate or update a web regression case for weekly changes touching ${keywords.join(', ') || 'the changed files'}.`,
     suggestedUserIntent:
       `Generate or update a web regression case for weekly changes touching ${keywords.join(', ') || 'the changed files'}.`,
   };
@@ -2047,6 +2531,16 @@ function renderMarkdown(args: Args, startCommit: string, endRef: string, files: 
     if (candidate.targetTests.length) {
       lines.push(`- Existing tests to review: ${candidate.targetTests.join(', ')}`);
     }
+    lines.push(`- Weekly main-lane eligible: ${candidate.mainLaneEligible ? 'yes' : 'no'}`);
+    if (candidate.mainLaneGateReason) {
+      lines.push(`- Weekly main-lane gate: ${candidate.mainLaneGateReason}`);
+    }
+    if (candidate.actionContracts?.length) {
+      lines.push(`- Action contracts: ${candidate.actionContracts.length} tracked in summary.json`);
+    }
+    if (candidate.prdProcessing) {
+      lines.push(`- PRD extraction: ${candidate.prdProcessing.extractionStatus}`);
+    }
     if (candidate.draftFileName) {
       lines.push(`- Generated draft file: ${candidate.draftFileName}`);
     }
@@ -2089,6 +2583,10 @@ function renderConsoleSummary(
     lines.push(
       `  - ${candidate.domain} | ${candidate.confidence} | ${candidate.action} | ${candidate.title}`,
     );
+    lines.push(`    main-lane: ${candidate.mainLaneEligible ? 'eligible' : 'gated'}`);
+    if (candidate.prdProcessing) {
+      lines.push(`    prd: ${candidate.prdProcessing.extractionStatus}`);
+    }
     if (candidate.webSpecFileName) {
       lines.push(`    web spec: tests/web/${candidate.webSpecFileName}`);
     } else if (candidate.draftFileName) {
@@ -2100,6 +2598,10 @@ function renderConsoleSummary(
 }
 
 function writeArtifacts(rootDir: string, markdown: string, candidates: Candidate[], files: DiffFile[]) {
+  for (const candidate of candidates) {
+    candidate.prdProcessing = writeCandidatePrdExtractions(rootDir, candidate) ?? candidate.prdProcessing;
+  }
+
   fs.mkdirSync(rootDir, { recursive: true });
   fs.writeFileSync(path.join(rootDir, 'summary.md'), `${markdown}\n`);
   fs.writeFileSync(
@@ -2116,24 +2618,32 @@ function writeArtifacts(rootDir: string, markdown: string, candidates: Candidate
     if (candidate.webSpecFileName && candidate.webSpecContent) {
       fs.writeFileSync(path.join(rootDir, candidate.webSpecFileName), candidate.webSpecContent);
     }
-
-    // Extract and store PRD markdown for AI to use in case generation
-    writeCandidatePrdExtractions(rootDir, candidate);
   }
 }
 
-function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
+function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate): CandidatePrdProcessing | undefined {
   const extractScriptPath = path.resolve(process.cwd(), 'scripts/extract-prd-with-opencode.sh');
   const resolveScriptPath = path.resolve(process.cwd(), 'scripts/resolve-meegle-prd-link-with-opencode.sh');
-  if (!fs.existsSync(extractScriptPath)) {
-    return;
+  const prdLinks = collectCandidatePrdLinks(candidate);
+  const meegleLink = prdLinks.find((reference) => reference.kind === 'meegle-fpr')?.url;
+  const processing = candidate.prdProcessing
+    ? { ...candidate.prdProcessing, references: [...candidate.prdProcessing.references] }
+    : prdLinks.length
+    ? { references: [], extractionStatus: 'pending' as const }
+    : undefined;
+
+  if (!processing) {
+    return undefined;
   }
 
-  const prdLinks = collectCandidatePrdLinks(candidate);
+  if (!fs.existsSync(extractScriptPath)) {
+    processing.extractionStatus = prdLinks.length ? 'failed' : 'skipped-no-link';
+    return processing;
+  }
+
   let resolvedPrdLink = prdLinks.find((reference) => reference.kind === 'lark-wiki')?.url ?? null;
 
   if (!resolvedPrdLink) {
-    const meegleLink = prdLinks.find((reference) => reference.kind === 'meegle-fpr')?.url;
     if (meegleLink && fs.existsSync(resolveScriptPath)) {
       // Use disk cache first — avoid calling opencode again for the same URL
       const urlHash = meegleLink.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
@@ -2157,6 +2667,16 @@ function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
           });
           const payload = JSON.parse(fs.readFileSync(resolutionPath, 'utf8')) as MeeglePrdResolutionPayload;
           resolvedPrdLink = payload.prdLink ?? null;
+          if (resolvedPrdLink) {
+            fs.mkdirSync(MEEGLE_DISK_CACHE_DIR, { recursive: true });
+            fs.writeFileSync(
+              diskCachePath,
+              JSON.stringify([
+                { url: meegleLink, kind: 'meegle-fpr' },
+                { url: resolvedPrdLink, kind: 'lark-wiki' },
+              ]),
+            );
+          }
         } catch (error) {
           // Failed to resolve meegle link
         }
@@ -2165,7 +2685,27 @@ function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
   }
 
   if (!resolvedPrdLink) {
-    return;
+    processing.extractionStatus = prdLinks.length ? 'skipped-unresolved-link' : 'skipped-no-link';
+    return processing;
+  }
+
+  processing.selectedResolvedUrl = resolvedPrdLink;
+
+  if (meegleLink) {
+    const existingReferenceIndex = processing.references.findIndex(
+      (reference) => reference.sourceUrl === meegleLink,
+    );
+    const resolvedStatus: PrdLinkStatus = {
+      sourceUrl: meegleLink,
+      sourceKind: 'meegle-fpr',
+      resolutionStatus: 'resolved-from-meegle',
+      resolvedUrls: [resolvedPrdLink],
+    };
+    if (existingReferenceIndex >= 0) {
+      processing.references[existingReferenceIndex] = resolvedStatus;
+    } else {
+      processing.references.push(resolvedStatus);
+    }
   }
 
   const outputPath = path.join(rootDir, `${candidate.domain}-prd.md`);
@@ -2174,9 +2714,12 @@ function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
   const larkUrlHash = resolvedPrdLink.replace(/[^a-zA-Z0-9]/g, '_').slice(-60);
   const larkDiskCachePath = path.join(MEEGLE_DISK_CACHE_DIR, `lark-prd-${larkUrlHash}.md`);
   if (fs.existsSync(larkDiskCachePath)) {
+    fs.mkdirSync(rootDir, { recursive: true });
     fs.copyFileSync(larkDiskCachePath, outputPath);
     console.log(`[prd] cache hit for lark doc: ${resolvedPrdLink}`);
-    return;
+    processing.extractionStatus = 'cache-hit';
+    processing.extractedPath = outputPath;
+    return processing;
   }
 
   try {
@@ -2189,10 +2732,46 @@ function writeCandidatePrdExtractions(rootDir: string, candidate: Candidate) {
     if (fs.existsSync(outputPath)) {
       fs.mkdirSync(MEEGLE_DISK_CACHE_DIR, { recursive: true });
       fs.copyFileSync(outputPath, larkDiskCachePath);
+      processing.extractionStatus = 'extracted';
+      processing.extractedPath = outputPath;
+      return processing;
     }
   } catch (error) {
     // Failed to extract PRD
   }
+
+  processing.extractionStatus = 'failed';
+  return processing;
+}
+
+function renderPrdProcessingSummary(candidate: Candidate): string[] {
+  const processing = candidate.prdProcessing;
+  if (!processing) {
+    return [`• ${candidate.domain}: no PRD link found`];
+  }
+
+  const resolvedCount = processing.references.filter(
+    (reference) => reference.resolutionStatus !== 'meegle-resolution-failed',
+  ).length;
+  const unresolvedCount = processing.references.filter(
+    (reference) => reference.resolutionStatus === 'meegle-resolution-failed',
+  ).length;
+  const lines = [
+    `• ${candidate.domain}: prd-links=${processing.references.length}, resolved=${resolvedCount}, unresolved=${unresolvedCount}, extraction=${processing.extractionStatus}`,
+  ];
+
+  for (const reference of processing.references.slice(0, 3)) {
+    const resolvedLabel = reference.resolvedUrls.length
+      ? ` -> ${reference.resolvedUrls.join(' | ')}`
+      : '';
+    lines.push(`  - ${reference.sourceKind}: ${reference.sourceUrl} [${reference.resolutionStatus}]${resolvedLabel}`);
+  }
+
+  if (processing.selectedResolvedUrl) {
+    lines.push(`  - selected prd: ${processing.selectedResolvedUrl}`);
+  }
+
+  return lines;
 }
 
 function collectCandidatePrdLinks(candidate: Candidate) {
@@ -2391,11 +2970,16 @@ async function main() {
       domains.add(candidate.domain);
       
       // 🔒 FORCED: Also write test spec directly to tests/web
-      if (candidate.webSpecFileName && candidate.webSpecContent) {
+      const mainLaneEligible = candidate.mainLaneEligible ?? isWeeklyMainLaneEligible(candidate);
+      if (candidate.webSpecFileName && candidate.webSpecContent && mainLaneEligible) {
         fs.mkdirSync(testWebDir, { recursive: true });
         const testFilePath = path.join(testWebDir, candidate.webSpecFileName);
         fs.writeFileSync(testFilePath, candidate.webSpecContent);
         console.log(`[weekly-diff] wrote test case: ${candidate.webSpecFileName}`);
+      } else if (candidate.webSpecFileName && candidate.webSpecContent) {
+        console.log(
+          `[weekly-diff] gated from main lane: ${candidate.webSpecFileName} (${candidate.mainLaneGateReason ?? getWeeklyMainLaneGateReason(candidate)})`,
+        );
       }
     } else {
       console.log(`[weekly-diff] Skipped duplicate: ${candidate.id}`);
@@ -2441,6 +3025,11 @@ By domain:
 ${Object.entries(stats.byDomain)
   .map(([domain, count]) => `• ${domain}: ${count}`)
   .join('\n')}
+
+PRD parsing status:
+${candidates.length
+  ? candidates.flatMap((candidate) => renderPrdProcessingSummary(candidate)).join('\n')
+  : '• no candidates'}
 
 Location: \`generated-cases/${prNumber ? `pr-${prNumber}` : 'snapshot-' + new Date().toISOString().split('T')[0]}/\`
 

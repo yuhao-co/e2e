@@ -1,0 +1,33 @@
+##
+# SCENARIO 13 — Card: Tap the "i" (info/detail) icon on the first card
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_result_card.xml  →  image_info_detail  (KImageView btnDetail)
+#   FlightResultScreen.kt   →  fun clickFlightCardDetail(itemPosition)
+#                               recyclerView.childAt<FlightItem>(position) { btnDetail.click() }
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Tap the detail info icon on the first card
+- tapOn:
+    id: "image_info_detail"
+    index: 0
+
+# Detail / info panel appears
+- assertVisible:
+    id: "dialog_toolbar"
+- assertVisible:
+    id: "sliding_tabs"
+
+# Close
+- tapOn:
+    id: "image_view_close"
+
+# ── Assertions: Back on results ───────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"

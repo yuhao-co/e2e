@@ -354,22 +354,34 @@ export async function openBookingPageFromSearchResults(
   ).toBeVisible({ timeout: 20000 });
   await inventoryCardButton.click({ force: true });
 
-  const ticketTypeDialog = getSelectTicketTypeDialog(page);
-  await expect(
-    ticketTypeDialog,
-    'Expected the Select ticket type drawer to appear after clicking the inventory card button.',
-  ).toBeVisible({ timeout: 20000 });
+  // After clicking Choose, two outcomes are possible:
+  //   (a) Ticket type selection drawer appears → click Select inside it
+  //   (b) Some flights navigate directly to booking page (no drawer step)
+  const directToBooking = await page
+    .waitForURL(travelokaFlightSearchResultsSelectors.bookingUrlPattern, { timeout: 8000 })
+    .then(() => true)
+    .catch(() => false);
 
-  const selectButton = getTicketOptionSelectButton(page);
-  await expect(
-    selectButton,
-    'Expected the select ticket option contract button inside the drawer.',
-  ).toBeVisible({ timeout: 20000 });
+  if (!directToBooking) {
+    const ticketTypeDialog = getSelectTicketTypeDialog(page);
+    const drawerVisible = await ticketTypeDialog.isVisible({ timeout: 15000 }).catch(() => false);
+    if (!drawerVisible) {
+      throw new Error(
+        'Expected either a ticket type drawer or a direct booking redirect after clicking Choose, but neither happened within timeout.',
+      );
+    }
 
-  await Promise.all([
-    page.waitForURL(travelokaFlightSearchResultsSelectors.bookingUrlPattern, { timeout: 30000 }),
-    selectButton.click(),
-  ]);
+    const selectButton = getTicketOptionSelectButton(page);
+    await expect(
+      selectButton,
+      'Expected the select ticket option button inside the drawer.',
+    ).toBeVisible({ timeout: 10000 });
+
+    await Promise.all([
+      page.waitForURL(travelokaFlightSearchResultsSelectors.bookingUrlPattern, { timeout: 30000 }),
+      selectButton.click(),
+    ]);
+  }
 
   await page.waitForLoadState('domcontentloaded').catch(() => {});
   await page.waitForLoadState('networkidle').catch(() => {});

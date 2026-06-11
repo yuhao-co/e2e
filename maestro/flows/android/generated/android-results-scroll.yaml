@@ -1,0 +1,34 @@
+##
+# SCENARIO 14 — Scroll: Load more results by scrolling down
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_result_revamp_route_widget.xml  → recycler (main results RecyclerView)
+#   FlightResultScreen.kt  →  recyclerView withId(R.id.recycler)
+#
+# Expected: More flight cards become visible after scrolling;
+#           at least one new card beyond the first screen fold.
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Verify first card visible before scrolling
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+# Scroll down in the results RecyclerView
+- scroll
+# ── Assertions: More cards still present after scroll ────────────────────────
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+# Scroll further
+- scroll
+# Cards still visible (pagination triggered)
+- assertVisible:
+    id: "flight_result_v4_inventory_card"

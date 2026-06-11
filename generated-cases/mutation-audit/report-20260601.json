@@ -1,0 +1,252 @@
+{
+  "generatedAt": "2026-06-01T08:13:11.244Z",
+  "summary": {
+    "total": 17,
+    "killed": 17,
+    "survived": 0,
+    "killRatio": 100
+  },
+  "weakAssertions": [],
+  "results": [
+    {
+      "id": "filter-01-nondirect-appears",
+      "specFile": "tests/web/traveloka-flight-search-interactions.spec.ts",
+      "testName": "Direct flights filter applies correctly",
+      "assertionDescription": "nonDirect.length === 0",
+      "mutantScenario": "Filter broke: a \"1 Stop\" flight card is still visible after applying Direct filter",
+      "badInput": [
+        {
+          "stops": "Direct"
+        },
+        {
+          "stops": "1 Stop"
+        },
+        {
+          "stops": "Direct"
+        }
+      ],
+      "killed": true,
+      "survived": false,
+      "error": "Expected 0 non-direct, got 1: [{\"stops\":\"1 Stop\"}]"
+    },
+    {
+      "id": "filter-02-all-nondirect",
+      "specFile": "tests/web/traveloka-flight-search-interactions.spec.ts",
+      "testName": "Direct flights filter applies correctly",
+      "assertionDescription": "nonDirect.length === 0",
+      "mutantScenario": "Filter completely ignored: all 3 results are connecting flights",
+      "badInput": [
+        {
+          "stops": "2 Stops"
+        },
+        {
+          "stops": "1 Stop"
+        },
+        {
+          "stops": "2 Stops"
+        }
+      ],
+      "killed": true,
+      "survived": false,
+      "error": "Expected 0 non-direct, got 3: [{\"stops\":\"2 Stops\"},{\"stops\":\"1 Stop\"},{\"stops\":\"2 Stops\"}]"
+    },
+    {
+      "id": "sort-01-reversed-endpoints",
+      "specFile": "tests/web/traveloka-flight-search-interactions.spec.ts",
+      "testName": "Price sort (cheapest first) returns ascending order",
+      "assertionDescription": "isAscending: sample[0] <= sample[last] (endpoints only)",
+      "mutantScenario": "Sort broke: prices are in DESCENDING order [500, 300, 200]",
+      "badInput": [
+        {
+          "price": 500
+        },
+        {
+          "price": 300
+        },
+        {
+          "price": 200
+        }
+      ],
+      "killed": true,
+      "survived": false,
+      "error": "Prices not ascending: [500,300,200]"
+    },
+    {
+      "id": "sort-02-sawtooth-gap",
+      "specFile": "tests/web/traveloka-flight-search-interactions.spec.ts",
+      "testName": "Price sort (cheapest first) returns ascending order",
+      "assertionDescription": "All consecutive pairs non-decreasing (FIXED: was endpoints-only)",
+      "mutantScenario": "Sort partially broke: [100, 900, 200] — first and last look fine but order is wrong in middle",
+      "badInput": [
+        {
+          "price": 100
+        },
+        {
+          "price": 900
+        },
+        {
+          "price": 200
+        }
+      ],
+      "killed": true,
+      "survived": false,
+      "error": "Price at position 2 (200) < previous (900): [100,900,200]"
+    },
+    {
+      "id": "sort-03-sawtooth-strong",
+      "specFile": "tests/web/traveloka-flight-search-interactions.spec.ts",
+      "testName": "Price sort — STRONGER consecutive-pair check",
+      "assertionDescription": "All consecutive pairs non-decreasing",
+      "mutantScenario": "Sort partially broke: [100, 900, 200] — stronger assertion catches it",
+      "badInput": [
+        {
+          "price": 100
+        },
+        {
+          "price": 900
+        },
+        {
+          "price": 200
+        }
+      ],
+      "killed": true,
+      "survived": false,
+      "error": "Price at position 2 (200) < previous (900): [100,900,200]"
+    },
+    {
+      "id": "currency-01-wrong-symbol",
+      "specFile": "tests/web/traveloka-flight-search-interactions.spec.ts",
+      "testName": "Currency switcher changes price display to CNY",
+      "assertionDescription": "/CNY|¥|人民币/.test(priceText)",
+      "mutantScenario": "Currency switch failed: price still shows SGD 450",
+      "badInput": "SGD 450",
+      "killed": true,
+      "survived": false,
+      "error": "Expected CNY price, got: \"SGD 450\""
+    },
+    {
+      "id": "currency-02-empty-response",
+      "specFile": "tests/web/traveloka-flight-search-interactions.spec.ts",
+      "testName": "Currency switcher changes price display to CNY",
+      "assertionDescription": "/CNY|¥|人民币/.test(priceText)",
+      "mutantScenario": "aiQuery returned empty string (page not ready)",
+      "badInput": "",
+      "killed": true,
+      "survived": false,
+      "error": "Expected CNY price, got: \"\""
+    },
+    {
+      "id": "language-01-not-chinese",
+      "specFile": "tests/web/traveloka-flight-search-interactions.spec.ts",
+      "testName": "Language switcher changes UI to Chinese",
+      "assertionDescription": "hasChinese === true",
+      "mutantScenario": "Language switch failed: UI still in English",
+      "badInput": {
+        "hasChinese": false,
+        "sample": "Flights from Singapore"
+      },
+      "killed": true,
+      "survived": false,
+      "error": "Expected Chinese UI, got: \"Flights from Singapore\""
+    },
+    {
+      "id": "booking-01-wrong-url",
+      "specFile": "tests/web/traveloka-flight-booking-weekly-diff-20260601.spec.ts",
+      "testName": "Booking chain reaches /flight/booking URL",
+      "assertionDescription": "pathname matches /\\/flight\\/booking/",
+      "mutantScenario": "Booking redirect broken: landed on /hotel/booking instead",
+      "badInput": "/en-sg/hotel/booking/123",
+      "killed": true,
+      "survived": false,
+      "error": "Expected /flight/booking in pathname, got: \"/en-sg/hotel/booking/123\""
+    },
+    {
+      "id": "booking-02-404-url",
+      "specFile": "tests/web/traveloka-flight-booking-weekly-diff-20260601.spec.ts",
+      "testName": "Booking chain reaches /flight/booking URL",
+      "assertionDescription": "pathname matches /\\/flight\\/booking/",
+      "mutantScenario": "Booking chain failed: landed on error page /en-sg/404",
+      "badInput": "/en-sg/404",
+      "killed": true,
+      "survived": false,
+      "error": "Expected /flight/booking in pathname, got: \"/en-sg/404\""
+    },
+    {
+      "id": "booking-03-contact-form-hidden",
+      "specFile": "tests/web/traveloka-flight-booking-weekly-diff-20260601.spec.ts",
+      "testName": "Booking contact form should be accessible",
+      "assertionDescription": "contactExists is truthy (boolean from isVisible)",
+      "mutantScenario": "Contact form failed to render: isVisible() returned false",
+      "badInput": false,
+      "killed": true,
+      "survived": false,
+      "error": "Contact form not visible"
+    },
+    {
+      "id": "explore-01-title-empty",
+      "specFile": "tests/web/traveloka-flight-explore-*.spec.ts",
+      "testName": "Page title should not be empty after load",
+      "assertionDescription": "title toBeTruthy()",
+      "mutantScenario": "Page did not load: aiQuery returned empty string",
+      "badInput": "",
+      "killed": true,
+      "survived": false,
+      "error": "Page title is empty"
+    },
+    {
+      "id": "explore-02-title-error-page",
+      "specFile": "tests/web/traveloka-flight-explore-*.spec.ts",
+      "testName": "Page title should be a valid Traveloka page, not an error page",
+      "assertionDescription": "title matches /traveloka|flight|airport|airline|hotel|travel/i (FIXED: was toBeTruthy)",
+      "mutantScenario": "Page returned an error page with title \"Error 404\"",
+      "badInput": "Error 404",
+      "killed": true,
+      "survived": false,
+      "error": "Page title looks like an error page: \"Error 404\""
+    },
+    {
+      "id": "explore-03-title-strong-version",
+      "specFile": "tests/web/traveloka-flight-explore-*.spec.ts",
+      "testName": "Page title — STRONGER content-aware check",
+      "assertionDescription": "title matches /traveloka|flight|airport|airline/i AND not an error page",
+      "mutantScenario": "Error 404 page — stronger assertion catches it",
+      "badInput": "Error 404",
+      "killed": true,
+      "survived": false,
+      "error": "Page title looks like an error page: \"Error 404\""
+    },
+    {
+      "id": "results-01-card-count-zero",
+      "specFile": "tests/web/traveloka-flight-weekly-diff-20260522.spec.ts",
+      "testName": "Weekly diff results page — flight cards visible",
+      "assertionDescription": "taggedCardCount > 0",
+      "mutantScenario": "Results page rendered with 0 flight cards (empty results or API error)",
+      "badInput": 0,
+      "killed": true,
+      "survived": false,
+      "error": "Expected at least 1 card, got 0"
+    },
+    {
+      "id": "results-02-card-text-loading",
+      "specFile": "tests/web/traveloka-flight-weekly-diff-20260522.spec.ts",
+      "testName": "Weekly diff results page — first card has expected text",
+      "assertionDescription": "firstCardText matches /flight details|fare & benefits/i",
+      "mutantScenario": "Cards rendered but still show skeleton/loading text",
+      "badInput": "Loading...",
+      "killed": true,
+      "survived": false,
+      "error": "First card text does not match expected pattern: \"Loading...\""
+    },
+    {
+      "id": "results-03-card-text-error",
+      "specFile": "tests/web/traveloka-flight-weekly-diff-20260522.spec.ts",
+      "testName": "Weekly diff results page — first card has expected text",
+      "assertionDescription": "firstCardText matches /flight details|fare & benefits/i",
+      "mutantScenario": "API returned error state — card shows \"Something went wrong\"",
+      "badInput": "Something went wrong. Please try again.",
+      "killed": true,
+      "survived": false,
+      "error": "First card text does not match expected pattern: \"Something went wrong. Please try again.\""
+    }
+  ]
+}

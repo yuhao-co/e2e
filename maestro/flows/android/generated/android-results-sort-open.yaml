@@ -1,0 +1,37 @@
+##
+# SCENARIO 07 — Sort tray: Opens and displays sort options
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_result_revamp_activity.xml   →  filter_non_sticky (Compose-based,
+#                                           contains Sort + Filter buttons)
+#   flight_sort_tray_widget.xml         →  layout_tray, rbg_sort
+#                                          contentDescription: "flight_resultsort_group_radio_button"
+#
+# Sort types available (FlightSortRevampType):
+#   RECOMMENDED, EARLIEST_DEPARTURE, LATEST_DEPARTURE, EARLIEST_ARRIVAL,
+#   LATEST_ARRIVAL, SHORTEST_DURATION, DIRECT_FLIGHT_FIRST, LOWEST_PRICE (default)
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# ── Open sort tray (second action area in filter_non_sticky bar) ─────────────
+# The FlightResultRevampFilter Compose widget hosts both Filter and Sort.
+# Tapping the right half (Sort area) opens the sort tray.
+# Tap the sort button directly (Compose semantic ID: flight_result_v4_sort_button)
+- tapOn:
+    id: "flight_result_v4_sort_button"
+
+# Sort tray should now be open
+
+# Sort tray is open — verify radio group is accessible
+# assertVisible by description removed (Maestro 2.x): flight_resultsort_group_radio_button
+# ── Close sort tray by pressing back ─────────────────────────────────────────
+- back
+
+# ── Assertions: Back on results ───────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"

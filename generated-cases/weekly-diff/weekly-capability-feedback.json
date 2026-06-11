@@ -1,0 +1,494 @@
+{
+  "generatedAt": "2026-06-10T08:32:34.499Z",
+  "sourcePlanSignals": [
+    "results-list",
+    "booking-contact",
+    "search-form"
+  ],
+  "entries": [
+    {
+      "packId": "flight-search-results",
+      "observedFailureClasses": [
+        "product-regression-likely"
+      ],
+      "observedRunIds": [
+        "web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+        "web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+        "web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+        "web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+        "web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+        "web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+        "web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+        "web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+        "web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+        "web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+        "web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+        "web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+        "web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+        "web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+        "web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+        "web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+        "web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+        "web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+        "web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+        "web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+        "web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium"
+      ],
+      "appendedRepairHints": [
+        {
+          "trigger": "triage:web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        }
+      ],
+      "recommendedAction": "escalate-with-evidence",
+      "rerunPriority": 30,
+      "owningBaselines": [
+        "tests/web/traveloka-flight-weekly-diff-generated.spec.ts"
+      ],
+      "lastUpdated": "2026-06-10T08:32:34.499Z"
+    },
+    {
+      "packId": "flight-filter-airline",
+      "observedFailureClasses": [
+        "product-regression-likely"
+      ],
+      "observedRunIds": [
+        "web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+        "web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+        "web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+        "web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+        "web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+        "web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+        "web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+        "web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+        "web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+        "web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+        "web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+        "web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+        "web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+        "web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+        "web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+        "web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+        "web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+        "web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+        "web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+        "web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+        "web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium"
+      ],
+      "appendedRepairHints": [
+        {
+          "trigger": "triage:web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        }
+      ],
+      "recommendedAction": "escalate-with-evidence",
+      "rerunPriority": 30,
+      "owningBaselines": [
+        "tests/web/traveloka-flight-weekly-diff-20260527.spec.ts"
+      ],
+      "lastUpdated": "2026-06-10T08:32:34.499Z"
+    },
+    {
+      "packId": "flight-booking-contact",
+      "observedFailureClasses": [
+        "product-regression-likely"
+      ],
+      "observedRunIds": [
+        "web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+        "web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+        "web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+        "web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+        "web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+        "web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+        "web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+        "web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+        "web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+        "web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+        "web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+        "web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+        "web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+        "web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+        "web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+        "web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+        "web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+        "web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+        "web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+        "web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+        "web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium"
+      ],
+      "appendedRepairHints": [
+        {
+          "trigger": "triage:web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        }
+      ],
+      "recommendedAction": "escalate-with-evidence",
+      "rerunPriority": 30,
+      "owningBaselines": [
+        "tests/web/traveloka-flight-booking-weekly-diff-20260527.spec.ts"
+      ],
+      "lastUpdated": "2026-06-10T08:32:34.499Z"
+    },
+    {
+      "packId": "flight-booking-payment",
+      "observedFailureClasses": [
+        "product-regression-likely"
+      ],
+      "observedRunIds": [
+        "web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+        "web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+        "web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+        "web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+        "web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+        "web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+        "web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+        "web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+        "web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+        "web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+        "web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+        "web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+        "web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+        "web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+        "web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+        "web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+        "web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+        "web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+        "web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+        "web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+        "web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium"
+      ],
+      "appendedRepairHints": [
+        {
+          "trigger": "triage:web-traveloka-flight-booki-35269-ng-smoke-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-4332e--payment-e2e-smoke-SIN→JKT--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8247f-ng-smoke-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8becc-ng-smoke-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-8ef1d-ng-smoke-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-997af-ng-smoke-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ae692-ng-smoke-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ba4d3-ng-smoke-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-dae77-ng-smoke-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-booki-ef358-ng-smoke-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1072e--results-coverage-20260601--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-17f09--results-coverage-20260610--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-1b7e6--results-coverage-20260603--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-24628--results-coverage-20260609--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3335a--results-coverage-20260604--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-3f141--results-coverage-20260602--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-4e5e4--results-coverage-20260605--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-6cc53--results-coverage-20260527--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-dd8eb--results-coverage-20260608--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e4e15--results-coverage-20260528--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        },
+        {
+          "trigger": "triage:web-traveloka-flight-weekl-e6608--results-coverage-20260529--chromium",
+          "action": "Preserve trace evidence and escalate without mutating source contracts automatically."
+        }
+      ],
+      "recommendedAction": "escalate-with-evidence",
+      "rerunPriority": 30,
+      "owningBaselines": [
+        "tests/web/traveloka-flight-booking-payment-e2e.spec.ts"
+      ],
+      "lastUpdated": "2026-06-10T08:32:34.499Z"
+    }
+  ]
+}

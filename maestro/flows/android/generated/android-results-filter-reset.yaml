@@ -1,0 +1,53 @@
+##
+# SCENARIO 04 — Filter: Reset all filters
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_result_revamp_filter_dialog.xml  →  tvReset, layout_filter_dialog
+#
+# Expected: After reset, all filter layers are in default (unselected) state
+#           and the full result set is restored.
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# ── Open filter dialog ───────────────────────────────────────────────────────
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+- assertVisible:
+    id: "layout_filter_dialog"
+# ── Apply some filter first (so reset has something to clear) ─────────────────
+- tapOn:
+    id: "layer_transit"
+
+- assertVisible:
+    id: "button_direct"
+- tapOn:
+    id: "button_direct"
+
+# ── Now reset ─────────────────────────────────────────────────────────────────
+- tapOn:
+    id: "tvReset"
+
+# After reset, the button_direct should no longer be in active/selected state.
+# Verify by re-checking the filter dialog is still open and transit buttons visible
+- assertVisible:
+    id: "button_direct"
+- assertVisible:
+    id: "button_one_transit"
+- assertVisible:
+    id: "button_two_transit"
+
+# Apply the (now empty) filter
+- tapOn:
+    id: "dbwShow"
+
+# ── Assertions: full result set restored ─────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"

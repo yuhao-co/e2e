@@ -23,6 +23,32 @@ readonly MAX_RETRIES=3
 readonly RETRY_DELAY_SECONDS=5
 readonly OPENCODE_CHECK_INTERVAL=2
 
+run_opencode_with_timeout() {
+  local prompt="$1"
+  local output_file="$2"
+  local pid
+  local elapsed=0
+
+  opencode run --dangerously-skip-permissions "$prompt" >"$output_file" 2>&1 &
+  pid=$!
+
+  while kill -0 "$pid" 2>/dev/null; do
+    if (( elapsed >= OPENCODE_TIMEOUT_SECONDS )); then
+      warn "opencode timeout (${OPENCODE_TIMEOUT_SECONDS}s); terminating pid ${pid}"
+      kill "$pid" 2>/dev/null || true
+      sleep 1
+      kill -9 "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      return 124
+    fi
+
+    sleep "$OPENCODE_CHECK_INTERVAL"
+    (( elapsed += OPENCODE_CHECK_INTERVAL ))
+  done
+
+  wait "$pid"
+}
+
 # Force OpenCode in PATH - multiple fallback options
 export PATH="${HOME}/.opencode/bin:/opt/opencode/bin:/usr/local/bin:/usr/bin:/bin:${PATH}"
 
@@ -140,7 +166,7 @@ main() {
 
   # Construct strict READ-ONLY prompt
   # IMPORTANT: This prompt explicitly forbids any modifications
-  local prompt=$(cat <<'PROMPT_EOF'
+  local prompt=$(cat <<PROMPT_EOF
 CONSTRAINT: READ-ONLY MODE - NO MODIFICATIONS ALLOWED
 =======================================================
 
@@ -156,9 +182,9 @@ Your ONLY permitted action: Read and extract data
 TASK: Resolve Meegle PRD Link
 =============================
 
-1. Use ONLY MCP Meegle to fetch the work item at: ${MEEGLE_URL}
-   - Project ID (hint): ${PROJECT_ID}
-   - Detail ID (hint): ${DETAIL_ID}
+1. Use ONLY MCP Meegle to fetch the work item at: ${meegle_url}
+  - Project ID (hint): ${project_id}
+  - Detail ID (hint): ${detail_id}
 
 2. From the Meegle item data:
    - Extract the internal PRD link
@@ -179,9 +205,9 @@ MANDATORY RULES:
 
 OUTPUT JSON FORMAT (strict):
 {
-  "sourceUrl": "${MEEGLE_URL}",
-  "projectId": "${PROJECT_ID}",
-  "detailId": "${DETAIL_ID}",
+  "sourceUrl": "${meegle_url}",
+  "projectId": "${project_id}",
+  "detailId": "${detail_id}",
   "timestamp": (current ISO timestamp),
   "accessStatus": "success" | "unauthorized" | "not_found" | "no_prd_link" | "error",
   "prdLink": null or string,
@@ -190,7 +216,7 @@ OUTPUT JSON FORMAT (strict):
   "errorDetails": null or string
 }
 
-Write EXACTLY ONE JSON file to: ${OUTPUT_PATH}
+Write EXACTLY ONE JSON file to: ${output_path}
 PROMPT_EOF
 )
 
@@ -212,12 +238,12 @@ PROMPT_EOF
     local OPENCODE_OUTPUT
     OPENCODE_OUTPUT=$(mktemp)
     
-    # Run opencode directly (no external timeout command needed)
-    if opencode run --dangerously-skip-permissions "$prompt" >"$OPENCODE_OUTPUT" 2>&1; then
+    if run_opencode_with_timeout "$prompt" "$OPENCODE_OUTPUT"; then
       
       # Check if file was created and is valid
       if validate_json "$output_path"; then
         success=true
+        rm -f "$OPENCODE_OUTPUT"
         break
       else
         warn "JSON validation failed for: $output_path"
@@ -234,8 +260,9 @@ PROMPT_EOF
           cat "$OPENCODE_OUTPUT" | head -10 | sed 's/^/  /' >&2
         fi
       fi
-      rm -f "$OPENCODE_OUTPUT"
     fi
+
+    rm -f "$OPENCODE_OUTPUT"
     
     if (( attempt < MAX_RETRIES )); then
       info "Retrying in ${RETRY_DELAY_SECONDS}s..."

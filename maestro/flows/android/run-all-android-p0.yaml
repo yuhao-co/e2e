@@ -1,0 +1,15 @@
+##
+# P0 only — 9 critical scenarios for fast smoke runs
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+- runFlow: generated/android-results-smoke.yaml
+- runFlow: generated/android-results-filter-direct.yaml
+- runFlow: generated/android-results-filter-reset.yaml
+- runFlow: generated/android-results-sort-open.yaml
+- runFlow: generated/android-results-card-detail.yaml
+- runFlow: generated/android-results-scroll.yaml
+- runFlow: generated/android-results-date-flow.yaml
+- runFlow: generated/android-results-back-navigation.yaml
+- runFlow: generated/android-results-change-search.yaml

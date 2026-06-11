@@ -1,0 +1,38 @@
+##
+# SCENARIO 06 — Filter: Airline filter layer opens and shows airline list
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_filter_airline_layer.xml  →  text_button_select_all, recycler_view_content
+#   flight_result_revamp_filter_dialog.xml → layer_airline, ivClose
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# ── Open filter dialog ───────────────────────────────────────────────────────
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+- assertVisible:
+    id: "layout_filter_dialog"
+# ── Airline layer ─────────────────────────────────────────────────────────────
+- tapOn:
+    id: "layer_airline"
+
+- assertVisible:
+    id: "recycler_view_content"
+- assertVisible:
+    id: "text_button_select_all"
+
+# ── Close filter without applying ────────────────────────────────────────────
+- tapOn:
+    id: "ivClose"
+
+# ── Assertions: Back on results page ─────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"

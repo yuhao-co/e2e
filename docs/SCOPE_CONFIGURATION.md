@@ -4,7 +4,7 @@
 
 The bug detection system is currently focused on **Web Desktop** only, with specific attention to two critical flows:
 1. **Flight Search** - Search results and filtering
-2. **Flight Booking** - Checkout and booking confirmation
+2. **Flight Booking** - Checkout, payment selection, and booking confirmation
 
 ## Scope Boundaries
 
@@ -98,7 +98,18 @@ This ensures:
    - Performance baseline: LCP 2500ms, CLS 0.1
 
 2. **Flight Booking** (`flight-booking`)
-   - Bug detection on booking page
+  - Bug detection on booking page
+  - Payment-selection follow-through for booking-sensitive weekly cases
+  - Bottom CTA and payment gateway handoff checks when payment is in scope
+
+### Locked Booking => Payment Evidence
+
+For weekly-diff and bug-detection related generated cases that touch the desktop payment slice, treat these files as locked evidence:
+
+- [docs/traveloka-flight-booking-payment-chain-lock.md](/Users/yu.hao/Desktop/task/e2e/docs/traveloka-flight-booking-payment-chain-lock.md)
+- [tests/web/traveloka-flight-booking-payment-e2e.spec.ts](/Users/yu.hao/Desktop/task/e2e/tests/web/traveloka-flight-booking-payment-e2e.spec.ts)
+
+This lock is specifically intended to prevent accidental drift in the validated `booking => payment` chain, especially around the payfrm iframe, referrer-sensitive credit-card setup, and main-page `paymentPayButton` contract.
    - Critical issue flagging (P0/P1)
    - Performance baseline: LCP 3000ms, CLS 0.15
 

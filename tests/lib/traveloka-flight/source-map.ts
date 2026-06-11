@@ -28,9 +28,6 @@ export type FlightSourceContext = {
 export const DEFAULT_FLIGHT_RESULTS_URL =
   'https://www.traveloka.com/en-sg/flight/fulltwosearch?ap=SIN.JKTA&dt=20-5-2026.22-5-2026&ps=1.0.0&sc=ECONOMY';
 
-export const DEFAULT_FLIGHT_BOOKING_ENTRY_URL =
-  'https://www.traveloka.com/en-en/flight/fullsearch?ap=JKTA.DPS&dt=21-5-2026.NA&ps=1.0.0&sc=ECONOMY';
-
 // Keep Traveloka's public web repo pinned here so future cases can route from
 // a user URL + intent to the most likely owning source module first.
 export const TRAVELOKA_WWW_REPOSITORY = 'https://github.com/traveloka/www';
@@ -113,13 +110,25 @@ const resultsPathIndicators = [
   /carrier/i,
 ];
 
+const bookingPathIndicators = [
+  /fpr-booking/i,
+  /bookingcontact/i,
+  /travelerdetail/i,
+  /booking.*validation/i,
+  /payment/i,
+  /checkout/i,
+];
+
 export function inferFlightCanonicalUrlFromFiles(filePaths: string[]): string {
   const normalized = filePaths.map((filePath) => filePath.toLowerCase());
   const pointsToResultsSurface = normalized.some((filePath) =>
     resultsPathIndicators.some((pattern) => pattern.test(filePath)),
   );
+  const pointsToBookingChain = normalized.some((filePath) =>
+    bookingPathIndicators.some((pattern) => pattern.test(filePath)),
+  );
 
-  if (pointsToResultsSurface) {
+  if (pointsToResultsSurface || pointsToBookingChain) {
     return DEFAULT_FLIGHT_RESULTS_URL;
   }
 

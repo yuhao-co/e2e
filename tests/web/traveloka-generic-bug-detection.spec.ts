@@ -67,7 +67,7 @@ test.describe('Generated Test Suite P0 Detection Verification', () => {
     // Flight-booking specs are also generated
     const specsDir = path.join(process.cwd(), 'tests/web');
     const bookingSpecs = fs.readdirSync(specsDir)
-      .filter(f => f.includes('booking') && f.endsWith('.spec.ts') && !f.includes('generic'))
+      .filter(f => f.startsWith('traveloka-flight-booking-weekly-diff-') && f.endsWith('.spec.ts'))
       .map(f => path.join(specsDir, f));
 
     console.log(`\n📋 Scanning ${bookingSpecs.length} generated flight-booking specs for P0 detection...`);
@@ -78,6 +78,20 @@ test.describe('Generated Test Suite P0 Detection Verification', () => {
       if (content.includes('GenericBugDetector')) {
         expect(content).toContain('pageType: "flight-booking"', 
           `${path.basename(spec)}: Flight-booking P0 detection should specify pageType`);
+        expect(content).toContain('docs/traveloka-flight-booking-case-generation.md',
+          `${path.basename(spec)}: Missing locked booking-chain helper reference`);
+
+        const paymentSensitive =
+          content.includes('payment-chain')
+          || content.includes('paymentPayButton')
+          || content.includes('payment/v2')
+          || content.includes('traveloka-flight-booking-payment-e2e.spec.ts');
+
+        if (paymentSensitive) {
+          expect(content).toContain('docs/traveloka-flight-booking-payment-chain-lock.md',
+            `${path.basename(spec)}: Payment-sensitive booking spec must reference locked booking=>payment chain doc`);
+        }
+
         console.log(`  ✅ ${path.basename(spec)} includes flight-booking P0 detection`);
       }
     }
@@ -86,11 +100,15 @@ test.describe('Generated Test Suite P0 Detection Verification', () => {
   test('Enforce: No hardcoded URLs in generated specs', async () => {
     const specsDir = path.join(process.cwd(), 'tests/web');
     const generatedSpecs = fs.readdirSync(specsDir)
-      .filter(f => f.startsWith('traveloka-flight-weekly-diff-') && f.endsWith('.spec.ts'))
+      .filter(f =>
+        (f.startsWith('traveloka-flight-weekly-diff-') || f.startsWith('traveloka-flight-booking-weekly-diff-'))
+        && f.endsWith('.spec.ts'))
       .map(f => path.join(specsDir, f));
 
     for (const spec of generatedSpecs) {
       const content = fs.readFileSync(spec, 'utf8');
+      expect(content).not.toMatch(/const TARGET_URL = 'https?:\/\//,
+        `${path.basename(spec)}: TARGET_URL must be resolved via source-map, not hardcoded`);
       
       // All URLs must come from sourceContext
       const urlMatches = content.match(/goto\(['"]https?:\/\/www\.traveloka\.com\/[^'"]+['"]/g) || [];

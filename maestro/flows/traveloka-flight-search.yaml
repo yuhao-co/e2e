@@ -1,0 +1,51 @@
+# Maestro Web Demo — Traveloka Flight Search
+# Target: https://www.traveloka.com/en-sg/flight
+# Platform: Web (Chrome on macOS)
+# Equivalent to: Midscene AI test "traveloka-flight-explore-flight-homepage"
+#
+# HOW TO RUN:
+#   maestro test maestro/flows/traveloka-flight-search.yaml
+#
+# Time to write this case manually: ~25 minutes
+# Time for AI (Midscene) to generate equivalent: ~10 seconds (prompt → spec)
+
+url: https://www.traveloka.com/en-sg/flight
+---
+# 1. Launch the browser and open Traveloka flight homepage
+- launchApp
+
+# 2. Wait for the page to load — assert key hero text is visible
+- extendedWaitUntil:
+    visible: "Flights"
+    timeout: 15000
+
+# 3. Assert the search form is present
+- assertVisible: "From"
+- assertVisible: "To"
+
+# 4. Tap the "From" origin field
+- tapOn: "From"
+
+# 5. Type origin airport
+- inputText: "Singapore"
+
+# 6. Wait for autocomplete and select "Singapore (SIN)"
+- extendedWaitUntil:
+    visible: "Singapore (SIN)"
+    timeout: 5000
+- tapOn: "Singapore (SIN)"
+
+# 7. Tap the "To" destination field
+- tapOn: "To"
+- eraseText: 30
+
+# 8. Type destination airport — site auto-selects first match (Jakarta JKTA)
+- inputText: "Jakarta"
+
+# 9. Tap the Search Flights button
+- tapOn: "Search Flights"
+
+# 10. Assert we reached the search results page
+- extendedWaitUntil:
+    visible: "Direct"
+    timeout: 30000

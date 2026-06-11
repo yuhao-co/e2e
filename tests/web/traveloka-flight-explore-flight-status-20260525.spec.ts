@@ -31,7 +31,7 @@ test('Traveloka flight Flight Status smoke coverage (20260525)', async ({ page }
 
   // Basic load sanity: page must have a non-empty title
   const title = await page.title();
-  expect(title, 'Page title should not be empty after load').toBeTruthy();
+  expect(title, 'Page title should be a valid Traveloka page, not an error page').toMatch(/traveloka|flight|airport|airline|hotel|travel/i);
 
   // P0 generic bug detection (layout, XSS, console errors)
   const detector = new GenericBugDetector(page, { pageType: 'flight-search' });

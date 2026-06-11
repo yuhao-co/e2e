@@ -1,0 +1,628 @@
+{
+  "url": "https://www.traveloka.com/en-sg/flight/booking?token=x-eb717878-475b-4bce-bbfd-0f9a8eb4db11&page=1",
+  "testIds": [
+    {
+      "testid": "view_desktop-flight-booking-form",
+      "tag": "div",
+      "text": "Your trip details 2 Payment Close Contact Details (for E-ticket/Voucher) Log in",
+      "visible": true
+    },
+    {
+      "testid": "undefined-logo",
+      "tag": "img",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "multi-item-page-container",
+      "tag": "div",
+      "text": "Contact Details (for E-ticket/Voucher) Log in now for easier access to your book",
+      "visible": true
+    },
+    {
+      "testid": "dynamic-component-BOOKING_CONTACT",
+      "tag": "div",
+      "text": "Contact Details (for E-ticket/Voucher) Log in now for easier access to your book",
+      "visible": true
+    },
+    {
+      "testid": "dynamic-component-BOOKING_TRAVELER",
+      "tag": "div",
+      "text": "Traveler Details Adult 1 Please pay attention for the following: The name has to",
+      "visible": true
+    },
+    {
+      "testid": "traveler-form-adult",
+      "tag": "div",
+      "text": "Adult 1 Please pay attention for the following: The name has to match the passpo",
+      "visible": true
+    },
+    {
+      "testid": "day-datepicker",
+      "tag": "select",
+      "text": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30",
+      "visible": true
+    },
+    {
+      "testid": "month-datepicker",
+      "tag": "select",
+      "text": "January February March April May June July August September October November Dec",
+      "visible": true
+    },
+    {
+      "testid": "year-datepicker",
+      "tag": "select",
+      "text": "1926 1927 1928 1929 1930 1931 1932 1933 1934 1935 1936 1937 1938 1939 1940 1941",
+      "visible": true
+    },
+    {
+      "testid": "checkbox_true",
+      "tag": "div",
+      "text": "Add Frequent Flyer Account",
+      "visible": true
+    },
+    {
+      "testid": "undefined-close",
+      "tag": "div",
+      "text": "",
+      "visible": false
+    },
+    {
+      "testid": "dynamic-component-FLIGHT_BAGGAGE",
+      "tag": "div",
+      "text": "Baggage Is cabin baggage enough for all your stuff? If not, book extra baggage n",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_title",
+      "tag": "h3",
+      "text": "Baggage",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_description",
+      "tag": "div",
+      "text": "Is cabin baggage enough for all your stuff? If not, book extra baggage now!",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_journey_tag_0",
+      "tag": "div",
+      "text": "Depart",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_journey_route_0",
+      "tag": "div",
+      "text": "SIN → CGK",
+      "visible": true
+    },
+    {
+      "testid": "view_bff_baggage_upfront_airline_info_0.0",
+      "tag": "div",
+      "text": "AirAsia Indonesia",
+      "visible": true
+    },
+    {
+      "testid": "image_bff_baggage_upfront_airline_icon_single_0.0",
+      "tag": "img",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_airline_name_0.0",
+      "tag": "div",
+      "text": "AirAsia Indonesia",
+      "visible": true
+    },
+    {
+      "testid": "button_bff_baggage_upfront_baggage_details_0.0",
+      "tag": "div",
+      "text": "Baggage details",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_passenger_name_0.0",
+      "tag": "div",
+      "text": "Adult 1",
+      "visible": true
+    },
+    {
+      "testid": "view_bff_baggage_upfront_passenger_baggage_list_0.0",
+      "tag": "div",
+      "text": "Cabin Baggage 7kg Total checked baggage  0 kg",
+      "visible": true
+    },
+    {
+      "testid": "button_bff_baggage_upfront_option_0.0.0|0.0.0",
+      "tag": "div",
+      "text": "+0 kg FREE",
+      "visible": true
+    },
+    {
+      "testid": "undefined-checkmark",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_weight_0.0.0|0.0.0",
+      "tag": "div",
+      "text": "+0 kg",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_price_0.0.0|0.0.0",
+      "tag": "div",
+      "text": "FREE",
+      "visible": true
+    },
+    {
+      "testid": "button_bff_baggage_upfront_option_0.0.0|0.0.1",
+      "tag": "div",
+      "text": "+20 kg S$51",
+      "visible": true
+    },
+    {
+      "testid": "undefined-checkmark",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_weight_0.0.0|0.0.1",
+      "tag": "div",
+      "text": "+20 kg",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_price_0.0.0|0.0.1",
+      "tag": "div",
+      "text": "S$51",
+      "visible": true
+    },
+    {
+      "testid": "button_bff_baggage_upfront_option_0.0.0|0.0.2",
+      "tag": "div",
+      "text": "+25 kg S$66",
+      "visible": true
+    },
+    {
+      "testid": "undefined-checkmark",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_weight_0.0.0|0.0.2",
+      "tag": "div",
+      "text": "+25 kg",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_price_0.0.0|0.0.2",
+      "tag": "div",
+      "text": "S$66",
+      "visible": true
+    },
+    {
+      "testid": "button_bff_baggage_upfront_option_0.0.0|0.0.3",
+      "tag": "div",
+      "text": "+30 kg S$88",
+      "visible": true
+    },
+    {
+      "testid": "undefined-checkmark",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_weight_0.0.0|0.0.3",
+      "tag": "div",
+      "text": "+30 kg",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_price_0.0.0|0.0.3",
+      "tag": "div",
+      "text": "S$88",
+      "visible": true
+    },
+    {
+      "testid": "button_bff_baggage_upfront_option_0.0.0|0.0.4",
+      "tag": "div",
+      "text": "+40 kg S$131",
+      "visible": true
+    },
+    {
+      "testid": "undefined-checkmark",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_weight_0.0.0|0.0.4",
+      "tag": "div",
+      "text": "+40 kg",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_price_0.0.0|0.0.4",
+      "tag": "div",
+      "text": "S$131",
+      "visible": true
+    },
+    {
+      "testid": "button_bff_baggage_upfront_option_0.0.0|0.0.5",
+      "tag": "div",
+      "text": "+50 kg S$175",
+      "visible": true
+    },
+    {
+      "testid": "undefined-checkmark",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_weight_0.0.0|0.0.5",
+      "tag": "div",
+      "text": "+50 kg",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_price_0.0.0|0.0.5",
+      "tag": "div",
+      "text": "S$175",
+      "visible": true
+    },
+    {
+      "testid": "button_bff_baggage_upfront_option_0.0.0|0.0.6",
+      "tag": "div",
+      "text": "+60 kg S$235",
+      "visible": true
+    },
+    {
+      "testid": "undefined-checkmark",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_weight_0.0.0|0.0.6",
+      "tag": "div",
+      "text": "+60 kg",
+      "visible": true
+    },
+    {
+      "testid": "label_bff_baggage_upfront_price_0.0.0|0.0.6",
+      "tag": "div",
+      "text": "S$235",
+      "visible": true
+    },
+    {
+      "testid": "dynamic-component-FLIGHT_SEAT",
+      "tag": "div",
+      "text": "Seat Number Don't want middle seat? Secure your seat now! Select Select",
+      "visible": true
+    },
+    {
+      "testid": "seat-selection-button",
+      "tag": "div",
+      "text": "Select Select",
+      "visible": true
+    },
+    {
+      "testid": "dynamic-component-FLIGHT_MEAL",
+      "tag": "div",
+      "text": "In-flight Meal Everybody needs nourishment to take on an adventure! So sit back,",
+      "visible": true
+    },
+    {
+      "testid": "dynamic-component-INSURANCE_5",
+      "tag": "div",
+      "text": "Recommended for you Chubb Travel Swift S$ 10.32/pax As regulated by Singapore To",
+      "visible": true
+    },
+    {
+      "testid": "INSURANCE_5-checkbox",
+      "tag": "div",
+      "text": "Recommended for you Chubb Travel Swift S$ 10.32/pax As regulated by Singapore To",
+      "visible": true
+    },
+    {
+      "testid": "dynamic-component-INSURANCE_1204",
+      "tag": "div",
+      "text": "Baggage Loss Tracking S$ 2.56/pax Track and locate your undelivered baggage by t",
+      "visible": true
+    },
+    {
+      "testid": "INSURANCE_1204-checkbox",
+      "tag": "div",
+      "text": "Baggage Loss Tracking S$ 2.56/pax Track and locate your undelivered baggage by t",
+      "visible": true
+    },
+    {
+      "testid": "dynamic-component-INSURANCE_1525",
+      "tag": "div",
+      "text": "Refund Okay S$ 25.08/pax Add the flexibility to cancel your flight for any reaso",
+      "visible": true
+    },
+    {
+      "testid": "INSURANCE_1525-checkbox",
+      "tag": "div",
+      "text": "Refund Okay S$ 25.08/pax Add the flexibility to cancel your flight for any reaso",
+      "visible": true
+    },
+    {
+      "testid": "bff-submit-page",
+      "tag": "div",
+      "text": "Continue to Payment",
+      "visible": true
+    },
+    {
+      "testid": "flight-details-button",
+      "tag": "div",
+      "text": "Details",
+      "visible": true
+    },
+    {
+      "testid": "button_policy_id_0",
+      "tag": "div",
+      "text": "Reschedule Available",
+      "visible": true
+    },
+    {
+      "testid": "button_policy_id_1",
+      "tag": "div",
+      "text": "Non-Refundable",
+      "visible": true
+    },
+    {
+      "testid": "pricebreakdown-PRODUCT-0",
+      "tag": "div",
+      "text": "AirAsia Indonesia (Adult) x1 S$148",
+      "visible": true
+    },
+    {
+      "testid": "pricebreakdown-PRODUCT-0-label",
+      "tag": "div",
+      "text": "AirAsia Indonesia (Adult) x1",
+      "visible": true
+    },
+    {
+      "testid": "pricebreakdown-PRODUCT-0-price",
+      "tag": "div",
+      "text": "S$148",
+      "visible": true
+    },
+    {
+      "testid": "baggageOptionsModal.bgOverlay",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "baggageOptionsModal.closeButton",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "installment-options-switch",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "baggageSelectionModal.bgOverlay",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.content",
+      "tag": "div",
+      "text": "Seat Number Flight 1 of 0 Not Available Subtotal 0 (All flights and passengers)",
+      "visible": true
+    },
+    {
+      "testid": "seat-selection-modal-route-info",
+      "tag": "div",
+      "text": "Flight 1 of 0",
+      "visible": true
+    },
+    {
+      "testid": "seat-selection-modal-flight-info",
+      "tag": "div",
+      "text": "",
+      "visible": false
+    },
+    {
+      "testid": "seat-map-container",
+      "tag": "div",
+      "text": "Not Available",
+      "visible": true
+    },
+    {
+      "testid": "seat-map-content",
+      "tag": "div",
+      "text": "Not Available",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.totalPrice",
+      "tag": "div",
+      "text": "0",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.prevFlightBtn",
+      "tag": "div",
+      "text": "Previous Flight Previous Flight",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.nextFlightBtn",
+      "tag": "div",
+      "text": "Next Flight Next Flight",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.closeButton",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "ancillaryDetailModal.bgOverlay",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "baggageSelectionModal.bgOverlay",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.content",
+      "tag": "div",
+      "text": "In-flight Meal See details Refund Info Unavailable Reschedule Available Singapor",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.totalPrice",
+      "tag": "div",
+      "text": "0",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.submitBtn",
+      "tag": "div",
+      "text": "Done Done",
+      "visible": true
+    },
+    {
+      "testid": "selectionModal.closeButton",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    },
+    {
+      "testid": "ancillaryDetailModal.bgOverlay",
+      "tag": "div",
+      "text": "",
+      "visible": true
+    }
+  ],
+  "dataIds": [
+    {
+      "dataid": "CJ121TRC77UAB941PB10",
+      "tag": "script",
+      "text": ""
+    },
+    {
+      "dataid": "CUM82PBC77U4QKJNCRL0",
+      "tag": "script",
+      "text": ""
+    },
+    {
+      "dataid": "CUM82PBC77U4QKJNCRL0",
+      "tag": "script",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemCheckmark",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemArrowRight",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemStatusWarningFill",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemChevronDown",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemCrossClose",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemChevronRight",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemChevronRight16",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemArrowRight",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemChevronDown",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcTransportSeatClassMultiple",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemArrowRight",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemChevronLeft",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemChevronRight",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcFacilitiesMeal",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemCrossClose",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemCheckmark",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemArrowRight",
+      "tag": "svg",
+      "text": ""
+    },
+    {
+      "dataid": "IcSystemStatusInfoFill",
+      "tag": "svg",
+      "text": ""
+    }
+  ]
+}

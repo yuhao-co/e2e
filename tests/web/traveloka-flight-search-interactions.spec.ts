@@ -102,16 +102,14 @@ test('Search page — Price sort (cheapest first) returns ascending order', asyn
   console.log(`[sort] ${prices.length} cards after cheapest sort:`, JSON.stringify(prices.slice(0, 5)));
 
   if (prices.length >= 2) {
-    // Check first 5 cards are in non-decreasing order
+    // Check every consecutive pair is non-decreasing (catches sawtooth patterns like [100,900,200])
     const sample = prices.slice(0, 5).map((p) => p.price).filter((n) => !isNaN(n));
     for (let i = 1; i < sample.length; i++) {
-      if (sample[i] < sample[i - 1]) {
-        console.warn(`[sort] ⚠️  Price at position ${i} (${sample[i]}) is lower than previous (${sample[i - 1]})`);
-      }
+      expect(
+        sample[i],
+        `Price at position ${i} (${sample[i]}) should be >= previous (${sample[i - 1]}): ${JSON.stringify(sample)}`,
+      ).toBeGreaterThanOrEqual(sample[i - 1]);
     }
-    // Check that the first result is <= the last in sample (overall direction correct)
-    const isAscending = sample[0] <= sample[sample.length - 1];
-    expect(isAscending, `Prices should be ascending after cheapest sort: ${JSON.stringify(sample)}`).toBe(true);
   } else {
     console.warn('[sort] Not enough cards to verify sort order');
   }

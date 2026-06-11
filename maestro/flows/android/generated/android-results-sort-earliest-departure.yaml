@@ -1,0 +1,35 @@
+##
+# SCENARIO 10 — Sort: Select "Earliest Departure" (index 1)
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   FlightResultRevampFilter.kt → FlightSortRevampType.EARLIEST_DEPARTURE →
+#     andpoe_text_flight_result_bottom_filter_sort_departure_earliest_text
+#   rbg_sort index 1
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Open sort tray
+- tapOn:
+    id: "flight_result_v4_filter_button"
+    index: 1
+
+- assertVisible:
+    id: "flight_result_v4_sort_button"
+# Tap Earliest Departure (index 1)
+- tapOn:
+    id: "flight_result_v4_sort_button"
+    index: 1
+
+# ── Assertions ────────────────────────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+# First card departure time should be visible and verifiable
+- assertVisible:
+    id: "text_departure_time"

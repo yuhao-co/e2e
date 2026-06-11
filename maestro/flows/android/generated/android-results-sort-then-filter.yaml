@@ -1,0 +1,44 @@
+##
+# SCENARIO 21 — Sort + Filter combo: Sort by Earliest Departure then open filter
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   rbg_sort (index 1 = EARLIEST_DEPARTURE), then filter_non_sticky filter side
+#
+# Regression target: sort state must persist when filter dialog is opened
+# and closed without changes.
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Sort by Earliest Departure
+- tapOn:
+    id: "flight_result_v4_filter_button"
+    index: 1
+
+- assertVisible:
+    id: "flight_result_v4_sort_button"
+- tapOn:
+    id: "flight_result_v4_sort_button"
+    index: 1
+
+# Now open filter (no changes)
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+- assertVisible:
+    id: "layout_filter_dialog"
+# Close without applying
+- tapOn:
+    id: "ivClose"
+
+# ── Assertions: Results still sorted / loaded ─────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- assertVisible:
+    id: "text_departure_time"

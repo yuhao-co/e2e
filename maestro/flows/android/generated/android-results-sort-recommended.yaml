@@ -1,0 +1,33 @@
+##
+# SCENARIO 08 — Sort: Select "Recommended" (index 0 in rbg_sort)
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_sort_tray_widget.xml  →  rbg_sort  (MDSRadioButtonGroup)
+#   FlightResultRevampFilter.kt  →  FlightSortRevampType.RECOMMENDED
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Open sort tray
+- tapOn:
+    id: "flight_result_v4_filter_button"
+    index: 1
+
+- assertVisible:
+    id: "flight_result_v4_sort_button"
+# Tap first sort option (Recommended / Highest Score)
+- tapOn:
+    id: "flight_result_v4_sort_button"
+    index: 0
+
+# ── Assertions ────────────────────────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- assertVisible:
+    id: "text_displayed_price"

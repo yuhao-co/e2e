@@ -1,0 +1,35 @@
+##
+# SCENARIO 11 — Sort: Shortest Duration (index 5)
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   FlightResultRevampFilter.kt → FlightSortRevampType.SHORTEST_DURATION →
+#     andpoe_text_flight_result_bottom_filter_sort_latest_departure_shortest_duration_text
+#   rbg_sort index 5
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Open sort tray
+- tapOn:
+    id: "flight_result_v4_filter_button"
+    index: 1
+
+- assertVisible:
+    id: "flight_result_v4_sort_button"
+# Tap Shortest Duration (index 5)
+- tapOn:
+    id: "flight_result_v4_sort_button"
+    index: 5
+
+# ── Assertions ────────────────────────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+# Flight duration should be visible on cards
+- assertVisible:
+    id: "text_flight_duration"

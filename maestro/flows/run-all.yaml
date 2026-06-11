@@ -1,0 +1,12 @@
+# Maestro Web Demo — Run all Traveloka Web flows
+# Platform: Web (Chrome on macOS)
+#
+# HOW TO RUN:
+#   maestro test maestro/flows/run-all.yaml
+#
+# This orchestrates multiple flows in sequence.
+
+appId: com.google.Chrome
+---
+- runFlow: traveloka-flight-search.yaml
+- runFlow: traveloka-flight-results-filter.yaml

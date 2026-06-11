@@ -1,0 +1,34 @@
+##
+# SCENARIO 09 — Sort: Select "Lowest Price" (last/default option)
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   FlightResultRevampFilter.kt → FlightSortRevampType default →
+#     andpoe_text_flight_result_bottom_filter_sort_lowest_price_text
+#   rbg_sort (MDSRadioButtonGroup) — last radio button (index 7)
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Open sort tray
+- tapOn:
+    id: "flight_result_v4_filter_button"
+    index: 1
+
+- assertVisible:
+    id: "flight_result_v4_sort_button"
+# Tap Lowest Price (last option, index 7 in 8-item list)
+- tapOn:
+    id: "flight_result_v4_sort_button"
+    index: 7
+
+# ── Assertions: prices should be visible on all cards ─────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+- assertVisible:
+    id: "text_displayed_price"

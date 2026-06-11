@@ -1,0 +1,49 @@
+##
+# SCENARIO 22 — Transit Point filter expandable section
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_result_revamp_filter_transit_layer.xml →
+#     button_show_transit_filter  (expand transit point selection)
+#     layout_transit_filter_expandable
+#     text_label_transit_point
+#     text_button_select_all
+#     recycler_view_content  (list of transit airport checkboxes)
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# Open filter
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+- assertVisible:
+    id: "layout_filter_dialog"
+# Transit layer
+- tapOn:
+    id: "layer_transit"
+
+- assertVisible:
+    id: "button_show_transit_filter"
+# Expand transit point section
+- tapOn:
+    id: "button_show_transit_filter"
+
+- assertVisible:
+    id: "layout_transit_filter_expandable"
+- assertVisible:
+    id: "text_label_transit_point"
+- assertVisible:
+    id: "text_button_select_all"
+- assertVisible:
+    id: "recycler_view_content"
+
+# Close filter
+- tapOn:
+    id: "ivClose"
+
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"

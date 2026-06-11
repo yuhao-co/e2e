@@ -1,0 +1,51 @@
+appId: com.traveloka.android.staging
+clearState: true
+---
+##
+# Shared precondition SUBFLOW: launch app and reach the Flight Search Results page.
+#
+# NOTE: Maestro 2.x runFlow requires full flow format: appId + --- are REQUIRED.
+#       launchApp in subflow uses appId from the config section (no inline appId).
+#
+# Source:  traveloka/android-v3  (develop @ 2026-06-11)
+# IDs:
+#   Home product tile: text_title (PickerCarouselItemViewHolder) → text "Flights"
+#   Flight search form activity: flight_search_form_activity.xml
+#     search_tab   (line 156) — bottom-nav Search tab
+#   Hangar widget: flight_search_form_hangar_widget.xml
+#     btn_search   (line 209) — blue Search button
+#   Results: flight_result_revamp_activity.xml
+#     result_container · inventory_parent_layout
+##
+
+# 1. Fresh launch
+- launchApp
+
+# 2. Wait for home screen to settle
+# 3. Tap the "Flights" product tile on the home page.
+#    Source: PickerCarouselItemViewHolder.textViewTitle (binding.textTitle)
+#    The tile has no static android:id; text matching is the contract.
+- tapOn:
+    text: "Flights"
+
+# 4. Wait for the Flight search form activity to appear.
+#    search_tab is defined at line 156 of flight_search_form_activity.xml.
+- assertVisible:
+    id: "search_tab"
+# 5. Ensure we are on the Search tab (not Discover)
+- tapOn:
+    id: "search_tab"
+
+# 6. Wait for the hangar search widget btn_search (line 209, hangar_widget.xml)
+- assertVisible:
+    id: "btn_search"
+# 7. Tap Search to execute the pre-populated SIN → CGK (or default) route.
+- tapOn:
+    id: "btn_search"
+
+# 8. Wait for results page navbar (appears as soon as results activity loads)
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+# 9. Wait for at least one flight card (results loaded from API)
+- assertVisible:
+    id: "flight_result_v4_inventory_card"

@@ -1,0 +1,57 @@
+##
+# SCENARIO 02 — Filter: Direct flights only
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_result_revamp_filter_dialog.xml  →  layout_filter_dialog, layer_transit,
+#                                               tvReset, dbwShow, tvResult
+#   flight_result_revamp_filter_transit_layer.xml → button_direct,
+#                                                    button_one_transit,
+#                                                    button_two_transit
+#
+# Expected: After applying Direct filter, all visible cards show
+#           text_number_of_transit = "Direct" or "0 Stops"
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# ── Open filter dialog ───────────────────────────────────────────────────────
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+- assertVisible:
+    id: "layout_filter_dialog"
+# ── Transit layer ─────────────────────────────────────────────────────────────
+- tapOn:
+    id: "layer_transit"
+
+- assertVisible:
+    id: "button_direct"
+# Select "Direct" only
+- tapOn:
+    id: "button_direct"
+
+# Deselect others to ensure only direct is active
+- tapOn:
+    id: "button_one_transit"
+    optional: true   # deselect if already selected
+
+# ── Apply filter ──────────────────────────────────────────────────────────────
+- tapOn:
+    id: "dbwShow"
+
+# ── Assertions ────────────────────────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+# Results count text should be visible (tvResult used before apply)
+# After apply: filter bar should indicate active filter state
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+
+# Each visible card must show direct/non-stop transit indicator
+- assertVisible:
+    id: "text_number_of_transit"

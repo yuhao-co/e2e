@@ -1,0 +1,46 @@
+##
+# SCENARIO 05 — Filter: Departure time – Morning slot
+#
+# Source contract (android-v3 @ 2026-06-11):
+#   flight_filter_time_widget.xml  →  button_departure_morning,
+#                                     button_departure_afternoon,
+#                                     button_departure_evening,
+#                                     button_departure_early_morning,
+#                                     button_apply_filter
+#   (time widget is shown under layer_time in the filter dialog)
+#
+# Generated: 2026-06-11
+##
+appId: com.traveloka.android.staging
+---
+
+- runFlow: ../_navigate_to_results.yaml
+
+# ── Open filter dialog ───────────────────────────────────────────────────────
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+- assertVisible:
+    id: "layout_filter_dialog"
+# ── Time layer ────────────────────────────────────────────────────────────────
+- tapOn:
+    id: "layer_time"
+
+- assertVisible:
+    id: "button_departure_morning"
+# Select morning departure (06:00 – 12:00)
+- tapOn:
+    id: "button_departure_morning"
+
+# ── Apply ─────────────────────────────────────────────────────────────────────
+- tapOn:
+    id: "dbwShow"
+
+# ── Assertions ────────────────────────────────────────────────────────────────
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- assertVisible:
+    id: "flight_result_v4_inventory_card"
+# Departure times visible on cards
+- assertVisible:
+    id: "text_departure_time"
