@@ -344,61 +344,64 @@ clearState: true
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SCENARIO 13 — SORT CHEAPEST
-# Sort tray labels (confirmed from live UI):
-#   Cheapest / Shortest duration / Direct flights first / Earliest departure /
-#   Latest departure / Earliest arrival / Latest arrival
-# Tray stays open after radio-button selection — close with back.
+# Sort tray options are dynamically created MDSRadioButton instances (no individual IDs).
+# Source: FlightSortTrayWidgetPresenter.kt — tap by inner radio_button ID + index.
+# Order (scoreShown=false): 0=Cheapest 1=Direct first 2=Earliest dep 3=Latest dep
+#                           4=Earliest arr 5=Latest arr 6=Shortest duration
 # ══════════════════════════════════════════════════════════════════════════════
 - tapOn:
     id: "bm_button_text"
 - tapOn:
-    text: "Cheapest"
+    id: "radio_button"
+    index: 0
 - assertVisible:
     id: "flight_result_v4_inventory_card"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 14 — SORT EARLIEST DEPARTURE
+# SCENARIO 14 — SORT EARLIEST DEPARTURE  (radio_button index 2)
 # ══════════════════════════════════════════════════════════════════════════════
 - tapOn:
     id: "bm_button_text"
 - tapOn:
-    text: "Earliest departure"
+    id: "radio_button"
+    index: 2
 - assertVisible:
     id: "flight_result_v4_inventory_card"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 15 — SORT SHORTEST DURATION
+# SCENARIO 15 — SORT SHORTEST DURATION  (radio_button index 6)
 # ══════════════════════════════════════════════════════════════════════════════
 - tapOn:
     id: "bm_button_text"
 - tapOn:
-    text: "Shortest duration"
+    id: "radio_button"
+    index: 6
 - assertVisible:
     id: "flight_result_v4_inventory_card"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 16 — SORT LATEST DEPARTURE
-# (Confirms the tray shows all options; "Lowest Price" renamed to "Cheapest" in
-# the new sort tray — testing a different option here to widen coverage.)
+# SCENARIO 16 — SORT LATEST DEPARTURE  (radio_button index 3)
 # ══════════════════════════════════════════════════════════════════════════════
 - tapOn:
     id: "bm_button_text"
 - tapOn:
-    text: "Latest departure"
+    id: "radio_button"
+    index: 3
 - assertVisible:
     id: "flight_result_v4_inventory_card"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 17 — SORT THEN FILTER: Sort by Earliest departure, then open filter
+# SCENARIO 17 — SORT THEN FILTER: Sort by Earliest departure (index 2), then open filter
 # ══════════════════════════════════════════════════════════════════════════════
 - tapOn:
     id: "bm_button_text"
 - tapOn:
-    text: "Earliest departure"
+    id: "radio_button"
+    index: 2
 - assertVisible:
     id: "flight_result_v4_inventory_card"
 - tapOn:

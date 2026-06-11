@@ -651,6 +651,26 @@ STILL XML (retain their android:id and work normally):
                  button_one_transit, button_two_transit, tvReset, dbwShow
   Search form:   search_tab, btn_search, layout_search_form
 
+STRONG CONSTRAINT — SORT TRAY OPTIONS (dynamically generated, NO individual IDs):
+Source: FlightSortTrayWidgetPresenter.kt + MDSRadioButtonGroup.kt
+The sort tray (flight_sort_tray_widget.xml) uses MDSRadioButtonGroup.setItems() to create
+MDSRadioButton instances at runtime. Individual options have NO android:id whatsoever.
+DO NOT use:  tapOn: text: "Cheapest"   ← breaks on i18n / copy changes
+DO NOT use:  tapOn: text: "Lowest Price"
+INSTEAD tap the inner radio button by stable ID + positional index:
+  tapOn:
+    id: "radio_button"
+    index: N
+Sort order (scoreShown=false, verified from FlightSortTrayWidgetPresenter.kt):
+  index 0 → Cheapest           (SORT_PRICE_LOWEST)
+  index 1 → Direct flight first (SORT_DIRECT_FLIGHT_FIRST)
+  index 2 → Earliest departure  (SORT_DEPARTURE_TIME_EARLIEST)
+  index 3 → Latest departure    (SORT_DEPARTURE_TIME_LATEST)
+  index 4 → Earliest arrival    (SORT_ARRIVAL_TIME_EARLIEST)
+  index 5 → Latest arrival      (SORT_ARRIVAL_TIME_LATEST)
+  index 6 → Shortest duration   (SORT_DURATION_SHORTEST)
+If scoreShown=true, all indices shift +1 (a "Best" option is inserted at index 0).
+
 MAESTRO 2.x SYNTAX RULES:
 1. Start every flow with appId on line 1, then --- on line 2
 2. Tap by resource ID:  tapOn:\\n    id: "view_resource_id"
