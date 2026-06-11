@@ -1,0 +1,38 @@
+appId: com.traveloka.android.staging
+---
+
+# Step 1: Launch the app and navigate to the flight search results screen
+- launchApp
+- tapOn:
+    id: "button_continue" # Dismiss optional onboarding
+- tapOn:
+    id: "flights_tile" # Tap "Flights" tile on home screen
+- tapOn:
+    id: "btn_search" # Tap "Search" button on the search form
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to appear (up to 30s)
+
+# Step 2: Open the filter dialog
+- tapOn:
+    id: "flight_result_v4_quick_filter_cell" # Tap any quick filter chip to open filter dialog
+- extendedWaitUntil:
+    id: "layout_filter_dialog" # Wait for the filter dialog to appear
+
+# Step 3: Scroll to the airline filter section
+- scrollUntilVisible:
+    id: "layer_airline" # Scroll to the airline section in the filter dialog
+
+# Step 4: Select the first airline checkbox
+- tapOn:
+    id: "recycler_view_content" # Tap the first airline checkbox inside the airline section
+    index: 0
+
+# Step 5: Apply the filter
+- tapOn:
+    id: "tvResult" # Tap the "Apply" button to apply the filter
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for the results to reload
+
+# Step 6: Verify the airline filter is applied
+- assertVisible:
+    id: "flight_result_v4_inventory_card" # Verify that flight cards are visible after applying the filter

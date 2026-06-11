@@ -1,0 +1,46 @@
+appId: com.traveloka.android.staging
+---
+# Step 1: Navigate to search results
+- launchApp
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card"
+
+# Step 2: Wait for flight_result_v4_filter_button
+- assertVisible:
+    id: "flight_result_v4_filter_button"
+
+# Step 3: Tap flight_result_v4_filter_button
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+# Step 4: Wait for filter dialog
+- assertVisible:
+    id: "layout_filter_dialog"
+
+# Step 5: Tap the Time tab
+- tapOn:
+    id: "layer_transit" # Assuming this is the Time tab
+
+# Step 6: Tap Afternoon departure option
+- tapOn:
+    id: "button_departure_afternoon"
+
+# Step 7: Tap Apply button
+- tapOn:
+    id: "dbwShow"
+
+# Step 8: Wait for flight_result_v4_inventory_card to reload
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card"
+
+# Success Criteria: Verify Afternoon departure filter applied
+- assertVisible:
+    id: "flight_result_v4_inventory_card"

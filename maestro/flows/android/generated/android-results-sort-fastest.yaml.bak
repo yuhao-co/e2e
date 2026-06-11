@@ -1,0 +1,49 @@
+appId: com.traveloka.android.staging
+---
+# Test Case ID: android-results-sort-fastest
+# Name: Sort by Fastest
+# Description: Tap sort index 1 (Fastest) in rbg_sort
+# Priority: p1
+
+# Step 1: Launch the app and navigate to the home screen
+- launchApp: {}
+
+# Step 2: Dismiss optional onboarding by tapping "Continue" (if present)
+- tapOn:
+    id: "button_continue"
+  optional: true
+
+# Step 3: Tap the "Flights" tile on the home screen
+- tapOn:
+    id: "flights_tile"
+
+# Step 4: Wait for the search form to load and ensure the origin is pre-filled
+- assertVisible:
+    id: "search_tab"
+
+# Step 5: Tap the "Search" button to navigate to the results page
+- tapOn:
+    id: "btn_search"
+
+# Step 6: Wait for the flight search results to load (up to 30 seconds)
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+
+# Step 7: Tap the "Sort" button to open the sort tray
+- tapOn:
+    id: "flight_result_v4_sort_button"
+
+# Step 8: Tap the second child (index 1) inside the sort tray to select "Fastest"
+- tapOn:
+    id: "radio_button"
+    index: 1
+
+# Step 9: Wait for the results to reload
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+
+# Step 10: Assert that flight cards are still visible after sorting
+- assertVisible:
+    id: "flight_result_v4_inventory_card"

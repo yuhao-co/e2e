@@ -1,0 +1,36 @@
+appId: com.traveloka.android.staging
+---
+# P0: Select a Flight (View Fare Selection)
+# Verified IDs: UIAutomator dump 2026-06-11
+# Fare screen: flight_summary_activity_ticket_option_section
+
+- launchApp
+- tapOn:
+    text: "Flights"
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Tap first flight card
+- tapOn:
+    id: "flight_result_v4_inventory_card"
+    index: 0
+
+# Wait for fare selection screen (flight_summary_activity_ticket_option_section confirmed in dump)
+- extendedWaitUntil:
+    visible:
+      id: "flight_summary_activity_ticket_option_section"
+    timeout: 15000
+- assertVisible:
+    id: "flight_summary_activity_ticket_option_section"

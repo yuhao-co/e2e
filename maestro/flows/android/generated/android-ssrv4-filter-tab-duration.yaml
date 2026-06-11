@@ -1,0 +1,56 @@
+appId: com.traveloka.android.staging
+---
+
+# Step 1: Launch the app and navigate to the search results page
+- launchApp
+- tapOn:
+    id: "button_continue" # Dismiss optional onboarding
+- tapOn:
+    id: "flights_tile" # Tap "Flights" tile on home screen
+- tapOn:
+    id: "btn_search" # Tap "Search" button on the search form
+- extendedWaitUntil: # Wait up to 30s for flight cards to appear
+    id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 2: Wait for the filter button to be visible
+- extendedWaitUntil:
+    id: "flight_result_v4_filter_button"
+
+# Step 3: Tap the filter button to open the filter dialog
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+# Step 4: Wait for the filter dialog to appear
+- extendedWaitUntil:
+    id: "layout_filter_dialog"
+
+# Step 5: Tap the Duration tab in the FilterTopTabBar
+- tapOn:
+    id: "filter_tab_duration" # Assuming this is the ID for the Duration tab
+
+# Step 6: Adjust the duration slider to a restrictive value
+- tapOn:
+    id: "duration_slider" # Assuming this is the ID for the duration slider
+- swipe:
+    direction: left # Adjust the slider to a restrictive value
+
+# Step 7: Tap the Apply button to apply the filter
+- tapOn:
+    id: "tvResult" # Apply button in the filter dialog
+
+# Step 8: Wait for results or empty state to appear
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to appear
+- or:
+    - assertVisible:
+        id: "empty_state_view" # Verify empty state if no results match the filter
+
+# Success Criteria: Verify that the duration filter is applied
+- assertVisible:
+    id: "flight_result_v4_filter_button" # Ensure the filter button is still visible
+- assertVisible:
+    id: "flight_result_v4_inventory_card" # Ensure flight cards are visible
+- or:
+    - assertVisible:
+        id: "empty_state_view" # Ensure empty state is visible if no results match the filter

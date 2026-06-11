@@ -1,0 +1,107 @@
+{
+  "lastUpdated": "2026-06-11T08:47:43.786Z",
+  "totalRuns": 2,
+  "flakyScenarios": [
+    "android-results-smoke",
+    "android-results-filter-direct",
+    "android-results-sort-cheapest",
+    "android-results-select-flight",
+    "android-results-back-to-search",
+    "android-results-filter-one-stop",
+    "android-results-sort-fastest",
+    "android-results-airline-filter",
+    "android-results-departure-time-filter",
+    "android-results-reset-filters",
+    "android-results-scroll",
+    "android-results-price-calendar"
+  ],
+  "stableScenarios": [],
+  "fixHistory": [
+    {
+      "scenarioId": "android-results-smoke",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Invalid Command: runFlowIfVisible at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-smoke.yaml:8:19",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-filter-direct",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Unknown Property: id at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-filter-direct.yaml:14:1",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-sort-cheapest",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Unknown Property: id at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-sort-cheapest.yaml:23:1",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-select-flight",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Element not found: Id matching regex: button_continue",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-back-to-search",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Invalid Command Format: tapOn at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-back-to-search.yaml:15:11",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-filter-one-stop",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Unknown Property: id at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-filter-one-stop.yaml:14:1",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-sort-fastest",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Invalid Command Format: tapOn at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-sort-fastest.yaml:14:11",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-airline-filter",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Unknown Property: id at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-airline-filter.yaml:16:1",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-departure-time-filter",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Invalid Command: optional at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-departure-time-filter.yaml:8:11",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-reset-filters",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Unknown Property: id at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-reset-filters.yaml:14:1",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-scroll",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Unknown Property: id at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-scroll.yaml:18:1",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-price-calendar",
+      "fixedAt": "2026-06-11T08:47:43.786Z",
+      "failureReason": "Invalid Command Format: tapOn at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-price-calendar.yaml:15:11",
+      "fixApplied": false
+    }
+  ],
+  "diffTriggers": [
+    {
+      "date": "2026-06-11T08:42:34.347Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "0%"
+    },
+    {
+      "date": "2026-06-11T08:47:43.786Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "0%"
+    }
+  ]
+}

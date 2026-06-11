@@ -1,0 +1,51 @@
+appId: com.traveloka.android.staging
+---
+# Step 1: Navigate to search results
+- launchApp
+- tapOn:
+    id: "button_continue" # Dismiss optional onboarding
+- tapOn:
+    id: "flights_tile" # Tap "Flights" tile on home screen
+- tapOn:
+    id: "btn_search" # Tap "Search" button on search form
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to appear (up to 30s)
+
+# Step 2: Wait for filter button to be visible
+- extendedWaitUntil:
+    id: "flight_result_v4_filter_button"
+
+# Step 3: Tap filter button to open filter dialog
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+# Step 4: Wait for filter dialog to appear
+- extendedWaitUntil:
+    id: "layout_filter_dialog"
+
+# Step 5: Scroll tab bar to find Facilities tab and tap it
+- scrollUntilVisible:
+    id: "recycler_view_quick_filter" # Scroll through the tab bar
+- tapOn:
+    id: "facilities_tab" # Tap on the Facilities tab (assumed ID for the tab)
+
+# Step 6: Tap the first facility option in the facilities list
+- tapOn:
+    id: "facility_option_0" # Tap the first facility option (assumed ID for the first option)
+
+# Step 7: Tap Apply button
+- tapOn:
+    id: "tvResult" # Tap Apply button in the filter dialog
+
+# Step 8: Wait for flight cards or empty state to appear
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to reload
+- or:
+    - assertVisible:
+        id: "empty_state_view" # Verify empty state if no results match the filter
+
+# Success Criteria: Verify Facilities tab navigable and filter applied
+- assertVisible:
+    id: "facilities_tab" # Verify Facilities tab is navigable
+- assertVisible:
+    id: "flight_result_v4_inventory_card" # Verify flight cards are visible after applying filter

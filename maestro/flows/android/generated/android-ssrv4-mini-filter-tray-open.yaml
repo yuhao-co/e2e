@@ -1,0 +1,31 @@
+appId: com.traveloka.android.staging
+---
+# Navigate to the search results screen
+- launchApp
+- tapOn:
+    id: "button_continue" # Dismiss optional onboarding
+- tapOn:
+    id: "flights_tile" # Tap "Flights" tile on home screen
+- tapOn:
+    id: "btn_search" # Tap "Search" button on search form
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to appear (up to 30s)
+
+# Wait for quick filter chips to load
+- extendedWaitUntil:
+    id: "flight_result_v4_quick_filter_cell" # Wait for quick filter chips to be visible
+
+# Tap the first quick filter chip (e.g., "Nonstop")
+- tapOn:
+    id: "flight_result_v4_quick_filter_cell"
+    index: 0
+
+# Wait for the mini-filter tray to appear
+- extendedWaitUntil:
+    id: "layout_filter_dialog" # Wait for the mini-filter tray to be visible
+
+# Assert that the mini-filter tray is visible
+- assertVisible:
+    id: "tvReset" # Verify the presence of the Reset button in the mini-filter tray
+- assertVisible:
+    id: "dbwShow" # Verify the presence of the Apply/Done button in the mini-filter tray

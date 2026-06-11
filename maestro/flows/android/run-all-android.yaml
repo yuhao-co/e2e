@@ -1,42 +1,26 @@
-##
-# Run-all: Execute all Android flight search-results scenarios in sequence
-#
-# Generated: 2026-06-11
-# Source:    traveloka/android-v3  develop
-# Coverage:  ~82% of FlightResultRevampActivity interactions
-#
-# Usage:
-#   maestro test maestro/flows/android/run-all-android.yaml
-#
-# P0 only:
-#   maestro test maestro/flows/android/run-all-android-p0.yaml
-##
+# Auto-generated Android Maestro run-all
+# Generated: 2026-06-11T09:41:08.924Z
+# 15 cases covering flight search results
 appId: com.traveloka.android.staging
 ---
 
-# ── P0 Critical Scenarios ─────────────────────────────────────────────────────
+# === P0: Critical smoke ===
 - runFlow: generated/android-results-smoke.yaml
 - runFlow: generated/android-results-filter-direct.yaml
-- runFlow: generated/android-results-filter-reset.yaml
-- runFlow: generated/android-results-sort-open.yaml
-- runFlow: generated/android-results-card-detail.yaml
-- runFlow: generated/android-results-scroll.yaml
-- runFlow: generated/android-results-date-flow.yaml
-- runFlow: generated/android-results-back-navigation.yaml
-- runFlow: generated/android-results-change-search.yaml
+- runFlow: generated/android-results-sort-cheapest.yaml
+- runFlow: generated/android-results-select-flight.yaml
+- runFlow: generated/android-results-back-to-search.yaml
 
-# ── P1 Extended Coverage ──────────────────────────────────────────────────────
+# === P1: Core coverage ===
 - runFlow: generated/android-results-filter-one-stop.yaml
-- runFlow: generated/android-results-filter-time-morning.yaml
-- runFlow: generated/android-results-filter-airline.yaml
-- runFlow: generated/android-results-filter-price.yaml
-- runFlow: generated/android-results-filter-combined.yaml
-- runFlow: generated/android-results-filter-transit-point.yaml
-- runFlow: generated/android-results-no-result-reset.yaml
-- runFlow: generated/android-results-sort-recommended.yaml
-- runFlow: generated/android-results-sort-lowest-price.yaml
-- runFlow: generated/android-results-sort-earliest-departure.yaml
-- runFlow: generated/android-results-sort-shortest-duration.yaml
-- runFlow: generated/android-results-sort-then-filter.yaml
-- runFlow: generated/android-results-card-info-icon.yaml
-- runFlow: generated/android-results-quick-filter.yaml
+- runFlow: generated/android-results-sort-fastest.yaml
+- runFlow: generated/android-results-airline-filter.yaml
+- runFlow: generated/android-results-departure-time-filter.yaml
+- runFlow: generated/android-results-reset-filters.yaml
+- runFlow: generated/android-results-scroll.yaml
+- runFlow: generated/android-results-price-calendar.yaml
+
+# === P2: Edge cases ===
+- runFlow: generated/android-results-filter-multi-stop.yaml
+- runFlow: generated/android-results-sort-best.yaml
+- runFlow: generated/android-results-view-detail.yaml

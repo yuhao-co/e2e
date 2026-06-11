@@ -1,0 +1,38 @@
+appId: com.traveloka.android.staging
+---
+# Step 1: Launch the app and navigate to the home screen
+- launchApp: {}
+
+# Step 2: Dismiss optional onboarding by tapping "Continue" (if present)
+- tapOn:
+    id: "button_continue"
+  optional: true
+
+# Step 3: Tap the "Flights" tile on the home screen
+- tapOn:
+    id: "flights_tile"
+
+# Step 4: Verify the search form is displayed with origin pre-filled as "Singapore (SIN)"
+- assertVisible:
+    id: "search_tab"
+
+# Step 5: Tap the "Search" button to navigate to the results page
+- tapOn:
+    id: "btn_search"
+
+# Step 6: Wait for the flight search results to load (up to 30 seconds)
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+
+# Step 7: Assert the price section is visible on the first flight card
+- assertVisible:
+    id: "flight_result_v4_inventory_card_price_section"
+
+# Step 8: Assert the duration/stops section is visible on the first flight card
+- assertVisible:
+    id: "flight_result_v4_inventory_card_connector_view"
+
+# Step 9: Take a screenshot for verification
+- takeScreenshot:
+    path: "test-results/android/android-ssrv4-card-price-visible.png"

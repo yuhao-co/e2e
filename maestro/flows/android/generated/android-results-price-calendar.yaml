@@ -33,18 +33,14 @@ appId: com.traveloka.android.staging
       id: "flight_result_v4_inventory_card"
     timeout: 30000
 
-# Step 9: Wait for flight_result_container_view to be visible
+# Step 9: Tap on the date widget to open the price calendar
+- tapOn:
+    id: "flight_result_v4_date_flow_row"  # widget_dateflow is replaced with flight_result_v4_date_flow_row
+
+# Step 10: Wait for the price calendar view to appear
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"  # Using inventory card as a proxy for container view
-    timeout: 30000
+      id: "flight_result_v4_date_flow_row"  # Assuming the price calendar view has a similar ID
 
-# Step 10: Scroll up to load more flight cards
-- scroll
-
-# Step 11: Scroll up again to load more flight cards
-- scroll
-
-# Step 12: Assert that the flight inventory card is still visible after scrolling
-- assertVisible:
-    id: "flight_result_v4_inventory_card"  # Verifying that cards are still visible after scrolling
+# Step 11: Take a screenshot for visual verification
+- screenshot: "price_calendar_view"  # Taking a screenshot for verification

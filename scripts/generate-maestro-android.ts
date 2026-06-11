@@ -37,10 +37,16 @@ const SOURCE_JSON = (() => {
   const idx = args.indexOf('--source-json');
   return idx !== -1 ? args[idx + 1] : null;
 })();
+const PRD_FILE = (() => {
+  const idx = args.indexOf('--prd-file');
+  return idx !== -1 ? args[idx + 1] : null;
+})();
 const CLI_MODEL = (() => {
   const idx = args.indexOf('--model');
   return idx !== -1 ? args[idx + 1] : null;
 })();
+/** --extended: generate extra SSR-V4 multi-filter / mini-tray / bug-hunt scenarios */
+const EXTENDED = args.includes('--extended');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -140,9 +146,13 @@ const openaiKey = process.env.OPENAI_API_KEY;
 const openai = (() => {
   if (githubToken) {
     // GitHub Models API — same endpoint, OpenAI-compatible, uses gh token
+    // maxRetries=0: prevent SDK from silently retrying 429s forever (GitHub Models rate-limits aggressively)
+    // timeout=60000: hard cap per request; AbortController in generateYaml() adds per-call guard too
     return new OpenAI({
       apiKey: githubToken,
       baseURL: 'https://models.inference.ai.azure.com',
+      maxRetries: 0,
+      timeout: 60_000,
     });
   }
   if (openaiKey) {
@@ -156,7 +166,8 @@ const openai = (() => {
 })();
 
 const MODEL = CLI_MODEL ?? (() => {
-  if (githubToken)  return process.env.GITHUB_MODEL ?? 'gpt-4o';
+  // gpt-4o-mini: higher GitHub Models rate limits (vs gpt-4o which caps at ~150 req/day)
+  if (githubToken)  return process.env.GITHUB_MODEL ?? 'gpt-4o-mini';
   if (openaiKey)    return process.env.OPENAI_MODEL ?? 'gpt-4o';
   return process.env.MIDSCENE_MODEL_NAME ?? 'mlx-community/Qwen2.5-VL-7B-Instruct-4bit';
 })();
@@ -191,12 +202,14 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
   screen: 'Flight Search Results',
 
   precondition: [
-    'App launches to home screen',
-    'Optional onboarding dismissed with "Continue"',
-    'Tap "Flights" tile on home screen',
-    'Search form shows origin "Singapore (SIN)" pre-filled',
-    'Tap "Search" button to navigate to results',
-    'Wait up to 30s for flight cards to appear',
+    '- launchApp',
+    '- tapOn:\n    text: "Flights"      # Home screen product tile has NO android:id — text match is the ONLY contract',
+    '- assertVisible:\n    id: "search_tab"',
+    '- tapOn:\n    id: "search_tab"',
+    '- assertVisible:\n    id: "btn_search"',
+    '- tapOn:\n    id: "btn_search"     # btn_search is the blue Search CTA (hangar_widget.xml line 209)',
+    '- assertVisible:\n    id: "flight_result_v4_navbar_toolbar_title"',
+    '- extendedWaitUntil:\n    visible:\n      id: "flight_result_v4_inventory_card"\n    timeout: 30000',
   ],
 
   // Text labels: ONLY use these for assertVisible (language-specific assertions).
@@ -222,9 +235,11 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
     navbarPriceAlert:       'flight_result_v4_navbar_price_alert_icon',
 
     // FlightResultV4SortAndFilterView.kt
-    filterButton:           'flight_result_v4_filter_button',              // opens filter dialog
-    sortButton:             'flight_result_v4_sort_button',                // opens sort tray
-    quickFilterCell:        'flight_result_v4_quick_filter_cell',          // Stops/Airlines/Time chips
+    filterButton:           'flight_result_v4_filter_button',              // opens filter dialog (Compose testTag, in UIAutomator dump)
+    // sortButton:          'flight_result_v4_sort_button'  ← ONLY in navbar when shouldDisplaySortButtonInNavbar=true
+    // When shouldDisplaySortButtonInNavbar=false (staging), the floating pill is used instead:
+    sortButtonPill:         'bm_button',                                   // Bloom DS pill — ONLY 1 instance on results page (UIAutomator dump confirmed)
+    quickFilterCell:        'flight_result_v4_quick_filter_cell',          // Stops/Airlines/Time chips (Compose testTag)
 
     // FlightResultV4DateFlowComposeView.kt (testTag on ROW container, not individual dates)
     dateFlowRow:            'flight_result_v4_date_flow_row',              // price calendar strip
@@ -252,10 +267,32 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
     filterOneStop:          'button_one_transit',
     filterTwoStop:          'button_two_transit',
 
-    // flight_filter_time_layer.xml
+    // flight_filter_time_layer.xml  (verify before use — not yet UIAutomator-confirmed)
     filterDepartMorning:    'button_departure_morning',
     filterDepartAfternoon:  'button_departure_afternoon',
     filterDepartEvening:    'button_departure_evening',
+
+    // ── Sort tray: STILL XML (flight_sort_tray_widget.xml) ────────────────────
+    // Opened by tapping bm_button (sort pill on results page)
+    sortTray:               'layout_tray',                                 // tray root
+    sortRadioGroup:         'rbg_sort',                                    // RadioButtonGroup container
+    // Sort options in sort tray: tap radio_button by index (UIAutomator dump confirmed)
+    // radio_button index 0 = LOWEST_PRICE (Cheapest)
+    // radio_button index 1 = EARLIEST_DEPARTURE
+    // radio_button index 2 = LATEST_DEPARTURE
+    // radio_button index 3 = SHORTEST_DURATION
+    // ⚠️  flight_filter_radiobutton_layout is NOT in the accessibility tree — use radio_button instead
+    sortOptionRadio:        'radio_button',                                // each sort option row
+
+    // ── Fare selection screen (after tapping flight_result_v4_inventory_card) ────
+    // UIAutomator dump 2026-06-11 confirmed IDs:
+    fareTicketSection:      'flight_summary_activity_ticket_option_section',    // fare options section root
+    fareTicketContainer:    'flight_summary_activity_ticket_option_selection_container',
+    farePriceDisplay:       'flight_ticketOptionPriceDisplay',                  // price shown per option
+    fareBenefitSection:     'flight_ticketOptionBenefit_section',
+    fareSegmentInfo:        'flight_summary_segment_info_container',
+    fareButtonDetail:       'button_detail',
+    // ⚠️  ticket_option_card_container is NOT in the accessibility tree — use flight_summary_activity_ticket_option_section
 
     // ── Search form: STILL XML (flight_search_form_activity.xml) ─────────────
     searchTab:              'search_tab',
@@ -345,18 +382,19 @@ const SCENARIOS: ScenarioDefinition[] = [
     name: 'Search Results Page Loads',
     description: 'Navigate from home → search → results and verify flight cards appear',
     stepOutline: [
-      'Launch app (appId: com.traveloka.android.staging)',
-      'Dismiss onboarding if visible (runFlow conditional)',
-      'Tap "Flights" tile on home screen (tap by text "Flights" — home screen is EN-only)',
-      'Tap Search button on search form (tap by text "Search")',
-      'Wait for result_container to be visible (id: result_container, timeout: 30000)',
-      'Wait for first flight card to appear (id: flight_result_container_view)',
-      'Assert result_container visible (id-based)',
-      'Assert at least one flight card visible (id: flight_result_container_view)',
+      'launchApp',
+      'tapOn text "Flights" (home tile — text only, no id available)',
+      'assertVisible id: search_tab',
+      'tapOn id: search_tab',
+      'assertVisible id: btn_search',
+      'tapOn id: btn_search',
+      'assertVisible id: flight_result_v4_navbar_toolbar_title',
+      'extendedWaitUntil visible id: flight_result_v4_inventory_card timeout: 30000',
+      'assertVisible id: flight_result_v4_inventory_card (at least one card loaded)',
     ],
     successCriteria: [
-      'result_container visible',
-      'flight_result_container_view visible (at least one card)',
+      'flight_result_v4_navbar_toolbar_title visible',
+      'flight_result_v4_inventory_card visible (at least one card)',
     ],
   },
   {
@@ -607,9 +645,525 @@ const SCENARIOS: ScenarioDefinition[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// AI prompt builder
+// Extended scenarios — SSR V4 multi-filter dialog, mini-tray, bug-hunt coverage
+// Based on PR #40592: new tabbed filter dialog, mini-filter tray, sort tray,
+// nonstop chip, filtered empty state, deeplink params.
+// Enabled with --extended flag (android:online:bug-hunt workflow).
 // ---------------------------------------------------------------------------
-function buildSystemPrompt(): string {
+const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
+  // ── Tabbed Multi-Filter Dialog ───────────────────────────────────────────
+  {
+    id: 'android-ssrv4-filter-tab-transit',
+    priority: 'p0',
+    category: 'filter',
+    name: 'SSR V4 Multi-Filter: Transit Tab',
+    description: 'Open multi-filter dialog, navigate to Transit tab, apply Direct, verify',
+    stepOutline: [
+      'Navigate to search results (SSR V4 page)',
+      'Wait for flight_result_v4_filter_button (Compose testTag)',
+      'Tap flight_result_v4_filter_button to open the new multi-filter dialog',
+      'Wait for filter dialog to appear',
+      'Tap the Transit tab inside the tabbed navigation (FilterTopTabBar)',
+      'Tap the Direct/Nonstop option inside the transit tab content',
+      'Tap Apply/Done button to submit filter',
+      'Wait for flight_result_v4_inventory_card to reload',
+      'Assert flight_result_v4_inventory_card still visible',
+    ],
+    successCriteria: [
+      'Multi-filter dialog opens from flight_result_v4_filter_button',
+      'Transit tab is navigable',
+      'Direct filter applied and results update',
+    ],
+  },
+  {
+    id: 'android-ssrv4-filter-tab-time',
+    priority: 'p0',
+    category: 'filter',
+    name: 'SSR V4 Multi-Filter: Departure Time Tab',
+    description: 'Navigate to Time tab in multi-filter dialog, select morning departure',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Tap the Time tab in FilterTopTabBar',
+      'Tap morning departure option (button_departure_morning or "Morning" chip)',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card to reload',
+      'Assert flight_result_v4_inventory_card visible',
+    ],
+    successCriteria: ['Time tab navigable', 'Morning filter applied without crash'],
+  },
+  {
+    id: 'android-ssrv4-filter-tab-airlines',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Multi-Filter: Airlines Tab',
+    description: 'Navigate to Airlines tab, select first airline, apply',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Tap the Airlines tab in FilterTopTabBar',
+      'Tap first airline item in the airline list',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card to reload',
+    ],
+    successCriteria: ['Airlines tab navigable', 'Airline filter applied, results visible'],
+  },
+  {
+    id: 'android-ssrv4-filter-tab-price',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Multi-Filter: Price Tab',
+    description: 'Open Price tab, interact with price range, apply',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Tap the Price tab in FilterTopTabBar',
+      'Scroll or swipe price range slider handle slightly to adjust min price',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card to reload',
+    ],
+    successCriteria: ['Price tab navigable', 'Price filter applied without crash'],
+  },
+  {
+    id: 'android-ssrv4-filter-tab-duration',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Multi-Filter: Duration Tab',
+    description: 'Open Duration tab, set max duration, apply',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Tap the Duration tab in FilterTopTabBar',
+      'Adjust the duration slider to a restrictive value',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card or empty state to appear',
+    ],
+    successCriteria: ['Duration tab navigable', 'Duration filter applied; results or empty state shown'],
+  },
+  {
+    id: 'android-ssrv4-filter-tab-airports',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Multi-Filter: Airports Tab',
+    description: 'Open Airports tab, select an airport, apply',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Tap the Airports tab in FilterTopTabBar',
+      'Tap first departure airport option in the airports list',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card to reload',
+    ],
+    successCriteria: ['Airports tab navigable', 'Airport filter applied without crash'],
+  },
+  {
+    id: 'android-ssrv4-filter-tab-facilities',
+    priority: 'p2',
+    category: 'filter',
+    name: 'SSR V4 Multi-Filter: Facilities Tab',
+    description: 'Open Facilities tab (e.g. meal, luggage), select option, apply',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Scroll tab bar to find Facilities tab, tap it',
+      'Tap first facility option (meal/luggage) in the facilities list',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card or empty state',
+    ],
+    successCriteria: ['Facilities tab navigable', 'Facility filter applied without crash'],
+  },
+
+  // ── Mini-Filter Tray (SSR V4 — distinct from full dialog) ──────────────
+  {
+    id: 'android-ssrv4-mini-filter-tray-open',
+    priority: 'p0',
+    category: 'filter',
+    name: 'SSR V4 Mini-Filter Tray Opens',
+    description: 'Tap flight_result_v4_quick_filter_cell nonstop chip to open mini-tray',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_quick_filter_cell (Compose testTag, quick filter chips)',
+      'Tap the "Nonstop" or first chip in flight_result_v4_quick_filter_cell',
+      'Wait for bottom mini-filter tray to appear (FlightResultV4MiniFilterTray)',
+      'Assert mini-filter tray visible (look for tray Apply/Done button)',
+    ],
+    successCriteria: ['Mini-filter tray appears on tapping nonstop chip'],
+  },
+  {
+    id: 'android-ssrv4-mini-filter-tray-apply',
+    priority: 'p0',
+    category: 'filter',
+    name: 'SSR V4 Mini-Filter Tray Apply',
+    description: 'Open mini-filter tray, tap Apply, verify results reload',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_quick_filter_cell',
+      'Tap first chip in flight_result_v4_quick_filter_cell to open mini-tray',
+      'Wait for mini-filter tray (bottom sheet)',
+      'Tap Apply button in the mini-tray',
+      'Wait for flight_result_v4_inventory_card to reload',
+      'Assert flight_result_v4_inventory_card visible',
+    ],
+    successCriteria: ['Mini-tray Apply triggers results reload without crash'],
+  },
+  {
+    id: 'android-ssrv4-mini-filter-tray-dismiss',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Mini-Filter Tray Dismiss',
+    description: 'Open mini-filter tray and swipe down to dismiss without applying',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_quick_filter_cell',
+      'Tap first chip to open mini-tray',
+      'Wait for mini-filter tray',
+      'Swipe DOWN on the mini-filter tray to dismiss it',
+      'Assert tray is gone; flight_result_v4_inventory_card still visible',
+    ],
+    successCriteria: ['Mini-tray dismisses on swipe down; results unchanged'],
+  },
+
+  // ── Sort Tray — SSR V4 (sort by Duration is new in PR #40592) ──────────
+  {
+    id: 'android-ssrv4-sort-duration',
+    priority: 'p0',
+    category: 'sort',
+    name: 'SSR V4 Sort by Duration (Shortest)',
+    description: 'Open sort tray, tap index 6 (Shortest Duration), verify reload',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_sort_button (Compose testTag)',
+      'Tap flight_result_v4_sort_button to open sort tray',
+      'Wait for sort tray bottom sheet',
+      'Tap radio_button at index 6 (Shortest Duration) inside sort tray',
+      'Wait for flight_result_v4_inventory_card to reload',
+      'Assert flight_result_v4_inventory_card visible',
+    ],
+    successCriteria: ['Sort by Duration (index 6) applied; results reload without crash'],
+  },
+  {
+    id: 'android-ssrv4-sort-arrival-earliest',
+    priority: 'p1',
+    category: 'sort',
+    name: 'SSR V4 Sort by Earliest Arrival',
+    description: 'Open sort tray, tap index 4 (Earliest Arrival), verify reload',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_sort_button',
+      'Tap flight_result_v4_sort_button',
+      'Wait for sort tray',
+      'Tap radio_button at index 4 (Earliest Arrival)',
+      'Wait for flight_result_v4_inventory_card to reload',
+    ],
+    successCriteria: ['Earliest Arrival sort applied without crash'],
+  },
+  {
+    id: 'android-ssrv4-sort-latest-departure',
+    priority: 'p1',
+    category: 'sort',
+    name: 'SSR V4 Sort by Latest Departure',
+    description: 'Open sort tray, tap index 3 (Latest Departure), verify reload',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_sort_button',
+      'Tap flight_result_v4_sort_button',
+      'Wait for sort tray',
+      'Tap radio_button at index 3 (Latest Departure)',
+      'Wait for flight_result_v4_inventory_card to reload',
+    ],
+    successCriteria: ['Latest Departure sort applied without crash'],
+  },
+  {
+    id: 'android-ssrv4-sort-direct-first',
+    priority: 'p1',
+    category: 'sort',
+    name: 'SSR V4 Sort: Direct Flight First',
+    description: 'Open sort tray, tap index 1 (Direct flight first), verify',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_sort_button',
+      'Tap flight_result_v4_sort_button',
+      'Wait for sort tray',
+      'Tap radio_button at index 1 (Direct flight first)',
+      'Wait for flight_result_v4_inventory_card to reload',
+    ],
+    successCriteria: ['Direct flight first sort applied without crash'],
+  },
+
+  // ── Nonstop Chip (quick filter) ─────────────────────────────────────────
+  {
+    id: 'android-ssrv4-nonstop-chip',
+    priority: 'p0',
+    category: 'filter',
+    name: 'SSR V4 Nonstop Chip Quick Filter',
+    description: 'Tap Nonstop chip in flight_result_v4_quick_filter_cell, verify results',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_quick_filter_cell',
+      'Scroll horizontally to find the Nonstop chip if needed',
+      'Tap the Nonstop chip (flight_result_v4_quick_filter_cell at index 0 or labelled Nonstop)',
+      'Wait for flight_result_v4_inventory_card to reload',
+      'Assert flight_result_v4_inventory_card visible',
+    ],
+    successCriteria: ['Nonstop chip applies direct filter; results reload; cards visible'],
+  },
+
+  // ── Filtered Empty State ─────────────────────────────────────────────────
+  {
+    id: 'android-ssrv4-filter-empty-state',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Filtered Empty State',
+    description: 'Apply very restrictive filters (direct + specific airline + morning) to trigger empty state',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'On Transit tab: tap Direct',
+      'On Airlines tab: tap second and third airline (to be restrictive)',
+      'On Time tab: tap Morning departure only',
+      'Tap Apply button',
+      'Wait for either flight_result_v4_inventory_card or empty state UI',
+      'Take screenshot: test-results/android/android-ssrv4-filter-empty-state.png',
+      'Assert screen shows either results or an empty/no-result view (not a crash)',
+    ],
+    successCriteria: [
+      'Empty state UI appears gracefully (no crash)',
+      'Empty state includes a "Clear filters" or "Reset" action button',
+    ],
+  },
+  {
+    id: 'android-ssrv4-empty-state-reset',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Empty State → Reset Filters',
+    description: 'Trigger filtered empty state, then tap Reset button to restore results',
+    stepOutline: [
+      'Navigate to search results',
+      'Apply restrictive filters to reach filtered empty state (reuse android-ssrv4-filter-empty-state precondition)',
+      'When empty state appears, tap "Reset" or "Clear filters" button in empty state',
+      'Wait for flight_result_v4_inventory_card to reload',
+      'Assert flight_result_v4_inventory_card visible (results restored)',
+    ],
+    successCriteria: ['Tapping Reset from empty state restores the full result set'],
+  },
+
+  // ── Departure Time Filters (afternoon, evening) ──────────────────────────
+  {
+    id: 'android-ssrv4-filter-afternoon-departure',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Filter: Afternoon Departure',
+    description: 'Open filter dialog, select Afternoon departure time, apply',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Tap the Time tab',
+      'Tap Afternoon departure option (button_departure_afternoon or "Afternoon" chip)',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card to reload',
+    ],
+    successCriteria: ['Afternoon departure filter applied; results update without crash'],
+  },
+  {
+    id: 'android-ssrv4-filter-evening-departure',
+    priority: 'p2',
+    category: 'filter',
+    name: 'SSR V4 Filter: Evening Departure',
+    description: 'Open filter dialog, select Evening departure time, apply',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Tap the Time tab',
+      'Tap Evening departure option (button_departure_evening or "Evening" chip)',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card or empty state',
+    ],
+    successCriteria: ['Evening departure filter applied without crash'],
+  },
+  {
+    id: 'android-ssrv4-filter-arrival-morning',
+    priority: 'p2',
+    category: 'filter',
+    name: 'SSR V4 Filter: Morning Arrival',
+    description: 'Open filter Time tab, select Morning arrival, apply',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'Tap the Time tab',
+      'Tap Morning arrival option (button_arrival_morning or arrival morning chip)',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card to reload',
+    ],
+    successCriteria: ['Arrival time filter applied; results update without crash'],
+  },
+
+  // ── Pre-selected Filter State (Reapply Recent) ───────────────────────────
+  {
+    id: 'android-ssrv4-filter-reapply-previous',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Filter: Re-open Shows Previous Selection',
+    description: 'Apply direct filter, re-open filter dialog, verify previous selection is retained',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'Wait for filter dialog',
+      'On Transit tab: tap Direct',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card reload',
+      'Tap flight_result_v4_filter_button again to reopen',
+      'Assert the Transit tab shows Direct as pre-selected (take screenshot)',
+    ],
+    successCriteria: ['Previously applied filters are pre-selected when filter dialog reopens'],
+  },
+
+  // ── Multi-Filter + Sort Combination ─────────────────────────────────────
+  {
+    id: 'android-ssrv4-filter-sort-combo',
+    priority: 'p1',
+    category: 'interaction',
+    name: 'SSR V4 Filter + Sort Combination',
+    description: 'Apply Direct filter AND sort by cheapest — verify combined behavior',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'On Transit tab: tap Direct',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card reload',
+      'Tap flight_result_v4_sort_button to open sort tray',
+      'Tap radio_button at index 0 (Cheapest)',
+      'Wait for flight_result_v4_inventory_card reload',
+      'Assert flight_result_v4_inventory_card visible',
+      'Take screenshot: test-results/android/android-ssrv4-filter-sort-combo.png',
+    ],
+    successCriteria: ['Filter + sort combination works; results displayed without crash'],
+  },
+
+  // ── Date Flow Navigation ─────────────────────────────────────────────────
+  {
+    id: 'android-ssrv4-date-flow-navigation',
+    priority: 'p1',
+    category: 'interaction',
+    name: 'SSR V4 Date Flow: Tap Next Day',
+    description: 'Tap flight_result_v4_date_flow_row to advance to the next day',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_date_flow_row (Compose testTag)',
+      'Scroll left on the date flow row to find tomorrow\'s date cell',
+      'Tap the next-day date cell in flight_result_v4_date_flow_row',
+      'Wait for flight_result_v4_inventory_card to reload',
+      'Assert flight_result_v4_inventory_card visible',
+    ],
+    successCriteria: ['Date navigation changes results; new results load without crash'],
+  },
+
+  // ── Flight Card Interaction ──────────────────────────────────────────────
+  {
+    id: 'android-ssrv4-card-price-visible',
+    priority: 'p0',
+    category: 'interaction',
+    name: 'SSR V4 Flight Card: Price Section Visible',
+    description: 'Assert flight_result_v4_inventory_card_price_section is visible on each card',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_inventory_card',
+      'Assert flight_result_v4_inventory_card_price_section is visible on first card',
+      'Assert flight_result_v4_inventory_card_connector_view is visible (duration/stops)',
+      'Take screenshot: test-results/android/android-ssrv4-card-price-visible.png',
+    ],
+    successCriteria: [
+      'flight_result_v4_inventory_card_price_section visible',
+      'flight_result_v4_inventory_card_connector_view visible (duration/stops section)',
+    ],
+  },
+  {
+    id: 'android-ssrv4-card-tap-detail',
+    priority: 'p0',
+    category: 'interaction',
+    name: 'SSR V4 Flight Card Tap → Detail Screen',
+    description: 'Tap flight_result_v4_inventory_card to open detail; back to results',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_inventory_card',
+      'Tap flight_result_v4_inventory_card (first card)',
+      'Wait for detail screen to appear (new activity or bottom sheet)',
+      'Take screenshot: test-results/android/android-ssrv4-card-detail.png',
+      'Tap system back or back arrow to return',
+      'Assert flight_result_v4_inventory_card visible again',
+    ],
+    successCriteria: ['Card tap opens detail; back returns to results list without crash'],
+  },
+
+  // ── Scroll & Load More ───────────────────────────────────────────────────
+  {
+    id: 'android-ssrv4-scroll-load-more',
+    priority: 'p1',
+    category: 'interaction',
+    name: 'SSR V4 Scroll to Load More Results',
+    description: 'Scroll down on results list multiple times to trigger pagination',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_inventory_card',
+      'Scroll down on the results list',
+      'Scroll down again',
+      'Scroll down a third time',
+      'Assert flight_result_v4_inventory_card still visible after scrolling',
+    ],
+    successCriteria: ['No crash while scrolling; more cards appear or list end is reached gracefully'],
+  },
+
+  // ── Filter Reset ─────────────────────────────────────────────────────────
+  {
+    id: 'android-ssrv4-filter-reset-all',
+    priority: 'p1',
+    category: 'filter',
+    name: 'SSR V4 Reset All Filters',
+    description: 'Apply multiple filters, then tap Reset to clear all and restore full results',
+    stepOutline: [
+      'Navigate to search results',
+      'Wait for flight_result_v4_filter_button',
+      'Tap flight_result_v4_filter_button',
+      'On Transit tab: tap Direct',
+      'On Time tab: tap Morning',
+      'Tap Apply',
+      'Wait for results reload',
+      'Tap flight_result_v4_filter_button again',
+      'Tap Reset/Clear all button inside the filter dialog (tvReset or equivalent)',
+      'Tap Apply button',
+      'Wait for flight_result_v4_inventory_card reload',
+      'Assert flight_result_v4_inventory_card visible (more results than before reset)',
+    ],
+    successCriteria: ['All filters cleared; full result set restored without crash'],
+  },
+];
+
+// Active scenario set: base always included; extended appended with --extended
+const ACTIVE_SCENARIOS: ScenarioDefinition[] = EXTENDED
+  ? [...SCENARIOS, ...EXTENDED_SCENARIOS]
+  : SCENARIOS;
+function buildSystemPrompt(prdContent?: string): string {
   const forbiddenIdList = FORBIDDEN_XML_IDS.map(id => {
     const replacement = COMPOSE_ID_MAP[id];
     return replacement ? `  "${id}" → use "${replacement}"` : `  "${id}" (no direct replacement)`;
@@ -671,36 +1225,143 @@ Sort order (scoreShown=false, verified from FlightSortTrayWidgetPresenter.kt):
   index 6 → Shortest duration   (SORT_DURATION_SHORTEST)
 If scoreShown=true, all indices shift +1 (a "Best" option is inserted at index 0).
 
-MAESTRO 2.x SYNTAX RULES:
-1. Start every flow with appId on line 1, then --- on line 2
-2. Tap by resource ID:  tapOn:\\n    id: "view_resource_id"
-3. Assert by ID:        assertVisible:\\n    id: "view_resource_id"
-4. Assert by text:      assertVisible: "some text"
-5. System back:         - back
-6. Simple scroll:       - scroll   (no properties; direction/duration NOT supported in 2.x)
-7. NEVER use assertVisible.timeout (not supported in Maestro 2.x)
-8. NEVER use waitForAnimationsToEnd (removed in Maestro 2.x)
-9. NEVER use scroll.direction or scroll.duration (use bare "- scroll" only)
-10. NEVER use hard-coded coordinates
+MAESTRO 2.x SYNTAX RULES — STRONG CONSTRAINTS (violations cause immediate runtime failure):
+
+■ CORRECT PATTERNS:
+1. Flow header:   appId: com.traveloka.android.staging  (line 1)  then  ---  (line 2)
+2. Tap by ID:     - tapOn:\n        id: "view_resource_id"
+3. Assert by ID:  - assertVisible:\n        id: "view_resource_id"
+4. Assert text:   - assertVisible: "some text"
+5. System back:   - back
+6. Scroll:        - scroll              ← bare command ONLY, no sub-keys
+7. Wait for ID:   - extendedWaitUntil:\n        visible:\n          id: "view_resource_id"\n        timeout: 30000
+8. Conditional:   - runFlow:\n        when:\n          visible:\n            id: "some_id"\n        file: "path/to/flow.yaml"
+
+■ FORBIDDEN — WILL CRASH IMMEDIATELY:
+- runFlowIfVisible        ← does NOT exist in Maestro 2.x; use runFlow with when.visible
+- tapOn: {id: "..."}      ← inline object syntax is INVALID; must use block indented id:
+- tapOn:\\n    optional: true  ← 'optional' is NOT a property of tapOn; remove it
+- assertVisible:\\n    timeout: 30000  ← 'timeout' sub-key is NOT supported on assertVisible
+- waitForAnimationsToEnd  ← REMOVED in Maestro 2.x; delete it
+- scroll:\\n    direction: DOWN  ← sub-keys NOT supported; use bare '- scroll'
+- scroll:\\n    duration: 3000   ← sub-keys NOT supported; use bare '- scroll'
+- swipeOn / swipe         ← use '- scroll' instead
+- coordinates: [x, y]     ← hard-coded coordinates are forbidden
+- tapOn: "text label"     ← ALL tapOn MUST use id:. FORBIDDEN to use text: as a locator in tapOn.
+                            The only exception in the ENTIRE codebase:
+                            tapOn:\\n    text: "Flights"  (home screen tile — zero android:id, no testTag)
+                            For EVERY other element, look up the android:id or Compose testTag from
+                            android-v3 source, or from the VERIFIED IDs list in this prompt.
+                            DO NOT use text: for filter chips, sort buttons, dialog items, or any other element.
+- tapOn:\n    text: "Direct"  ← WRONG — "Direct" appears in flight card labels too; use id: "button_direct"
+- tapOn:\n    text: "Cheapest" ← WRONG — use id: "flight_filter_radiobutton_layout" index: 0
+- tapOn:\n    text: "Sort by"  ← WRONG — use id: "bm_button" for sort pill (1 instance on results page)
+- runFlow: file: "other.yaml"  ← NEVER reference external .yaml files; ALL steps must be inlined in this single file
+
+■ VERIFIED WORKING PATTERNS (from android-all-scenarios-suite.yaml — 23/23 pass):
+  # Tap by resource id
+  - tapOn:
+      id: "flight_result_v4_filter_button"
+  # Assert with id
+  - assertVisible:
+      id: "flight_result_v4_inventory_card"
+  # Wait until element visible
+  - extendedWaitUntil:
+      visible:
+        id: "flight_result_v4_inventory_card"
+      timeout: 30000
+  # Conditional flow (runFlow + when, NOT runFlowIfVisible)
+  - runFlow:
+      when:
+        visible:
+          id: "some_dismiss_button"
+      file: "dismiss-overlay.yaml"
+  # Tap radio by index
+  - tapOn:
+      id: "radio_button"
+      index: 0
+  # Scroll (no sub-keys)
+  - scroll
+
 11. Add comments explaining each step and its source file
 
-Return ONLY the YAML content, no markdown fences, no explanation.`;
+Return ONLY the YAML content, no markdown fences, no explanation.${prdContent ? `
+
+---
+## PRD CONTEXT (from recent merged PRs — use to guide scenario generation)
+
+The following product requirement document(s) describe recent changes merged into android-v3.
+Use this to generate more relevant test scenarios that cover the described behaviors.
+
+${prdContent.length > 6000 ? prdContent.slice(0, 6000) + '\n\n[...truncated...]' : prdContent}` : ''}`;
+}
+
+// ---------------------------------------------------------------------------
+// Source-code ID query — greps android-v3 repo for relevant IDs before generation
+// ---------------------------------------------------------------------------
+function querySourceIdsForScenario(scenario: ScenarioDefinition): string {
+  const REPO = path.join(process.cwd(), '.cache/weekly-diff-repos/github.com_traveloka_android-v3');
+  if (!fs.existsSync(REPO)) return '(android-v3 repo not cloned — skipping source query)';
+
+  // Build keyword list from scenario name + stepOutline
+  const keywords = [
+    scenario.name,
+    ...scenario.stepOutline,
+    scenario.description,
+  ].join(' ')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 4 && !['flight', 'results', 'screen', 'visible', 'assert', 'navigate', 'android', 'return', 'should', 'using', 'after', 'button', 'swipe', 'scroll'].includes(w));
+
+  const uniqueKeywords = [...new Set(keywords)].slice(0, 6);
+  if (uniqueKeywords.length === 0) return '';
+
+  try {
+    // Grep android-v3 flight layout XMLs for @+id values in relevant files
+    const grepPattern = uniqueKeywords.join('|');
+    const grepCmd = `grep -rl "${grepPattern}" "${REPO}/flight/src/main/res/layout" 2>/dev/null | head -5`;
+    const relevantFiles = execSync(grepCmd, { encoding: 'utf8', timeout: 10000 }).trim();
+    if (!relevantFiles) return '';
+
+    // Extract all @+id values from the matched files
+    const idCmd = `echo "${relevantFiles}" | xargs grep -h '@+id/' 2>/dev/null | grep -oE '@\\+id/[^"]+' | sort -u | head -40`;
+    const rawIds = execSync(idCmd, { encoding: 'utf8', timeout: 10000 }).trim();
+    const ids = rawIds.split('\n').map((l) => l.replace('@+id/', '').trim()).filter(Boolean);
+    if (ids.length === 0) return '';
+    return ids.join(', ');
+  } catch {
+    return '';
+  }
 }
 
 function buildUserPrompt(context: AndroidSourceContext, scenario: ScenarioDefinition): string {
+  // Query android-v3 source for scenario-specific IDs at generation time
+  const sourceQueryIds = querySourceIdsForScenario(scenario);
+  const accessibilityIdsList = Object.entries(context.accessibilityIds)
+    .map(([name, id]) => `  ${name}: "${id}"`)
+    .join('\n');
+
   return `Generate a Maestro YAML test case for this scenario.
 
 ## App Context
 AppId: ${context.appId}
 Screen: ${context.screen}
 
-## How to Reach This Screen (Precondition)
+## How to Reach This Screen (Precondition — copy EXACTLY, do not modify)
 ${context.precondition.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
-## Available Text Labels on Screen
-${Object.entries(context.textLabels)
-  .map(([section, labels]) => `${section}: ${labels.join(', ')}`)
-  .join('\n')}
+## VERIFIED ACCESSIBILITY IDs — USE THESE, DO NOT GUESS
+These IDs are confirmed present in the Android Accessibility tree (UIAutomator-verified + source-audited).
+RULE: ALL tapOn and assertVisible MUST use id: from this list or from Source Query below.
+NEVER invent an id that is not listed here.
+\`\`\`
+${accessibilityIdsList}
+\`\`\`
+
+## Source Query — IDs found in android-v3 source for this scenario
+(These are android:id values from the relevant XML layout files. Use these for filter/tray/dialog interactions.)
+${sourceQueryIds || '(no additional source IDs found)'}
 
 ## Known Interaction Patterns
 ${context.interactions.map((i) => `- ${i.name}: trigger="${i.trigger}" → "${i.outcome}"`).join('\n')}
@@ -726,18 +1387,26 @@ Generate the complete Maestro YAML test case now:`;
 async function generateYaml(
   context: AndroidSourceContext,
   scenario: ScenarioDefinition,
+  prdContent?: string,
   retries = 2
 ): Promise<string> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const response = await openai.chat.completions.create({
-        model: MODEL,
-        temperature: 0,
-        messages: [
-          { role: 'system', content: buildSystemPrompt() },
-          { role: 'user', content: buildUserPrompt(context, scenario) },
-        ],
-      });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 90_000); // 90s per call
+      let response;
+      try {
+        response = await openai.chat.completions.create({
+          model: MODEL,
+          temperature: 0,
+          messages: [
+            { role: 'system', content: buildSystemPrompt(prdContent) },
+            { role: 'user', content: buildUserPrompt(context, scenario) },
+          ],
+        }, { signal: controller.signal as AbortSignal });
+      } finally {
+        clearTimeout(timer);
+      }
       const content = response.choices[0]?.message?.content ?? '';
       // Strip any accidental markdown fences
       return content
@@ -769,6 +1438,25 @@ function validateYaml(yaml: string, scenario: ScenarioDefinition): string[] {
   if (yaml.includes('coordinates:') || /\(\d+,\s*\d+\)/.test(yaml))
     warnings.push('Hard-coded coordinates detected — remove them');
 
+  // ── MAESTRO 2.x FORBIDDEN COMMANDS ──────────────────────────────────────
+  // These patterns are confirmed to cause immediate runtime failures.
+  // Discovered from actual run failures on 2026-06-11 (exit code 2).
+  const forbiddenPatterns: Array<[RegExp, string]> = [
+    [/runFlowIfVisible/,              'SYNTAX_ERROR: runFlowIfVisible does not exist in Maestro 2.x → use "runFlow" with "when.visible"'],
+    [/optional:\s*true/,              'SYNTAX_ERROR: "optional: true" is not a valid tapOn property in Maestro 2.x → remove it'],
+    [/assertVisible:\s*\n\s+timeout/, 'SYNTAX_ERROR: assertVisible does not support a timeout sub-key in Maestro 2.x → use extendedWaitUntil instead'],
+    [/waitForAnimationsToEnd/,        'SYNTAX_ERROR: waitForAnimationsToEnd was removed in Maestro 2.x → delete this line'],
+    [/scroll:\s*\n\s+direction/,      'SYNTAX_ERROR: scroll does not support direction sub-key in Maestro 2.x → use bare "- scroll"'],
+    [/scroll:\s*\n\s+duration/,       'SYNTAX_ERROR: scroll does not support duration sub-key in Maestro 2.x → use bare "- scroll"'],
+    [/swipeOn|swipe:/,                'SYNTAX_ERROR: swipeOn/swipe not supported → use "- scroll"'],
+    [/tapOn:\s+"[^"]+"/,              'SYNTAX_ERROR: tapOn with text string is forbidden (i18n app) → must use id: block'],
+    [/file:\s*["'][^"']+\.yaml["']/,  'SYNTAX_ERROR: runFlow with external file: reference is forbidden — referenced yaml files do not exist at runtime. Inline all steps directly in this file instead.'],
+  ];
+
+  for (const [pattern, message] of forbiddenPatterns) {
+    if (pattern.test(yaml)) warnings.push(message);
+  }
+
   // ── COMPOSE ID ENFORCEMENT ───────────────────────────────────────────────
   // These old XML android:id values no longer appear in the Accessibility tree
   // after the flight results page was migrated to Jetpack Compose (v4).
@@ -796,7 +1484,7 @@ async function main() {
   console.log(`   Auth   : ${AUTH_SOURCE}`);
   console.log(`   Model  : ${MODEL}`);
   console.log(`   Output : ${OUTPUT_DIR}`);
-  console.log(`   Scenarios: ${SCENARIOS.length}`);
+  console.log(`   Scenarios: ${ACTIVE_SCENARIOS.length}${EXTENDED ? ' (extended)' : ''}`);
   console.log(`   Dry run: ${DRY_RUN}\n`);
 
   // Load source context
@@ -807,6 +1495,17 @@ async function main() {
       console.log(`✅ Loaded source context from: ${SOURCE_JSON}`);
     } catch {
       console.warn(`⚠️  Could not load ${SOURCE_JSON}, using default context`);
+    }
+  }
+
+  // Load PRD context (from recent merged PRs via android-diff-workflow)
+  let prdContent: string | undefined;
+  if (PRD_FILE) {
+    try {
+      prdContent = fs.readFileSync(PRD_FILE, 'utf8');
+      console.log(`✅ Loaded PRD context from: ${PRD_FILE} (${prdContent.length} chars)`);
+    } catch {
+      console.warn(`⚠️  Could not load PRD file: ${PRD_FILE} — proceeding without PRD context`);
     }
   }
 
@@ -828,7 +1527,7 @@ async function main() {
   let skipped = 0;
   const startTime = Date.now();
 
-  for (const scenario of SCENARIOS) {
+  for (const scenario of ACTIVE_SCENARIOS) {
     const outputFile = path.join(OUTPUT_DIR, `${scenario.id}.yaml`);
     const relFile = path.relative(process.cwd(), outputFile);
     process.stdout.write(`  [${scenario.priority.toUpperCase()}] ${scenario.name} … `);
@@ -841,7 +1540,7 @@ async function main() {
 
     try {
       const scenarioStart = Date.now();
-      const yaml = await generateYaml(context, scenario);
+      const yaml = await generateYaml(context, scenario, prdContent);
       const elapsed = ((Date.now() - scenarioStart) / 1000).toFixed(1);
       const warnings = validateYaml(yaml, scenario);
 
@@ -909,7 +1608,7 @@ async function main() {
     fs.writeFileSync(RUN_ALL_PATH, runAllContent, 'utf8');
 
     console.log(`\n${'─'.repeat(60)}`);
-    console.log(`✅ Generated  : ${generated} / ${SCENARIOS.length} cases`);
+    console.log(`✅ Generated  : ${generated} / ${ACTIVE_SCENARIOS.length} cases${EXTENDED ? ' (extended)' : ''}`);
     console.log(`⚠️  Skipped    : ${skipped}`);
     console.log(`⏱  Total time : ${totalElapsed}s`);
     console.log(`📁 Output dir : ${OUTPUT_DIR}`);

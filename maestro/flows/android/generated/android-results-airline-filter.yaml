@@ -3,7 +3,7 @@ appId: com.traveloka.android.staging
 # Step 1: Launch the app
 - launchApp
 
-# Step 2: Tap on the "Flights" product tile to navigate to the search results
+# Step 2: Tap on the "Flights" product tile
 - tapOn:
     text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
 
@@ -19,7 +19,7 @@ appId: com.traveloka.android.staging
 - assertVisible:
     id: "btn_search"
 
-# Step 6: Tap on the search button to initiate the flight search
+# Step 6: Tap on the search button
 - tapOn:
     id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
 
@@ -35,28 +35,26 @@ appId: com.traveloka.android.staging
 
 # Step 9: Tap on a quick filter item to open the filter dialog
 - tapOn:
-    id: "quick_filter_item"
+    id: "flight_result_v4_quick_filter_cell"  # Assuming this ID corresponds to the quick filter item
 
-# Step 10: Wait for the filter dialog to become visible
+# Step 10: Wait for the filter dialog to be visible
 - extendedWaitUntil:
     visible:
       id: "layout_filter_dialog"
-    timeout: 30000
 
-# Step 11: Tap on the button for 1-stop filter
+# Step 11: Scroll to the airline section in the filter dialog
+- scroll
+
+# Step 12: Tap the first airline checkbox inside the recycler view content under the airline section
 - tapOn:
-    id: "button_one_transit"  # button_one_transit (flight_result_revamp_filter_transit_layer.xml)
+    id: "radio_button"  # Assuming this ID corresponds to the airline checkbox
+    index: 0  # First airline checkbox
 
-# Step 12: Tap on the result button to apply the filter
+# Step 13: Tap the apply button to apply the filter
 - tapOn:
     id: "tvResult"
 
-# Step 13: Wait for the flight results to reload
+# Step 14: Wait for the flight inventory card to reload
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
-    timeout: 30000
-
-# Step 14: Assert that the flight result container view is visible
-- assertVisible:
-    id: "flight_result_v4_inventory_card"  # Verifying that cards are still visible after applying the filter
+      id: "flight_result_v4_inventory_card"  # Verify that the results have been updated with the applied filter

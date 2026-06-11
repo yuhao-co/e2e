@@ -1,0 +1,47 @@
+appId: com.traveloka.android.staging
+---
+# Step 1: Navigate to search results
+- launchApp
+- tapOn:
+    id: "continue_button" # Dismiss optional onboarding
+- tapOn:
+    id: "flights_tile" # Tap "Flights" tile on home screen
+- tapOn:
+    id: "btn_search" # Tap "Search" button on search form
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to appear (up to 30s)
+
+# Step 2: Wait for filter button to be visible
+- extendedWaitUntil:
+    id: "flight_result_v4_filter_button"
+
+# Step 3: Tap filter button to open filter dialog
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+# Step 4: Wait for filter dialog to appear
+- extendedWaitUntil:
+    id: "layout_filter_dialog"
+
+# Step 5: On Transit tab, tap "Direct" filter
+- tapOn:
+    id: "button_direct"
+
+# Step 6: Tap Apply button to apply the filter
+- tapOn:
+    id: "dbwShow"
+
+# Step 7: Wait for flight cards to reload
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card"
+
+# Step 8: Tap filter button again to reopen filter dialog
+- tapOn:
+    id: "flight_result_v4_filter_button"
+
+# Step 9: Assert the Transit tab shows "Direct" as pre-selected
+- extendedWaitUntil:
+    id: "layout_filter_dialog" # Wait for filter dialog to appear again
+- assertVisible:
+    id: "button_direct" # Verify "Direct" filter is still selected
+- takeScreenshot: "filter_dialog_with_direct_selected" # Take screenshot for verification

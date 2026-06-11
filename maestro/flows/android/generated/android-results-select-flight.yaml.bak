@@ -1,0 +1,43 @@
+appId: com.traveloka.android.staging
+---
+
+# Navigate to the home screen
+- launchApp
+
+# Dismiss optional onboarding if present
+- tapOn:
+    id: "button_continue"
+
+# Tap "Flights" tile on the home screen
+- tapOn:
+    id: "flights_tile"
+
+# Wait for the search form to appear
+- assertVisible:
+    id: "layout_search_form"
+
+# Tap the "Search" button to navigate to the results page
+- tapOn:
+    id: "btn_search"
+
+# Wait for the flight search results to load (up to 30 seconds)
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+
+# Tap the first flight card to view its details
+- tapOn:
+    id: "flight_result_v4_inventory_card"
+    index: 0
+
+# Wait for the detail screen or bottom sheet to appear
+- extendedWaitUntil:
+    visible:
+      id: "flight_detail_screen" # Replace with the actual ID of the detail screen or overlay
+
+# Assert that we are no longer on the plain results list
+- assertVisible:
+    id: "flight_detail_screen" # Replace with the actual ID of the detail screen or overlay
+
+# Take a screenshot for verification
+- takeScreenshot: "flight_detail_screen"

@@ -1,0 +1,35 @@
+appId: com.traveloka.android.staging
+---
+
+# Step 1: Launch the app and navigate to the search results page
+- launchApp
+- tapOn:
+    id: "button_continue" # Dismiss optional onboarding
+- tapOn:
+    id: "flights_tile" # Tap "Flights" tile on home screen
+- tapOn:
+    id: "btn_search" # Tap "Search" button on the search form
+- extendedWaitUntil: # Wait for flight cards to appear
+    id: "flight_result_v4_inventory_card"
+
+# Step 2: Open the multi-filter dialog
+- tapOn:
+    id: "flight_result_v4_filter_button" # Tap the filter button
+- extendedWaitUntil: # Wait for the filter dialog to appear
+    id: "layout_filter_dialog"
+
+# Step 3: Navigate to the Transit tab
+- tapOn:
+    id: "filter_tab_transit" # Tap the Transit tab in the filter dialog
+
+# Step 4: Apply the Direct filter
+- tapOn:
+    id: "button_direct" # Tap the Direct/Nonstop option
+- tapOn:
+    id: "tvResult" # Tap the Apply/Done button to submit the filter
+
+# Step 5: Verify the results update
+- extendedWaitUntil: # Wait for flight cards to reload
+    id: "flight_result_v4_inventory_card"
+- assertVisible: # Assert that flight cards are still visible
+    id: "flight_result_v4_inventory_card"

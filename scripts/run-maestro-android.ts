@@ -313,7 +313,7 @@ async function main() {
   const runStart = Date.now();
 
   for (const entry of cases) {
-    const flowFile = path.resolve(path.dirname(MANIFEST_PATH), entry.file);
+    const flowFile = path.resolve(entry.file);
     if (!fs.existsSync(flowFile)) {
       console.log(`  ⚠️  [SKIP] ${entry.name} — file not found: ${entry.file}`);
       results.push({

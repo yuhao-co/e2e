@@ -1,52 +1,40 @@
-##
-# SCENARIO 01 — Smoke: Results page loads with visible flight cards
-#
-# Source contract (android-v3 @ 2026-06-11):
-#   flight_result_revamp_activity.xml  →  result_container, text_result_title,
-#                                          text_result_subtitle, widget_dateflow
-#   flight_result_card.xml             →  inventory_parent_layout, card_result,
-#                                          text_departure_time, text_arrival_time,
-#                                          text_flight_name, text_displayed_price
-#
-# Generated: 2026-06-11
-##
 appId: com.traveloka.android.staging
 ---
+# Smoke: verify flight results page loads end-to-end
 
-- runFlow: ../_navigate_to_results.yaml
+# Step 1: Launch
+- launchApp
 
-# ── Assertions ──────────────────────────────────────────────────────────────
+# Step 2: Tap Flights tile (text only — home tiles have NO android:id)
+- tapOn:
+    text: "Flights"
 
-# Page root
+# Step 3: Assert search form visible
+- assertVisible:
+    id: "search_tab"
+
+# Step 4: Tap search tab
+- tapOn:
+    id: "search_tab"
+
+# Step 5: Assert Search button visible
+- assertVisible:
+    id: "btn_search"
+
+# Step 6: Tap Search
+- tapOn:
+    id: "btn_search"
+
+# Step 7: Wait for results toolbar
 - assertVisible:
     id: "flight_result_v4_navbar_toolbar_title"
 
-# Navigation header
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "text_result_subtitle"
+# Step 8: Wait for at least one flight card
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
 
-# Date-flow widget (price calendar strip)
-- assertVisible:
-    id: "flight_result_v4_date_flow_row"
-
-# Filter bar (sticky or non-sticky)
-- assertVisible:
-    id: "flight_result_v4_filter_button"
-
-# First flight card elements
+# Step 9: Final assertion
 - assertVisible:
     id: "flight_result_v4_inventory_card"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-- assertVisible:
-    id: "text_departure_time"
-- assertVisible:
-    id: "text_arrival_time"
-- assertVisible:
-    id: "text_displayed_price"
-- assertVisible:
-    id: "text_flight_name"

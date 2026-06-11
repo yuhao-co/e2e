@@ -1,0 +1,43 @@
+appId: com.traveloka.android.staging
+---
+
+# Test Case: android-results-back-to-search
+# Name: Back to Search Form
+# Description: Tap image_arrow_back to return to search form
+# Priority: p0
+
+# Step 1: Launch the app and navigate to the home screen
+- launchApp: {}
+
+# Step 2: Dismiss optional onboarding by tapping "Continue" (if visible)
+- tapOn:
+    id: "button_continue"
+  optional: true
+
+# Step 3: Tap the "Flights" tile on the home screen to navigate to the search form
+- tapOn:
+    id: "flights_tile"
+
+# Step 4: Verify the search form is displayed with origin pre-filled as "Singapore (SIN)"
+- assertVisible:
+    id: "layout_search_form"
+
+# Step 5: Tap the "Search" button to navigate to the flight search results page
+- tapOn:
+    id: "btn_search"
+
+# Step 6: Wait for the flight search results to load (up to 30 seconds)
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+
+# Step 7: Tap the back button to return to the search form
+- back
+
+# Step 8: Verify that the results page is no longer visible
+- assertNotVisible:
+    id: "flight_result_v4_inventory_card"
+
+# Step 9: Verify that the search form is displayed again
+- assertVisible:
+    id: "layout_search_form"

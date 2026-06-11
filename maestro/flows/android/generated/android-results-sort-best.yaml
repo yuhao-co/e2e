@@ -3,7 +3,7 @@ appId: com.traveloka.android.staging
 # Step 1: Launch the app
 - launchApp
 
-# Step 2: Tap on the "Flights" product tile to navigate to the search results
+# Step 2: Tap on the "Flights" product tile to navigate to the search form
 - tapOn:
     text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
 
@@ -33,30 +33,21 @@ appId: com.traveloka.android.staging
       id: "flight_result_v4_inventory_card"
     timeout: 30000
 
-# Step 9: Tap on a quick filter item to open the filter dialog
+# Step 9: Tap on the sort button to open the sort options
 - tapOn:
-    id: "quick_filter_item"
+    id: "flight_result_v4_sort_button"
 
-# Step 10: Wait for the filter dialog to become visible
-- extendedWaitUntil:
-    visible:
-      id: "layout_filter_dialog"
-    timeout: 30000
-
-# Step 11: Tap on the button for 1-stop filter
+# Step 10: Tap the index 2 (Best) inside the sort options
 - tapOn:
-    id: "button_one_transit"  # button_one_transit (flight_result_revamp_filter_transit_layer.xml)
+    id: "radio_button"
+    index: 2
 
-# Step 12: Tap on the result button to apply the filter
-- tapOn:
-    id: "tvResult"
-
-# Step 13: Wait for the flight results to reload
+# Step 11: Wait for the flight inventory card to reload
 - extendedWaitUntil:
     visible:
       id: "flight_result_v4_inventory_card"
     timeout: 30000
 
-# Step 14: Assert that the flight result container view is visible
+# Step 12: Assert that the flight inventory card is visible to confirm sorting applied
 - assertVisible:
-    id: "flight_result_v4_inventory_card"  # Verifying that cards are still visible after applying the filter
+    id: "flight_result_v4_inventory_card"

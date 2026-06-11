@@ -1,0 +1,39 @@
+appId: com.traveloka.android.staging
+---
+# Step 1: Navigate to search results
+- launchApp
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card"
+
+# Step 2: Wait for sort button to be visible
+- assertVisible:
+    id: "flight_result_v4_sort_button"
+
+# Step 3: Tap sort button to open sort tray
+- tapOn:
+    id: "flight_result_v4_sort_button"
+
+# Step 4: Wait for sort tray bottom sheet
+- extendedWaitUntil:
+    id: "radio_button"
+
+# Step 5: Tap radio_button at index 6 (Shortest Duration) inside sort tray
+- tapOn:
+    id: "radio_button"
+    index: 6
+
+# Step 6: Wait for flight cards to reload
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card"
+
+# Step 7: Assert flight cards are visible
+- assertVisible:
+    id: "flight_result_v4_inventory_card"

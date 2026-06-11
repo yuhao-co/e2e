@@ -1,0 +1,56 @@
+appId: com.traveloka.android.staging
+---
+# Step 1: Launch the app and navigate to the flight search results screen
+- launchApp
+- assertVisible:
+    id: "home_screen_flights_tile" # Verify Flights tile is visible on the home screen
+- tapOn:
+    id: "home_screen_flights_tile" # Tap on the Flights tile
+- assertVisible:
+    id: "search_tab" # Verify the search form is displayed
+- tapOn:
+    id: "btn_search" # Tap the Search button
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to appear (up to 30s)
+
+# Step 2: Open the filter dialog
+- assertVisible:
+    id: "flight_result_v4_filter_button" # Verify the Filter button is visible
+- tapOn:
+    id: "flight_result_v4_filter_button" # Tap the Filter button
+
+# Step 3: Apply multiple filters
+- assertVisible:
+    id: "button_direct" # Verify the Direct filter button is visible
+- tapOn:
+    id: "button_direct" # Tap the Direct filter button
+- assertVisible:
+    id: "button_morning" # Verify the Morning filter button is visible
+- tapOn:
+    id: "button_morning" # Tap the Morning filter button
+- tapOn:
+    id: "dbwShow" # Tap the Apply button to apply filters
+
+# Step 4: Wait for results to reload
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to reload
+
+# Step 5: Open the filter dialog again
+- tapOn:
+    id: "flight_result_v4_filter_button" # Tap the Filter button again
+
+# Step 6: Reset all filters
+- assertVisible:
+    id: "tvReset" # Verify the Reset button is visible
+- tapOn:
+    id: "tvReset" # Tap the Reset button
+- tapOn:
+    id: "dbwShow" # Tap the Apply button to confirm reset
+
+# Step 7: Wait for results to reload
+- extendedWaitUntil:
+    id: "flight_result_v4_inventory_card" # Wait for flight cards to reload
+
+# Step 8: Verify full results are restored
+- assertVisible:
+    id: "flight_result_v4_inventory_card" # Verify flight cards are visible (full result set restored)
