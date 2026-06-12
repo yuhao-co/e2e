@@ -54,6 +54,9 @@ const EXTENDED = args.includes('--extended');
 const OUTPUT_DIR = path.resolve('maestro/flows/android/generated');
 const MANIFEST_PATH = path.resolve('maestro/flows/android/manifest.json');
 const RUN_ALL_PATH = path.resolve('maestro/flows/android/run-all-android.yaml');
+// STRONG CONSTRAINT: All cases are consolidated into ONE suite file per run.
+// Individual per-scenario files are NEVER written. Only android-suite.yaml is the output.
+const SUITE_PATH = path.resolve('maestro/flows/android/generated/android-suite.yaml');
 const APP_ID = 'com.traveloka.android.staging';
 
 // ---------------------------------------------------------------------------
@@ -1526,10 +1529,11 @@ async function main() {
   let generated = 0;
   let skipped = 0;
   const startTime = Date.now();
+  // STRONG CONSTRAINT: accumulate all case YAML — written as ONE combined suite file at the end.
+  const suiteChunks: string[] = [];
 
   for (const scenario of ACTIVE_SCENARIOS) {
-    const outputFile = path.join(OUTPUT_DIR, `${scenario.id}.yaml`);
-    const relFile = path.relative(process.cwd(), outputFile);
+    const relFile = path.relative(process.cwd(), SUITE_PATH);
     process.stdout.write(`  [${scenario.priority.toUpperCase()}] ${scenario.name} … `);
 
     if (DRY_RUN) {
@@ -1544,7 +1548,8 @@ async function main() {
       const elapsed = ((Date.now() - scenarioStart) / 1000).toFixed(1);
       const warnings = validateYaml(yaml, scenario);
 
-      fs.writeFileSync(outputFile, yaml, 'utf8');
+      // STRONG CONSTRAINT: do NOT write individual files — accumulate into suite only
+      suiteChunks.push(`# === ${scenario.priority.toUpperCase()}: ${scenario.name} ===\n${yaml}`);
       manifest.push({
         id: scenario.id,
         priority: scenario.priority,
@@ -1580,38 +1585,36 @@ async function main() {
   const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
   if (!DRY_RUN) {
+    // STRONG CONSTRAINT: write ONE combined suite file — no individual per-scenario files
+    const suiteHeader = [
+      `# Auto-generated Android Maestro Suite`,
+      `# Generated: ${new Date().toISOString()}`,
+      `# ${generated} cases covering flight search results`,
+      `# STRONG CONSTRAINT: This is the single source of truth for this run.`,
+      `#   Do NOT split into per-scenario files.`,
+    ].join('\n');
+    fs.writeFileSync(SUITE_PATH, `${suiteHeader}\n\n${suiteChunks.join('\n---\n\n')}\n`, 'utf8');
+
     // Write manifest
     fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), 'utf8');
 
-    // Write run-all orchestrator
-    const p0 = manifest.filter((m) => m.priority === 'p0' && !m.warnings.some((w) => w.startsWith('GENERATION_FAILED')));
-    const p1 = manifest.filter((m) => m.priority === 'p1' && !m.warnings.some((w) => w.startsWith('GENERATION_FAILED')));
-    const p2 = manifest.filter((m) => m.priority === 'p2' && !m.warnings.some((w) => w.startsWith('GENERATION_FAILED')));
-
+    // run-all simply points at the single suite file
     const runAllContent = [
       `# Auto-generated Android Maestro run-all`,
       `# Generated: ${new Date().toISOString()}`,
-      `# ${generated} cases covering flight search results`,
+      `# STRONG CONSTRAINT: Always references the single android-suite.yaml — never per-scenario files.`,
       `appId: ${APP_ID}`,
       '---',
       '',
-      '# === P0: Critical smoke ===',
-      ...p0.map((m) => `- runFlow: generated/${m.id}.yaml`),
-      '',
-      '# === P1: Core coverage ===',
-      ...p1.map((m) => `- runFlow: generated/${m.id}.yaml`),
-      '',
-      '# === P2: Edge cases ===',
-      ...p2.map((m) => `- runFlow: generated/${m.id}.yaml`),
+      `- runFlow: generated/android-suite.yaml`,
     ].join('\n');
-
     fs.writeFileSync(RUN_ALL_PATH, runAllContent, 'utf8');
 
     console.log(`\n${'─'.repeat(60)}`);
     console.log(`✅ Generated  : ${generated} / ${ACTIVE_SCENARIOS.length} cases${EXTENDED ? ' (extended)' : ''}`);
     console.log(`⚠️  Skipped    : ${skipped}`);
     console.log(`⏱  Total time : ${totalElapsed}s`);
-    console.log(`📁 Output dir : ${OUTPUT_DIR}`);
+    console.log(`📦 Suite file : ${SUITE_PATH}`);
     console.log(`📋 Manifest   : ${MANIFEST_PATH}`);
     console.log(`▶️  Run all    : maestro test ${RUN_ALL_PATH}`);
     console.log(`${'─'.repeat(60)}\n`);

@@ -13,6 +13,10 @@
 # =============================================================================
 set -euo pipefail
 
+# Ensure Java and Maestro are always available regardless of invocation context
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}"
+export PATH="/opt/homebrew/bin:/opt/homebrew/opt/openjdk@17/bin:/usr/local/bin:/usr/bin:/bin:/Users/yu.hao/Library/Android/sdk/platform-tools:/Users/yu.hao/.maestro/bin:$PATH"
+
 E2E_DIR="/Users/yu.hao/Desktop/task/e2e"
 AVD_NAME="Pixel7_API37"
 EMULATOR="$HOME/Library/Android/sdk/emulator/emulator"
@@ -34,7 +38,7 @@ DEVICE_ONLINE=$("$ADB" devices 2>/dev/null | grep -c "emulator.*device" || true)
 
 if [ "$DEVICE_ONLINE" -eq 0 ]; then
   echo "[1/4] Starting emulator: $AVD_NAME …"
-  nohup "$EMULATOR" -avd "$AVD_NAME" -no-window -no-audio \
+  nohup "$EMULATOR" -avd "$AVD_NAME" -no-audio \
     -gpu swiftshader_indirect > "$LOG_DIR/emulator.log" 2>&1 &
 
   echo "      Waiting for device (up to 120s)…"
