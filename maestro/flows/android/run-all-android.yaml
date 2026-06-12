@@ -1,6 +1,7 @@
 # Auto-generated Android Maestro run-all
-# Generated: 2026-06-12T07:26:26.353Z
-# STRONG CONSTRAINT: Always references the single android-suite.yaml — never per-scenario files.
+# Generated: 2026-06-12T08:19:48.361Z
+# NOTE: The individual <caseId>.yaml files in 'generated/' are executed sequentially
+# This file is for reference only.
 appId: com.traveloka.android.staging
 ---
 

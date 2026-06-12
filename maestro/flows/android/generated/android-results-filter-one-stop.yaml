@@ -1,0 +1,36 @@
+appId: com.traveloka.android.staging
+name: android-results-filter-one-stop
+---
+- launchApp
+- tapOn:
+    text: "Flights"
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+- tapOn:
+    id: "flight_result_v4_filter_button"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+- tapOn:
+    id: "button_one_transit"
+- tapOn:
+    id: "dbwShow"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_navbar_toolbar_title"
+    timeout: 30000
+- assertVisible:
+    id: "flight_result_v4_inventory_card"

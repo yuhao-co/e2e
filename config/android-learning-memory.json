@@ -1,11 +1,8 @@
 {
-  "lastUpdated": "2026-06-12T07:26:43.587Z",
-  "totalRuns": 5,
+  "lastUpdated": "2026-06-12T08:15:42.533Z",
+  "totalRuns": 13,
   "flakyScenarios": [
-    "android-results-smoke",
-    "android-results-filter-direct",
     "android-results-sort-cheapest",
-    "android-results-select-flight",
     "android-results-back-to-search",
     "android-results-filter-one-stop",
     "android-results-sort-fastest",
@@ -15,7 +12,11 @@
     "android-results-scroll",
     "android-results-price-calendar"
   ],
-  "stableScenarios": [],
+  "stableScenarios": [
+    "android-results-smoke",
+    "android-results-filter-direct",
+    "android-results-select-flight"
+  ],
   "fixHistory": [
     {
       "scenarioId": "android-results-smoke",
@@ -160,6 +161,18 @@
       "fixedAt": "2026-06-12T07:04:51.610Z",
       "failureReason": "Invalid Command: screenshot at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-price-calendar.yaml:18:13",
       "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-sort-cheapest",
+      "fixedAt": "2026-06-12T08:15:42.533Z",
+      "failureReason": "Element not found: Id matching regex: flight_result_v4_sort_button",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-back-to-search",
+      "fixedAt": "2026-06-12T08:15:42.533Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
+      "fixApplied": false
     }
   ],
   "diffTriggers": [
@@ -192,6 +205,54 @@
       "changedFiles": [],
       "affectedScenarios": [],
       "passRate": "0%"
+    },
+    {
+      "date": "2026-06-12T07:35:40.098Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "0%"
+    },
+    {
+      "date": "2026-06-12T07:39:54.007Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "0%"
+    },
+    {
+      "date": "2026-06-12T07:44:19.072Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "100%"
+    },
+    {
+      "date": "2026-06-12T07:50:28.182Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "100%"
+    },
+    {
+      "date": "2026-06-12T07:58:36.794Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "0%"
+    },
+    {
+      "date": "2026-06-12T08:04:56.309Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "100%"
+    },
+    {
+      "date": "2026-06-12T08:11:45.314Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "100%"
+    },
+    {
+      "date": "2026-06-12T08:15:42.533Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "60%"
     }
   ]
 }

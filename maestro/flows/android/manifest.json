@@ -4,8 +4,8 @@
     "priority": "p0",
     "category": "smoke",
     "name": "Search Results Page Loads",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:24:59.705Z",
+    "file": "maestro/flows/android/generated/android-results-smoke.yaml",
+    "generatedAt": "2026-06-12T08:18:11.397Z",
     "warnings": []
   },
   {
@@ -13,8 +13,8 @@
     "priority": "p0",
     "category": "filter",
     "name": "Direct Flight Filter",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:06.536Z",
+    "file": "maestro/flows/android/generated/android-results-filter-direct.yaml",
+    "generatedAt": "2026-06-12T08:18:19.581Z",
     "warnings": []
   },
   {
@@ -22,8 +22,8 @@
     "priority": "p0",
     "category": "sort",
     "name": "Sort by Cheapest",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:12.239Z",
+    "file": "maestro/flows/android/generated/android-results-sort-cheapest.yaml",
+    "generatedAt": "2026-06-12T08:18:26.386Z",
     "warnings": [
       "COMPOSE_MIGRATION_ERROR: id \"rbg_sort\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). → use \"flight_result_v4_sort_button\" instead"
     ]
@@ -33,8 +33,8 @@
     "priority": "p0",
     "category": "interaction",
     "name": "Select a Flight (View Detail)",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:17.524Z",
+    "file": "maestro/flows/android/generated/android-results-select-flight.yaml",
+    "generatedAt": "2026-06-12T08:18:32.093Z",
     "warnings": []
   },
   {
@@ -42,10 +42,10 @@
     "priority": "p0",
     "category": "navigation",
     "name": "Back to Search Form",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:23.441Z",
+    "file": "android-results-back-to-search.yaml",
+    "generatedAt": "2026-06-12T08:18:39.310Z",
     "warnings": [
-      "COMPOSE_MIGRATION_ERROR: id \"image_arrow_back\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). (no direct replacement; see COMPOSE_ID_MAP)"
+      "GENERATION_FAILED: AI generation failed after 3 attempts: 429 Rate limit of 15 per 60s exceeded for UserByModelByMinute. Please wait 2 seconds before retrying."
     ]
   },
   {
@@ -53,8 +53,8 @@
     "priority": "p1",
     "category": "filter",
     "name": "1-Stop Filter",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:28.851Z",
+    "file": "maestro/flows/android/generated/android-results-filter-one-stop.yaml",
+    "generatedAt": "2026-06-12T08:18:50.675Z",
     "warnings": []
   },
   {
@@ -62,8 +62,8 @@
     "priority": "p1",
     "category": "sort",
     "name": "Sort by Fastest",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:34.020Z",
+    "file": "maestro/flows/android/generated/android-results-sort-fastest.yaml",
+    "generatedAt": "2026-06-12T08:18:56.747Z",
     "warnings": [
       "COMPOSE_MIGRATION_ERROR: id \"rbg_sort\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). → use \"flight_result_v4_sort_button\" instead"
     ]
@@ -73,8 +73,8 @@
     "priority": "p1",
     "category": "filter",
     "name": "Airline Filter via Bottom Sheet",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:40.241Z",
+    "file": "maestro/flows/android/generated/android-results-airline-filter.yaml",
+    "generatedAt": "2026-06-12T08:19:03.790Z",
     "warnings": []
   },
   {
@@ -82,8 +82,8 @@
     "priority": "p1",
     "category": "filter",
     "name": "Departure Morning Filter",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:46.238Z",
+    "file": "maestro/flows/android/generated/android-results-departure-time-filter.yaml",
+    "generatedAt": "2026-06-12T08:19:10.652Z",
     "warnings": []
   },
   {
@@ -91,8 +91,8 @@
     "priority": "p1",
     "category": "filter",
     "name": "Reset All Filters",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:53.939Z",
+    "file": "maestro/flows/android/generated/android-results-reset-filters.yaml",
+    "generatedAt": "2026-06-12T08:19:17.520Z",
     "warnings": []
   },
   {
@@ -100,28 +100,28 @@
     "priority": "p1",
     "category": "interaction",
     "name": "Scroll Through Results",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:25:59.814Z",
-    "warnings": [
-      "COMPOSE_MIGRATION_ERROR: id \"result_container\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). → use \"flight_result_v4_navbar_toolbar_title\" instead"
-    ]
+    "file": "maestro/flows/android/generated/android-results-scroll.yaml",
+    "generatedAt": "2026-06-12T08:19:21.861Z",
+    "warnings": []
   },
   {
     "id": "android-results-price-calendar",
     "priority": "p1",
     "category": "interaction",
     "name": "View Price Calendar",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:26:06.344Z",
-    "warnings": []
+    "file": "maestro/flows/android/generated/android-results-price-calendar.yaml",
+    "generatedAt": "2026-06-12T08:19:27.754Z",
+    "warnings": [
+      "COMPOSE_MIGRATION_ERROR: id \"widget_dateflow\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). → use \"flight_result_v4_date_flow_row\" instead"
+    ]
   },
   {
     "id": "android-results-filter-multi-stop",
     "priority": "p2",
     "category": "filter",
     "name": "2+ Stops Filter",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:26:13.673Z",
+    "file": "maestro/flows/android/generated/android-results-filter-multi-stop.yaml",
+    "generatedAt": "2026-06-12T08:19:35.289Z",
     "warnings": []
   },
   {
@@ -129,8 +129,8 @@
     "priority": "p2",
     "category": "sort",
     "name": "Sort by Best",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:26:19.439Z",
+    "file": "maestro/flows/android/generated/android-results-sort-best.yaml",
+    "generatedAt": "2026-06-12T08:19:42.023Z",
     "warnings": [
       "COMPOSE_MIGRATION_ERROR: id \"rbg_sort\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). → use \"flight_result_v4_sort_button\" instead"
     ]
@@ -140,8 +140,8 @@
     "priority": "p2",
     "category": "interaction",
     "name": "View Flight Detail (Card Tap)",
-    "file": "maestro/flows/android/generated/android-suite.yaml",
-    "generatedAt": "2026-06-12T07:26:26.352Z",
+    "file": "maestro/flows/android/generated/android-results-view-detail.yaml",
+    "generatedAt": "2026-06-12T08:19:48.358Z",
     "warnings": []
   }
 ]

@@ -122,18 +122,20 @@ text_number_of_transit, tv_duration_transit
 ### Opening the sort tray
 
 The sort button exists in **two forms** depending on a flag:
-- `flight_result_v4_sort_button` — only in navbar when `shouldDisplaySortButtonInNavbar=true` (NOT the case in staging)
-- `bm_button` — floating Bloom DS pill at bottom of results (**staging uses this**)
+- `flight_result_v4_sort_button` — only in navbar when `shouldDisplaySortButtonInNavbar=true` (**NOT the case in staging** — this ID is NEVER in the a11y tree in staging)
+- `bm_button` — floating Bloom DS pill at bottom of results (**staging uses this — only correct entry**)
 
 ```yaml
-# Open sort tray
+# Open sort tray — CORRECT pattern (adb uiautomator dump verified 2026-06-12)
 - tapOn:
     id: "bm_button"          # Bloom DS pill — exactly 1 instance on results page
 - extendedWaitUntil:
     visible:
-      id: "layout_tray"
+      id: "rbg_sort"         # Wait for Sort tray container (NOT layout_tray)
     timeout: 10000
 ```
+
+> **⚠️ Do NOT use `layout_tray` as the wait target** — `rbg_sort` is the confirmed stable ID from adb dump 2026-06-12. `layout_tray` is not in the a11y tree.
 
 ### Selecting a sort option
 
@@ -142,22 +144,27 @@ Sort items are generated at runtime by `MDSRadioButtonGroup.setItems()` — they
 ```yaml
 - tapOn:
     id: "radio_button"
-    index: 0                 # 0 = Cheapest (SORT_PRICE_LOWEST)
+    index: 0                 # 0 = Cheapest
 ```
 
-| `radio_button` index | Sort option | Enum value |
-|---|---|---|
-| 0 | Cheapest | `SORT_PRICE_LOWEST` |
-| 1 | Direct flights first | `SORT_DIRECT_FLIGHT_FIRST` (default) |
-| 2 | Earliest departure | `SORT_DEPARTURE_TIME_EARLIEST` |
-| 3 | Latest departure | `SORT_DEPARTURE_TIME_LATEST` |
-| 4 | Earliest arrival | `SORT_ARRIVAL_TIME_EARLIEST` |
-| 5 | Latest arrival | `SORT_ARRIVAL_TIME_LATEST` |
-| 6 | Shortest duration | `SORT_DURATION_SHORTEST` |
+**Index order — adb uiautomator dump verified 2026-06-12 (Pixel7_API37 staging):**
+
+| `radio_button` index | Sort option |
+|---|---|
+| 0 | Cheapest |
+| 1 | Shortest duration |
+| 2 | Direct flights first |
+| 3 | Earliest departure |
+| 4 | Latest departure |
+| 5 | Earliest arrival |
+| 6 | Latest arrival |
 
 > When `scoreShown=true`, a "Best" option is inserted at index 0 and all others shift +1.
 
-**⚠️ `flight_filter_radiobutton_layout` is NOT in the accessibility tree.** UIAutomator dump confirmed. Never use it.
+**Forbidden sort IDs (all cause "Element not found"):**
+- ❌ `flight_result_v4_sort_button` — NOT in a11y tree (shouldDisplaySortButtonInNavbar=false in staging)
+- ❌ `flight_filter_radiobutton_layout` — NOT in accessibility tree (UIAutomator confirmed)
+- ❌ `layout_tray` — NOT in a11y tree as wait target
 
 ---
 
@@ -188,7 +195,8 @@ The filter dialog is **still XML** (not migrated to Compose). These IDs are stab
 | `layout_filter_dialog` | Dialog root | flight_result_revamp_filter_dialog.xml |
 | `ivClose` | Close button | flight_result_revamp_filter_dialog.xml |
 | `tvReset` | Reset all filters | flight_result_revamp_filter_dialog.xml |
-| `dbwShow` | Apply ("Show X results") | flight_result_revamp_filter_dialog.xml |
+| `dbwShow` | Apply ("Show X results") — **the only correct apply button** | flight_result_revamp_filter_dialog.xml |
+| `tvResult` | **COUNT LABEL ONLY** ("25 results") — NOT a button, do not tap | flight_result_revamp_filter_dialog.xml |
 | `button_direct` | Direct flights toggle | flight_result_revamp_filter_transit_layer.xml |
 | `button_one_transit` | 1-stop toggle | flight_result_revamp_filter_transit_layer.xml |
 | `button_two_transit` | 2+ stops toggle | flight_result_revamp_filter_transit_layer.xml |
@@ -196,7 +204,20 @@ The filter dialog is **still XML** (not migrated to Compose). These IDs are stab
 | `button_departure_afternoon` | Afternoon departure | flight_filter_time_layer.xml |
 | `button_departure_evening` | Evening departure | flight_filter_time_layer.xml |
 
-**Filter dialog layout note:** The dialog is a single-pane scrollable BottomSheet (not tab-based). Time/Price sections may be below the fold — use `scrollUntilVisible` before tapping them.
+**Filter dialog layout note:** The dialog is a single-pane scrollable BottomSheet (not tab-based). Time/Price sections may be below the fold.
+
+> **⚠️ CRITICAL: tvResult is NOT the apply button.** Tapping `tvResult` does nothing useful — the dialog stays open. Always use `dbwShow`.
+
+> **⚠️ CRITICAL: Scrolling inside the dialog.** Bare `- scroll` and `swipe: direction: UP` scroll the RESULTS LIST behind the dialog overlay, NOT the dialog's internal NestedScrollView. To reach lower sections (layer_time, layer_price), use `scrollUntilVisible`:
+> ```yaml
+> - scrollUntilVisible:
+>     element:
+>       id: "button_departure_morning"
+>     direction: DOWN
+>     timeout: 15000
+> ```
+
+> **⚠️ CRITICAL: Filter dialog entry.** `flight_result_v4_quick_filter_cell` opens the **Stops bottom sheet** (check_box + button_apply_filter), NOT `layout_filter_dialog`. Always use `flight_result_v4_filter_button` to open the full filter dialog.
 
 ---
 

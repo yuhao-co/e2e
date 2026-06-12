@@ -1,0 +1,32 @@
+appId: com.traveloka.android.staging
+name: android-results-price-calendar
+---
+- launchApp
+- tapOn:
+    text: "Flights"
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_date_flow_row"
+    timeout: 10000
+- tapOn:
+    point: "96%, 14%"
+- extendedWaitUntil:
+    visible:
+      id: "calendar_navbar_close"
+    timeout: 10000
+- assertVisible:
+    id: "calendar_navbar_close"

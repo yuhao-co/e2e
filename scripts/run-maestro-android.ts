@@ -18,6 +18,17 @@ import * as path from 'node:path';
 import { execSync, spawnSync } from 'node:child_process';
 
 // ---------------------------------------------------------------------------
+// PATH bootstrap — ensure maestro, java17, adb are always findable regardless
+// of how this script is invoked (cron, npm run, IDE, android-diff-workflow.ts)
+// ---------------------------------------------------------------------------
+const MAESTRO_BIN = `${process.env.HOME}/.maestro/bin`;
+const JAVA_BIN    = '/opt/homebrew/opt/openjdk@17/bin';
+const BREW_BIN    = '/opt/homebrew/bin';
+const ADB_BIN     = `${process.env.HOME}/Library/Android/sdk/platform-tools`;
+process.env.JAVA_HOME = process.env.JAVA_HOME || '/opt/homebrew/opt/openjdk@17';
+process.env.PATH = [MAESTRO_BIN, JAVA_BIN, BREW_BIN, ADB_BIN, process.env.PATH].join(':');
+
+// ---------------------------------------------------------------------------
 // CLI args
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
@@ -84,11 +95,23 @@ interface RunReport {
 // Helpers
 // ---------------------------------------------------------------------------
 function isMaestroAvailable(): boolean {
+  // First try with environment variable path
+  const maestroPath = process.env.MAESTRO_PATH || '/Users/yu.hao/.maestro/bin/maestro';
   try {
-    execSync('maestro --version', { stdio: 'pipe' });
+    execSync(`${maestroPath} --version`, { stdio: 'pipe' });
+    console.log(`  ✅ Maestro found at: ${maestroPath}`);
     return true;
-  } catch {
-    return false;
+  } catch (e) {
+    console.log(`  ⚠️  Maestro not at ${maestroPath}`);
+    // Fallback: try the generic maestro command
+    try {
+      execSync('which maestro', { stdio: 'pipe', encoding: 'utf8' });
+      execSync('maestro --version', { stdio: 'pipe' });
+      console.log(`  ✅ Maestro found in PATH`);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -164,11 +187,12 @@ function runMaestroSuite(flowFile: string, timeoutMs = 600000): {
   stderr: string;
 } {
   const deviceId = getDeviceId();
+  const maestroPath = process.env.MAESTRO_PATH || '/Users/yu.hao/.maestro/bin/maestro';
   const args = deviceId
     ? ['test', '--udid', deviceId, '--no-ansi', flowFile]
     : ['test', '--no-ansi', flowFile];
 
-  const result = spawnSync('maestro', args, {
+  const result = spawnSync(maestroPath, args, {
     encoding: 'utf8',
     timeout: timeoutMs,
     env: { ...process.env },
@@ -182,16 +206,29 @@ function runMaestroSuite(flowFile: string, timeoutMs = 600000): {
 }
 
 /**
- * Extract YAML documents for the given case IDs from the combined suite file.
- * Each flow is identified by its `name:` field.
- * A flow = everything from one `appId:` line up to (but not including) the next `appId:` line.
+ * Load individual YAML files from the generated directory.
+ * Returns: Map of { caseId → full file path }
  */
-function extractFilteredSuite(caseIds: Set<string>): string {
+function loadIndividualFlows(caseIds: Set<string>): Map<string, string> {
+  const result = new Map<string, string>();
+  for (const caseId of caseIds) {
+    const flowFile = path.join(GENERATED_DIR, `${caseId}.yaml`);
+    if (fs.existsSync(flowFile)) {
+      result.set(caseId, flowFile);
+    }
+  }
+  return result;
+}
+
+/**
+ * Extract all flows that match the given case IDs from the combined suite file.
+ * Returns them as a map for easy lookup.
+ * Returns: Map of { caseId → yaml content }
+ */
+function extractAllFlows(caseIds: Set<string>): Map<string, string> {
   const content = fs.readFileSync(SUITE_PATH, 'utf8');
-  // Split on lines that start a new flow (start with 'appId:' or comment + 'appId:')
-  // Each flow block starts at the comment line before appId, identified by appId: boundary
-  const flowBlocks: string[] = [];
   const lines = content.split('\n');
+  const flowBlocks: string[] = [];
   let currentBlock: string[] = [];
   let inFlow = false;
 
@@ -205,19 +242,33 @@ function extractFilteredSuite(caseIds: Set<string>): string {
     } else if (inFlow) {
       currentBlock.push(line);
     }
-    // Lines before first appId (file header comments) are skipped
   }
   if (inFlow && currentBlock.length > 0) {
     flowBlocks.push(currentBlock.join('\n'));
   }
 
-  const matching = flowBlocks.filter((block) => {
+  const result = new Map<string, string>();
+  for (const block of flowBlocks) {
     const m = block.match(/^name:\s*(\S+)/m);
-    return m && caseIds.has(m[1].trim());
-  });
+    if (!m) continue;
+    const id = m[1].trim();
+    if (!caseIds.has(id)) continue;
 
-  if (matching.length === 0) throw new Error('No matching flows found in android-suite.yaml');
-  return matching.join('\n---\n\n');
+    // Strip metadata; use only first body segment
+    const parts = block.split('\n---\n');
+    if (parts.length < 2) {
+      result.set(id, block);
+      continue;
+    }
+    const header = parts[0];
+    const body = parts[1]
+      .split('\n')
+      .filter(line => !/^(id|name|description|priority|tags):\s/.test(line))
+      .join('\n')
+      .trimEnd();
+    result.set(id, `${header}\n---\n${body}`);
+  }
+  return result;
 }
 
 /**
@@ -335,23 +386,50 @@ async function main() {
     process.exit(1);
   }
 
-  // Load manifest
-  if (!fs.existsSync(MANIFEST_PATH)) {
-    console.error(`❌ Manifest not found: ${MANIFEST_PATH}`);
-    console.error('   Run first: npm run maestro:android:generate');
-    process.exit(1);
+  // Load manifest (or scan directory if manifest missing)
+  let cases: ManifestEntry[] = [];
+  
+  if (fs.existsSync(MANIFEST_PATH)) {
+    const manifest: ManifestEntry[] = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
+    // Apply filters
+    cases = manifest.filter((m) => {
+      // Skip cases that failed to generate
+      if (m.warnings.some((w) => w.startsWith('GENERATION_FAILED'))) return false;
+      if (CASE_FILTER) return m.id === CASE_FILTER;
+      if (PRIORITY_FILTER) return m.priority === PRIORITY_FILTER;
+      if (!RUN_ALL_PRIORITIES) return m.priority === 'p0' || m.priority === 'p1';
+      return true;
+    });
+  } else {
+    // Fallback: scan directory for YAML files if manifest missing
+    console.warn(`⚠️  Manifest not found, scanning directory for YAML files…`);
+    if (!fs.existsSync(GENERATED_DIR)) {
+      console.error(`❌ Generated directory not found: ${GENERATED_DIR}`);
+      process.exit(1);
+    }
+    const yamlFiles = fs.readdirSync(GENERATED_DIR)
+      .filter(f => f.endsWith('.yaml') && f !== 'android-suite.yaml')
+      .map(f => {
+        const id = f.replace('.yaml', '');
+        return {
+          id,
+          priority: id.includes('smoke') ? 'p0' : 'p1',
+          category: 'search-results',
+          name: id,
+          file: path.join(GENERATED_DIR, f),
+          generatedAt: new Date().toISOString(),
+          warnings: [],
+        };
+      });
+    cases = yamlFiles;
   }
-  const manifest: ManifestEntry[] = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
 
-  // Apply filters
-  let cases = manifest.filter((m) => {
-    // Skip cases that failed to generate
-    if (m.warnings.some((w) => w.startsWith('GENERATION_FAILED'))) return false;
-    if (CASE_FILTER) return m.id === CASE_FILTER;
-    if (PRIORITY_FILTER) return m.priority === PRIORITY_FILTER;
-    if (!RUN_ALL_PRIORITIES) return m.priority === 'p0' || m.priority === 'p1';
-    return true;
-  });
+  // Apply filters (fallback case, if not done above)
+  if (!fs.existsSync(MANIFEST_PATH)) {
+    if (CASE_FILTER) cases = cases.filter(c => c.id === CASE_FILTER);
+    if (PRIORITY_FILTER) cases = cases.filter(c => c.priority === PRIORITY_FILTER);
+    if (!RUN_ALL_PRIORITIES) cases = cases.filter(c => c.priority === 'p0' || c.priority === 'p1');
+  }
 
   if (cases.length === 0) {
     console.error('❌ No cases match the filter. Check --priority or --case args.');
@@ -360,39 +438,51 @@ async function main() {
 
   console.log(`   Cases to run: ${cases.length} (${cases.map((c) => c.id).join(', ')})\n`);
 
-  if (!fs.existsSync(SUITE_PATH)) {
-    console.error(`❌ Suite file not found: ${SUITE_PATH}`);
-    console.error('   Run first: npm run maestro:android:generate');
-    process.exit(1);
-  }
-
   fs.mkdirSync(RESULTS_DIR, { recursive: true });
   fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
   const runStart = Date.now();
 
-  // Extract only the matching flows into a temp file and run ONCE
-  const caseIds = new Set(cases.map((c) => c.id));
-  const tmpFile = path.join(GENERATED_DIR, '_run-tmp.yaml');
-  try {
-    const filteredYaml = extractFilteredSuite(caseIds);
-    fs.writeFileSync(tmpFile, filteredYaml, 'utf8');
-  } catch (err) {
-    console.error(`❌ Failed to extract flows from suite: ${err}`);
+  console.log(`  Running ${cases.length} flow(s) sequentially …`);
+
+  const flowFiles = new Map<string, string>();
+  for (const c of cases) {
+    const flowFile = c.file || path.join(GENERATED_DIR, `${c.id}.yaml`);
+    if (fs.existsSync(flowFile)) {
+      flowFiles.set(c.id, flowFile);
+    } else {
+      console.warn(`⚠️  File not found: ${flowFile}`);
+    }
+  }
+
+  if (flowFiles.size === 0) {
+    console.error(`❌ No flow files found to run`);
     process.exit(1);
   }
 
-  console.log(`  Running ${cases.length} flow(s) from android-suite.yaml …`);
+  // Run each flow individually to avoid multi-document parsing issues
+  // This is more reliable than multi-document YAML which may not parse correctly
   const suiteStart = Date.now();
-  const { stdout: suiteStdout, stderr: suiteStderr } = runMaestroSuite(tmpFile);
+  const flowResults = new Map<string, { passed: boolean; block: string }>();
+  let totalStderr = '';
+
+  for (const [caseId, flowFile] of flowFiles.entries()) {
+    // Flow file already exists, just run it directly
+    const flowStart = Date.now();
+    const { stdout: flowStdout, stderr: flowStderr } = runMaestroSuite(flowFile, 120000);
+    const flowDuration = Date.now() - flowStart;
+    totalStderr += flowStderr + '\n';
+
+    const passed = !flowStdout.includes('FAILED') && !flowStderr.toUpperCase().includes('ASSERTION IS FALSE');
+    flowResults.set(caseId, { passed, block: flowStdout + '\n' + flowStderr });
+
+    // Log progress
+    const icon = passed ? '✅' : '❌';
+    console.log(`    [${(flowDuration / 1000).toFixed(1)}s] ${caseId} … ${icon}`);
+  }
+
   const suiteDurationMs = Date.now() - suiteStart;
-
-  // Clean up temp file
-  try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
-
-  // Maestro writes " > Flow <name>" to stderr in some versions — merge both streams for parsing
-  const suiteOutput = suiteStdout + '\n' + suiteStderr;
-  const flowResults = parseSuiteStdout(suiteOutput);
+  const suiteStderr = totalStderr;
   const perFlowMs = cases.length > 0 ? Math.round(suiteDurationMs / cases.length) : 0;
 
   const results: CaseResult[] = [];
@@ -400,8 +490,7 @@ async function main() {
   for (const entry of cases) {
     const flowResult = flowResults.get(entry.id);
     if (!flowResult) {
-      // Flow didn't appear in output — likely skipped or suite crashed before reaching it
-      console.log(`  ⚠️  [SKIP] ${entry.name} — not found in Maestro output`);
+      console.log(`  ⚠️  [SKIP] ${entry.name} — not found in results`);
       results.push({
         id: entry.id,
         name: entry.name,
@@ -413,7 +502,7 @@ async function main() {
         stdout: '',
         stderr: suiteStderr.slice(0, 500),
         screenshotPath: null,
-        failureReason: 'Flow not reached in suite run',
+        failureReason: 'Execution error',
         runAt: new Date().toISOString(),
       });
       continue;

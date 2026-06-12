@@ -19,6 +19,17 @@ import { execSync, spawnSync } from 'node:child_process';
 import OpenAI from 'openai';
 
 // ---------------------------------------------------------------------------
+// PATH bootstrap — ensure maestro, java17, adb are always findable regardless
+// of how this script is invoked (cron, npm run, IDE, android-diff-workflow.ts)
+// ---------------------------------------------------------------------------
+const MAESTRO_BIN = `${process.env.HOME}/.maestro/bin`;
+const JAVA_BIN    = '/opt/homebrew/opt/openjdk@17/bin';
+const BREW_BIN    = '/opt/homebrew/bin';
+const ADB_BIN     = `${process.env.HOME}/Library/Android/sdk/platform-tools`;
+process.env.JAVA_HOME = process.env.JAVA_HOME || '/opt/homebrew/opt/openjdk@17';
+process.env.PATH = [MAESTRO_BIN, JAVA_BIN, BREW_BIN, ADB_BIN, process.env.PATH].join(':');
+
+// ---------------------------------------------------------------------------
 // CLI args
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
@@ -97,11 +108,95 @@ Common failure causes and fixes:
 5. App not in expected state → add state-check runFlow with conditional recovery
 6. Onboarding blocking → add conditional dismissal at the start
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRONG CONSTRAINT A — SORT TRAY ENTRY POINT (adb dump verified 2026-06-12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+flight_result_v4_sort_button DOES NOT EXIST in the a11y tree in staging.
+shouldDisplaySortButtonInNavbar=false → the sort navbar button is never rendered.
+
+THE ONLY WAY TO OPEN THE SORT TRAY:
+  - tapOn:
+      id: "bm_button"          ← floating sort suggestion pill at bottom of results page
+  - extendedWaitUntil:
+      visible:
+        id: "rbg_sort"
+      timeout: 10000
+  - tapOn:
+      id: "radio_button"
+      index: N
+
+SORT ORDER (adb uiautomator dump confirmed):
+  index 0 → Cheapest    index 1 → Shortest duration    index 2 → Direct first
+  index 3 → Earliest departure    index 4 → Latest departure
+  index 5 → Earliest arrival      index 6 → Latest arrival
+
+FORBIDDEN for sort (will ALWAYS produce "Element not found"):
+  ❌ id: "flight_result_v4_sort_button"   ← not in a11y tree
+  ❌ id: "rbg_sort" as entry              ← not in a11y tree (use as wait target only)
+  ❌ tapOn: text: "Cheapest"              ← appears on flight cards, wrong target
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRONG CONSTRAINT B — FILTER DIALOG ENTRY POINT (adb dump verified 2026-06-12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+flight_result_v4_quick_filter_cell opens the STOPS BOTTOM SHEET only, NOT the full filter dialog.
+layout_filter_dialog will NEVER appear after tapping quick_filter_cell or quick_filter_item.
+
+THE ONLY WAY TO OPEN THE FULL FILTER DIALOG (layout_filter_dialog):
+  - tapOn:
+      id: "flight_result_v4_filter_button"
+  - extendedWaitUntil:
+      visible:
+        id: "layout_filter_dialog"
+      timeout: 15000
+
+FILTER DIALOG SECTION ORDER (must scroll to reach lower sections):
+  1. layer_transit   → button_direct, button_one_transit, button_two_transit (visible on open)
+  2. layer_airline   → check_box index N (need 1 bare scroll or extendedWaitUntil)
+  3. layer_time      → button_departure_morning etc. (need scrollUntilVisible to reach)
+
+FORBIDDEN for filter entry:
+  ❌ id: "flight_result_v4_quick_filter_cell"  ← opens Stops sheet, not full filter
+  ❌ id: "quick_filter_item"                    ← does not exist
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRONG CONSTRAINT C — FILTER APPLY BUTTON (source verified 2026-06-12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+tvResult is a TextView that DISPLAYS the result count ("Show 25 results"), NOT the apply button.
+Tapping tvResult does NOT close the dialog or apply the filter.
+The actual clickable apply button is dbwShow (flight_result_revamp_filter_dialog.xml verified).
+
+CORRECT apply pattern:
+  - tapOn:
+      id: "dbwShow"            ← ONLY correct apply button
+
+FORBIDDEN:
+  ❌ id: "tvResult"            ← count label, not a button; dialog will NOT close
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRONG CONSTRAINT D — SCROLLING INSIDE FILTER DIALOG (verified 2026-06-12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+bare "- scroll" and "swipe: direction: UP" scroll the RESULTS LIST behind the dialog,
+NOT the dialog's internal NestedScrollView.
+For elements below the fold inside the filter dialog, use scrollUntilVisible.
+
+CORRECT pattern for departure time section:
+  - scrollUntilVisible:
+      element:
+        id: "button_departure_morning"
+      direction: DOWN
+      timeout: 15000
+  - tapOn:
+      id: "button_departure_morning"
+
+FORBIDDEN inside filter dialog:
+  ❌ swipe: direction: UP  ← scrolls results list, may dismiss dialog
+  ❌ scroll with sub-keys (scroll: direction: DOWN)  ← unsupported Maestro syntax
+
 RULES:
 - Return ONLY the fixed YAML, no explanation, no markdown fences
 - Keep the same scenario intent — only fix the broken steps
 - Add comments explaining each fix with "# [fix: ...]"
-- Do not add hard-coded coordinates
+- Do not add hard-coded coordinates (exception: price calendar icon has no testTag → tap at "96%, 14%")
 - Ensure all assertVisible steps match realistic text from an Android flight results screen`;
 }
 

@@ -29,6 +29,17 @@ import { execSync } from 'node:child_process';
 import OpenAI from 'openai';
 
 // ---------------------------------------------------------------------------
+// PATH bootstrap — ensure maestro, java17, adb are always findable regardless
+// of how this script is invoked (cron, npm run, IDE, android-diff-workflow.ts)
+// ---------------------------------------------------------------------------
+const MAESTRO_BIN_PATH = `${process.env.HOME}/.maestro/bin`;
+const JAVA_BIN_PATH    = '/opt/homebrew/opt/openjdk@17/bin';
+const BREW_BIN_PATH    = '/opt/homebrew/bin';
+const ADB_BIN_PATH     = `${process.env.HOME}/Library/Android/sdk/platform-tools`;
+process.env.JAVA_HOME = process.env.JAVA_HOME || '/opt/homebrew/opt/openjdk@17';
+process.env.PATH = [MAESTRO_BIN_PATH, JAVA_BIN_PATH, BREW_BIN_PATH, ADB_BIN_PATH, process.env.PATH].join(':');
+
+// ---------------------------------------------------------------------------
 // CLI args
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
@@ -93,9 +104,22 @@ const FORBIDDEN_XML_IDS: string[] = [
   'text_flight_name',
   'text_number_of_transit',
   'tv_duration_transit',
-  // sort/filter composite — Compose
+  // sort/filter composite — Compose, NOT in a11y tree
   'layout_tray',
   'rbg_sort',
+  // ── VERIFIED BROKEN (adb uiautomator dump 2026-06-12) ─────────────────────
+  // flight_result_v4_sort_button: shouldDisplaySortButtonInNavbar=false in staging
+  //   → button never rendered; sort MUST be opened via bm_button (floating pill)
+  'flight_result_v4_sort_button',
+  // quick_filter_item / quick_filter_cell: opens STOPS bottom sheet only,
+  //   NOT the full FlightResultRevampFilterDialog.
+  //   layout_filter_dialog will NEVER appear after tapping these.
+  //   Always use flight_result_v4_filter_button for the full filter dialog.
+  'quick_filter_item',
+  // tvResult: is a count DISPLAY label (e.g. "25 results"), NOT a clickable button.
+  //   Tapping it does NOT close the filter dialog or apply the filter.
+  //   Always use dbwShow to apply/close the filter dialog.
+  'tvResult',
   // date flow items — no testTag on individual items
   'text_date',
   'text_price',
@@ -118,14 +142,33 @@ const COMPOSE_ID_MAP: Record<string, string> = {
   widget_dateflow:         'flight_result_v4_date_flow_row',
   text_result_title:       'flight_result_v4_navbar_toolbar_title',
   image_change_search:     'flight_result_v4_navbar_toolbar_subtitle_chevron',
-  layout_tray:             'flight_result_v4_sort_button',
-  rbg_sort:                'flight_result_v4_sort_button',
-  // Sort floating button (when shouldDisplaySortButtonInNavbar=false):
-  //   Use tapOn: id: "bm_button_text" — the Bloom DS button text inside the floating sort pill
-  //   NOTE: flight_result_v4_sort_button only appears in navbar when shouldDisplaySortButtonInNavbar=true
-  // NOT Compose-migrated (XML IDs still valid):
-  //   layout_filter_dialog, layer_transit, button_direct, tvReset, dbwShow
+  // ── SORT TRAY (adb dump verified 2026-06-12) ─────────────────────────────
+  // layout_tray / rbg_sort appear in Sort tray XML but are NOT in a11y tree.
+  // flight_result_v4_sort_button never renders (shouldDisplaySortButtonInNavbar=false in staging).
+  // CORRECT approach: tap bm_button (floating pill) → wait rbg_sort → tap radio_button index N
+  // Sort indices (confirmed from adb uiautomator dump while Sort tray open):
+  //   index 0 → Cheapest            index 1 → Shortest duration
+  //   index 2 → Direct flights first index 3 → Earliest departure
+  //   index 4 → Latest departure     index 5 → Earliest arrival
+  //   index 6 → Latest arrival
+  layout_tray:             'bm_button',   // entry point for sort tray
+  rbg_sort:                'bm_button',   // entry point for sort tray
+  flight_result_v4_sort_button: 'bm_button',
+  // ── FILTER DIALOG (adb dump verified 2026-06-12) ─────────────────────────
+  // quick_filter_item / quick_filter_cell → opens Stops bottom sheet ONLY
+  //   (uses check_box + button_apply_filter pattern, NOT the full filter dialog)
+  // CORRECT entry: flight_result_v4_filter_button → opens FlightResultRevampFilterDialog
+  //   (layout_filter_dialog with button_direct, button_one_transit, dbwShow, tvReset)
+  quick_filter_item:       'flight_result_v4_filter_button',
+  // tvResult is a count label ("25 results"), NOT the apply button.
+  // CORRECT apply button: dbwShow  (flight_result_revamp_filter_dialog.xml verified)
+  tvResult:                'dbwShow',
+  // NOT Compose-migrated (XML IDs still valid in filter dialog):
+  //   layout_filter_dialog, layer_transit, button_direct, button_one_transit, button_two_transit,
+  //   button_departure_morning (in flight_filter_time_widget.xml — use scrollUntilVisible to reach),
+  //   layer_airline, check_box (airline adapter item), tvReset, dbwShow
   //   search_tab, btn_search, layout_search_form
+  //   bm_button (floating sort pill — Compose testTag, confirmed in a11y tree)
 };
 
 // ---------------------------------------------------------------------------
@@ -311,47 +354,47 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
   interactions: [
     {
       name: 'Apply Direct Filter (via filter dialog)',
-      trigger: 'Tap any chip in recycler_view_quick_filter to open filter dialog, then tap button_direct, then tap tvResult',
+      trigger: 'Tap flight_result_v4_filter_button to open full filter dialog, then tap button_direct, then tap dbwShow',
       outcome: 'Only direct flights in result list; card tv_duration_transit shows "Direct"',
     },
     {
       name: 'Apply 1-Stop Filter (via filter dialog)',
-      trigger: 'Open filter dialog → tap button_one_transit → tap tvResult',
+      trigger: 'Tap flight_result_v4_filter_button → wait layout_filter_dialog → tap button_one_transit → tap dbwShow',
       outcome: 'Cards show 1-stop flights',
     },
     {
       name: 'Sort Cheapest',
-      trigger: 'Tap first child of rbg_sort (index 0 = Cheapest)',
+      trigger: 'Tap bm_button (floating pill) → wait rbg_sort → tap radio_button index 0 (Cheapest)',
       outcome: 'Results reload sorted by price ascending',
     },
     {
       name: 'Sort Fastest',
-      trigger: 'Tap second child of rbg_sort (index 1 = Fastest)',
+      trigger: 'Tap bm_button (floating pill) → wait rbg_sort → tap radio_button index 1 (Shortest duration)',
       outcome: 'Results reload sorted by duration ascending',
     },
     {
       name: 'Open Full Filter Sheet',
-      trigger: 'Tap any quick_filter_item chip in recycler_view_quick_filter',
+      trigger: 'Tap flight_result_v4_filter_button — NOT quick_filter_cell (that opens Stops sheet only)',
       outcome: 'layout_filter_dialog becomes visible with all filter sections',
     },
     {
       name: 'Reset Filters',
-      trigger: 'Inside filter dialog, tap tvReset',
-      outcome: 'All filter selections cleared; tap tvResult to apply',
+      trigger: 'Inside filter dialog, tap tvReset (top toolbar)',
+      outcome: 'All filter selections cleared; tap dbwShow (NOT tvResult) to apply',
     },
     {
       name: 'View Flight Detail',
-      trigger: 'Tap flight_result_container_view on a card',
+      trigger: 'Tap flight_result_v4_inventory_card (Compose) on a card',
       outcome: 'Detail screen or bottom sheet opens showing full flight info',
     },
     {
       name: 'Back to Search',
-      trigger: 'Tap image_arrow_back',
+      trigger: 'System back gesture (swipeRight from left edge) or tap search_tab',
       outcome: 'Returns to search form',
     },
     {
       name: 'Scroll Results',
-      trigger: 'Swipe UP on result_container',
+      trigger: 'Swipe UP on flight_result_v4_navbar_toolbar_title (Compose)',
       outcome: 'More flight cards visible',
     },
   ],
@@ -405,20 +448,20 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p0',
     category: 'filter',
     name: 'Direct Flight Filter',
-    description: 'Open filter dialog, apply Direct filter, verify results',
+    description: 'Open full filter dialog via flight_result_v4_filter_button, apply Direct filter, verify results',
     stepOutline: [
       'Navigate to search results (precondition)',
-      'Wait for result_container (id)',
-      'Tap the first quick_filter_item chip in recycler_view_quick_filter to open filter dialog',
-      'Wait for layout_filter_dialog to appear (id, timeout: 10000)',
-      'Tap button_direct (id: button_direct in flight_result_revamp_filter_transit_layer.xml)',
-      'Tap tvResult to apply filter (id: tvResult — Apply button)',
-      'Wait for result_container to reload (extendedWaitUntil id: result_container)',
-      'Assert at least one card visible (id: flight_result_container_view)',
+      'Wait for flight_result_v4_inventory_card (Compose id, timeout: 30000)',
+      'Tap id: flight_result_v4_filter_button — opens full filter dialog (layout_filter_dialog)',
+      'Wait for id: layout_filter_dialog (timeout: 15000)',
+      'Tap id: button_direct — Direct flights checkbox (flight_filter_transit_layer.xml verified)',
+      'Tap id: dbwShow — Apply/Show Results button (verified via adb uiautomator dump)',
+      'Wait for flight_result_v4_navbar_toolbar_title to reload (extendedWaitUntil Compose id)',
+      'Assert at least one card visible (id: flight_result_v4_inventory_card)',
     ],
     successCriteria: [
       'layout_filter_dialog opened then closed',
-      'flight_result_container_view still visible after filter applied',
+      'flight_result_v4_inventory_card still visible after filter applied',
     ],
   },
   {
@@ -426,18 +469,19 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p0',
     category: 'sort',
     name: 'Sort by Cheapest',
-    description: 'Open sort tray, tap first sort option (Cheapest), verify reload',
+    description: 'Tap bm_button (floating sort suggestion) to open Sort tray, select Cheapest (radio_button index 0)',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap rbg_sort radio group (id: rbg_sort in flight_sort_tray_widget.xml)',
-      'Tap the first sort option (index 0 = Cheapest) inside rbg_sort',
-      'Wait for result_container to reload',
-      'Assert flight_result_container_view still visible',
+      'Wait for flight_result_v4_inventory_card (Compose id, timeout: 30000)',
+      'Tap id: bm_button — floating sort/filter suggestion pill at bottom of results page (verified via adb dump)',
+      'Wait for id: rbg_sort — Sort tray container appears (flight package, timeout: 10000)',
+      'Tap id: radio_button index 0 — Cheapest option (index 0 in Sort tray: Cheapest, 1=Shortest duration, 2=Direct first)',
+      'Wait for flight_result_v4_navbar_toolbar_title to reload (extendedWaitUntil)',
+      'Assert flight_result_v4_inventory_card still visible',
     ],
     successCriteria: [
-      'Sort interaction completes without crash',
-      'Flight cards still visible after sort',
+      'Sort tray opens via bm_button',
+      'Flight cards still visible after sort applied',
     ],
   },
   {
@@ -445,11 +489,11 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p0',
     category: 'interaction',
     name: 'Select a Flight (View Detail)',
-    description: 'Tap flight_result_container_view to open flight detail',
+    description: 'Tap flight_result_v4_inventory_card to open flight detail',
     stepOutline: [
       'Navigate to search results',
-      'Wait for flight_result_container_view (id, timeout: 30000)',
-      'Tap first flight_result_container_view (id: flight_result_container_view)',
+      'Wait for flight_result_v4_inventory_card (Compose id, timeout: 30000)',
+      'Tap first flight_result_v4_inventory_card (Compose id)',
       'Wait for detail screen to appear (new screen or bottom sheet)',
       'Assert we are no longer on the plain results list (takeScreenshot for verification)',
     ],
@@ -462,15 +506,15 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p0',
     category: 'navigation',
     name: 'Back to Search Form',
-    description: 'Tap image_arrow_back to return to search form',
+    description: 'Use system back gesture to return to search form',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap image_arrow_back (id: image_arrow_back in flight_result_revamp_activity.xml)',
-      'Assert we leave the results page (result_container not visible)',
+      'Wait for flight_result_v4_navbar_toolbar_title (Compose id)',
+      'Execute system back gesture: back (native Android back button/swipe)',
+      'Assert we leave the results page (flight_result_v4_navbar_toolbar_title not visible)',
     ],
     successCriteria: [
-      'result_container no longer visible after back',
+      'flight_result_v4_navbar_toolbar_title no longer visible after back',
     ],
   },
 
@@ -480,16 +524,16 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'filter',
     name: '1-Stop Filter',
-    description: 'Open filter dialog, tap button_one_transit, apply',
+    description: 'Open FULL filter dialog via flight_result_v4_filter_button, tap button_one_transit, apply with dbwShow',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap quick_filter_item to open filter dialog (id: quick_filter_item)',
-      'Wait for layout_filter_dialog (id)',
-      'Tap button_one_transit (id: button_one_transit — flight_result_revamp_filter_transit_layer.xml)',
-      'Tap tvResult to apply (id: tvResult)',
-      'Wait for result_container reload',
-      'Assert flight_result_container_view visible',
+      'extendedWaitUntil id: flight_result_v4_inventory_card (timeout: 30000)',
+      'Tap id: flight_result_v4_filter_button — opens FlightResultRevampFilterDialog (layout_filter_dialog)',
+      'extendedWaitUntil id: layout_filter_dialog (timeout: 15000)',
+      'Tap id: button_one_transit — 1-stop toggle (flight_filter_transit_layer.xml verified)',
+      'Tap id: dbwShow — Apply/Show Results button (NOT tvResult — tvResult is just count label)',
+      'extendedWaitUntil id: flight_result_v4_navbar_toolbar_title (timeout: 30000)',
+      'Assert id: flight_result_v4_inventory_card visible',
     ],
     successCriteria: ['Filter dialog closed', 'Cards still visible after 1-stop filter'],
   },
@@ -498,32 +542,35 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'sort',
     name: 'Sort by Fastest',
-    description: 'Tap sort index 1 (Fastest) in rbg_sort',
+    description: 'Tap bm_button (floating sort pill), select radio_button index 1 (Shortest duration)',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap rbg_sort (id: rbg_sort)',
-      'Tap index 1 inside rbg_sort (Fastest)',
-      'Wait for result_container reload',
-      'Assert cards still visible',
+      'extendedWaitUntil id: flight_result_v4_inventory_card (timeout: 30000)',
+      'Tap id: bm_button — floating sort suggestion pill (same as sort-cheapest entry)',
+      'extendedWaitUntil id: rbg_sort (timeout: 10000)',
+      'Tap id: radio_button index 1 — Shortest duration (sort tray index: 0=Cheapest, 1=Shortest duration, 2=Direct first)',
+      'extendedWaitUntil id: flight_result_v4_navbar_toolbar_title (timeout: 30000)',
+      'Assert id: flight_result_v4_inventory_card visible',
     ],
-    successCriteria: ['Sort by Fastest applied, no crash'],
+    successCriteria: ['Sort by Shortest duration applied, no crash'],
   },
   {
     id: 'android-results-airline-filter',
     priority: 'p1',
     category: 'filter',
     name: 'Airline Filter via Bottom Sheet',
-    description: 'Open filter dialog, scroll to airline section, select first airline, apply',
+    description: 'Open FULL filter dialog via flight_result_v4_filter_button, scroll once to reach layer_airline, tap check_box index 0, apply with dbwShow',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap quick_filter_item (id) to open filter dialog',
-      'Wait for layout_filter_dialog (id)',
-      'Scroll to layer_airline section (id: layer_airline)',
-      'Tap first airline checkbox inside recycler_view_content under layer_airline',
-      'Tap tvResult to apply (id: tvResult)',
-      'Wait for result_container reload',
+      'extendedWaitUntil id: flight_result_v4_inventory_card (timeout: 30000)',
+      'Tap id: flight_result_v4_filter_button — opens FlightResultRevampFilterDialog',
+      'extendedWaitUntil id: layout_filter_dialog (timeout: 15000)',
+      'scroll — dialog order is: layer_transit → layer_airline → layer_time. One scroll exposes layer_airline',
+      'extendedWaitUntil id: layer_airline (timeout: 10000)',
+      'Tap id: check_box index 0 — first airline checkbox (flight_filter_airline_adapter_item.xml verified)',
+      'Tap id: dbwShow — Apply button (NOT tvResult)',
+      'extendedWaitUntil id: flight_result_v4_navbar_toolbar_title (timeout: 30000)',
+      'Assert id: flight_result_v4_inventory_card visible',
     ],
     successCriteria: ['Airline filter applied, cards updated'],
   },
@@ -532,16 +579,19 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'filter',
     name: 'Departure Morning Filter',
-    description: 'Open filter dialog, tap button_departure_morning, apply',
+    description: 'Open FULL filter dialog, scroll twice to reach layer_time (after transit+airline), tap button_departure_morning, apply with dbwShow',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap quick_filter_item to open filter dialog',
-      'Wait for layout_filter_dialog (id)',
-      'Scroll to layer_time section (id: layer_time)',
-      'Tap button_departure_morning (id: button_departure_morning — flight_filter_time_layer.xml)',
-      'Tap tvResult to apply (id: tvResult)',
-      'Wait for result_container reload',
+      'extendedWaitUntil id: flight_result_v4_inventory_card (timeout: 30000)',
+      'Tap id: flight_result_v4_filter_button — opens FlightResultRevampFilterDialog',
+      'extendedWaitUntil id: layout_filter_dialog (timeout: 15000)',
+      'scroll/swipe NOT reliable inside filter dialog — use scrollUntilVisible instead',
+      'scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000 — FlightResultRevampFilterTimeWidget inflates flight_filter_time_widget.xml. scrollUntilVisible correctly targets the dialog scrollable container',
+      'extendedWaitUntil id: button_departure_morning is already satisfied by scrollUntilVisible',
+      'Tap id: button_departure_morning',
+      'Tap id: dbwShow — Apply button (NOT tvResult)',
+      'extendedWaitUntil id: flight_result_v4_navbar_toolbar_title (timeout: 30000)',
+      'Assert id: flight_result_v4_inventory_card visible',
     ],
     successCriteria: ['Morning departure filter applied, results updated'],
   },
@@ -550,17 +600,17 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'filter',
     name: 'Reset All Filters',
-    description: 'Apply direct filter, then open dialog and tap tvReset to clear',
+    description: 'Open FULL filter dialog, apply direct filter, tap tvReset to clear, apply with dbwShow',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap quick_filter_item to open filter dialog',
-      'Wait for layout_filter_dialog (id)',
-      'Tap button_direct (id) to select direct filter',
-      'Tap tvReset to reset all filters (id: tvReset — flight_result_revamp_filter_dialog.xml)',
-      'Tap tvResult to apply with no filters (id: tvResult)',
-      'Wait for result_container reload',
-      'Assert flight_result_container_view visible',
+      'extendedWaitUntil id: flight_result_v4_inventory_card (timeout: 30000)',
+      'Tap id: flight_result_v4_filter_button — opens FlightResultRevampFilterDialog',
+      'extendedWaitUntil id: layout_filter_dialog (timeout: 15000)',
+      'Tap id: button_direct — select direct filter first so tvReset has something to clear',
+      'Tap id: tvReset — Reset All button (flight_result_revamp_filter_dialog.xml verified)',
+      'Tap id: dbwShow — Apply button with no filters active (NOT tvResult)',
+      'extendedWaitUntil id: flight_result_v4_navbar_toolbar_title (timeout: 30000)',
+      'Assert id: flight_result_v4_inventory_card visible',
     ],
     successCriteria: ['All filters cleared, full result set restored'],
   },
@@ -569,13 +619,13 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'interaction',
     name: 'Scroll Through Results',
-    description: 'Swipe up on result_container to scroll and load more cards',
+    description: 'Swipe up on flight_result_v4_navbar_toolbar_title to scroll and load more cards',
     stepOutline: [
       'Navigate to search results',
-      'Wait for flight_result_container_view (id)',
-      'Swipe UP on result_container (id: result_container)',
+      'Wait for flight_result_v4_inventory_card (Compose id)',
+      'Swipe UP on flight_result_v4_navbar_toolbar_title (Compose id)',
       'Swipe UP again',
-      'Assert flight_result_container_view still visible',
+      'Assert flight_result_v4_inventory_card still visible',
     ],
     successCriteria: ['No crash after scrolling, cards still visible'],
   },
@@ -584,15 +634,17 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'interaction',
     name: 'View Price Calendar',
-    description: 'Tap widget_dateflow or similar to open price calendar',
+    description: 'Tap calendar icon at far-right of flight_result_v4_date_flow_row (no testTag, use coordinates 96%,14%) to open FlightBloomCalendarDialog, assert calendar_navbar_close visible',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap widget_dateflow (id: widget_dateflow in flight_result_revamp_activity.xml)',
-      'Wait for price calendar view to appear (new screen or overlay)',
-      'Take screenshot for visual verification',
+      'extendedWaitUntil id: flight_result_v4_inventory_card (timeout: 30000)',
+      'extendedWaitUntil id: flight_result_v4_date_flow_row (timeout: 10000)',
+      'Tap point: "96%, 14%" — calendar icon at far-right of date_flow_row (bounds [0,283][1080,410], icon at x≈1040, y≈346)',
+      'NOTE: calendar icon has NO testTag in FlightResultV4DateFlowComposeView.kt — coordinate tap is the ONLY option',
+      'extendedWaitUntil id: calendar_navbar_close (timeout: 10000) — FlightBloomCalendarDialog testTag verified',
+      'Assert id: calendar_navbar_close visible',
     ],
-    successCriteria: ['Price calendar view opens after tapping date widget'],
+    successCriteria: ['FlightBloomCalendarDialog opens (calendar_navbar_close visible)'],
   },
 
   // ---------- P2 edge cases ----------
@@ -604,12 +656,12 @@ const SCENARIOS: ScenarioDefinition[] = [
     description: 'Open filter dialog, tap button_two_transit, apply',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap quick_filter_item to open filter dialog',
+      'Wait for flight_result_v4_navbar_toolbar_title (Compose id)',
+      'Tap flight_result_v4_filter_button to open full filter dialog (NOT quick_filter_cell)',
       'Wait for layout_filter_dialog (id)',
       'Tap button_two_transit (id: button_two_transit — flight_result_revamp_filter_transit_layer.xml)',
-      'Tap tvResult to apply (id: tvResult)',
-      'Wait for result_container reload',
+      'Tap dbwShow to apply (NOT tvResult — tvResult is count label only)',
+      'Wait for flight_result_v4_navbar_toolbar_title reload',
     ],
     successCriteria: ['2+ stop filter applied; results or empty-state visible'],
   },
@@ -618,13 +670,14 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p2',
     category: 'sort',
     name: 'Sort by Best',
-    description: 'Tap sort index 2 (Best) in rbg_sort',
+    description: 'Tap sort index 2 (Best) in sort tray',
     stepOutline: [
       'Navigate to search results',
-      'Wait for result_container (id)',
-      'Tap rbg_sort (id: rbg_sort)',
-      'Tap index 2 inside rbg_sort (Best)',
-      'Wait for result_container reload',
+      'Wait for flight_result_v4_navbar_toolbar_title (Compose id)',
+      'Tap bm_button (floating sort pill) to open sort tray (NOT flight_result_v4_sort_button — not in a11y tree)',
+      'Wait for rbg_sort to appear',
+      'Tap the radio_button at index 2 (Direct first) to sort',
+      'Wait for flight_result_v4_navbar_toolbar_title to reload',
     ],
     successCriteria: ['Best sort applied, no crash'],
   },
@@ -633,15 +686,15 @@ const SCENARIOS: ScenarioDefinition[] = [
     priority: 'p2',
     category: 'interaction',
     name: 'View Flight Detail (Card Tap)',
-    description: 'Tap flight_result_container_view to open detail, check layout',
+    description: 'Tap flight_result_v4_inventory_card to open detail, check layout',
     stepOutline: [
       'Navigate to search results',
-      'Wait for flight_result_container_view (id)',
-      'Tap flight_result_container_view (id: flight_result_container_view)',
+      'Wait for flight_result_v4_inventory_card (Compose id)',
+      'Tap flight_result_v4_inventory_card (Compose id)',
       'Wait for detail overlay or new screen',
       'Take screenshot: test-results/android/android-results-view-detail.png',
-      'Tap back to return to results (image_arrow_back or system back)',
-      'Assert result_container visible again (id)',
+      'Tap back to return to results (system back)',
+      'Assert flight_result_v4_navbar_toolbar_title visible again (Compose id)',
     ],
     successCriteria: ['Detail view opens and back navigation works'],
   },
@@ -847,9 +900,9 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
     description: 'Open sort tray, tap index 6 (Shortest Duration), verify reload',
     stepOutline: [
       'Navigate to search results',
-      'Wait for flight_result_v4_sort_button (Compose testTag)',
-      'Tap flight_result_v4_sort_button to open sort tray',
-      'Wait for sort tray bottom sheet',
+      'Wait for flight_result_v4_navbar_toolbar_title',
+      'Tap bm_button (floating sort pill) to open sort tray',
+      'Wait for rbg_sort (sort tray container)',
       'Tap radio_button at index 6 (Shortest Duration) inside sort tray',
       'Wait for flight_result_v4_inventory_card to reload',
       'Assert flight_result_v4_inventory_card visible',
@@ -861,13 +914,13 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'sort',
     name: 'SSR V4 Sort by Earliest Arrival',
-    description: 'Open sort tray, tap index 4 (Earliest Arrival), verify reload',
+    description: 'Open sort tray, tap index 5 (Earliest Arrival), verify reload',
     stepOutline: [
       'Navigate to search results',
-      'Wait for flight_result_v4_sort_button',
-      'Tap flight_result_v4_sort_button',
-      'Wait for sort tray',
-      'Tap radio_button at index 4 (Earliest Arrival)',
+      'Wait for flight_result_v4_navbar_toolbar_title',
+      'Tap bm_button (floating sort pill) to open sort tray',
+      'Wait for rbg_sort',
+      'Tap radio_button at index 5 (Earliest Arrival)',
       'Wait for flight_result_v4_inventory_card to reload',
     ],
     successCriteria: ['Earliest Arrival sort applied without crash'],
@@ -877,13 +930,13 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'sort',
     name: 'SSR V4 Sort by Latest Departure',
-    description: 'Open sort tray, tap index 3 (Latest Departure), verify reload',
+    description: 'Open sort tray, tap index 4 (Latest Departure), verify reload',
     stepOutline: [
       'Navigate to search results',
-      'Wait for flight_result_v4_sort_button',
-      'Tap flight_result_v4_sort_button',
-      'Wait for sort tray',
-      'Tap radio_button at index 3 (Latest Departure)',
+      'Wait for flight_result_v4_navbar_toolbar_title',
+      'Tap bm_button (floating sort pill) to open sort tray',
+      'Wait for rbg_sort',
+      'Tap radio_button at index 4 (Latest Departure)',
       'Wait for flight_result_v4_inventory_card to reload',
     ],
     successCriteria: ['Latest Departure sort applied without crash'],
@@ -893,13 +946,13 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
     priority: 'p1',
     category: 'sort',
     name: 'SSR V4 Sort: Direct Flight First',
-    description: 'Open sort tray, tap index 1 (Direct flight first), verify',
+    description: 'Open sort tray, tap index 2 (Direct flight first), verify',
     stepOutline: [
       'Navigate to search results',
-      'Wait for flight_result_v4_sort_button',
-      'Tap flight_result_v4_sort_button',
-      'Wait for sort tray',
-      'Tap radio_button at index 1 (Direct flight first)',
+      'Wait for flight_result_v4_navbar_toolbar_title',
+      'Tap bm_button (floating sort pill) to open sort tray',
+      'Wait for rbg_sort',
+      'Tap radio_button at index 2 (Direct flight first)',
       'Wait for flight_result_v4_inventory_card to reload',
     ],
     successCriteria: ['Direct flight first sort applied without crash'],
@@ -1053,10 +1106,10 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
       'Wait for flight_result_v4_filter_button',
       'Tap flight_result_v4_filter_button',
       'On Transit tab: tap Direct',
-      'Tap Apply button',
+      'Tap dbwShow (Apply button)',
       'Wait for flight_result_v4_inventory_card reload',
-      'Tap flight_result_v4_sort_button to open sort tray',
-      'Tap radio_button at index 0 (Cheapest)',
+      'Tap bm_button (floating sort pill) to open sort tray',
+      'Wait for rbg_sort',
       'Wait for flight_result_v4_inventory_card reload',
       'Assert flight_result_v4_inventory_card visible',
       'Take screenshot: test-results/android/android-ssrv4-filter-sort-combo.png',
@@ -1196,17 +1249,126 @@ CORRECT Compose testTag IDs (source: searchresult/v4/route/view/**/*.kt):
   "flight_result_v4_navbar_toolbar_title"            → results page header
   "flight_result_v4_navbar_toolbar_subtitle_chevron" → change-search chevron
   "flight_result_v4_date_flow_row"                   → date-price calendar strip
-  "flight_result_v4_filter_button"                   → Filter button
-  "flight_result_v4_sort_button"                     → Sort button
-  "flight_result_v4_quick_filter_cell"               → Stops/Airlines/Time chips
+  "flight_result_v4_filter_button"                   → Filter button (opens full filter dialog)
+  "flight_result_v4_quick_filter_cell"               → Stops/Airlines/Time chips (opens Stops sheet ONLY — NOT full filter dialog)
   "flight_result_v4_inventory_card"                  → each flight card
   "flight_result_v4_inventory_card_price_section"    → price area on card
   "flight_result_v4_inventory_card_connector_view"   → duration/stops on card
+  "bm_button"                                        → floating sort pill (sort tray entry — shouldDisplaySortButtonInNavbar=false in staging)
 
 STILL XML (retain their android:id and work normally):
   Filter dialog: layout_filter_dialog, layer_transit, button_direct,
-                 button_one_transit, button_two_transit, tvReset, dbwShow
+                 button_one_transit, button_two_transit, tvReset, dbwShow,
+                 button_departure_morning/afternoon/evening (flight_filter_time_widget.xml),
+                 layer_airline, check_box (airline adapter item)
   Search form:   search_tab, btn_search, layout_search_form
+  Sort pill:     bm_button (Compose testTag — confirmed in a11y tree)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRONG CONSTRAINT A — SORT TRAY ENTRY POINT (adb dump verified 2026-06-12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+flight_result_v4_sort_button DOES NOT EXIST in the a11y tree in staging.
+shouldDisplaySortButtonInNavbar=false → the sort navbar button is never rendered.
+
+THE ONLY WAY TO OPEN THE SORT TRAY:
+  - tapOn:
+      id: "bm_button"          ← floating sort suggestion pill at bottom of results page
+  - extendedWaitUntil:
+      visible:
+        id: "rbg_sort"         ← wait for Sort tray container to appear
+      timeout: 10000
+  - tapOn:
+      id: "radio_button"
+      index: N                 ← see sort order below
+
+SORT ORDER (confirmed from adb uiautomator dump while Sort tray open, 2026-06-12):
+  index 0 → Cheapest (SORT_PRICE_LOWEST)
+  index 1 → Shortest duration
+  index 2 → Direct flights first
+  index 3 → Earliest departure
+  index 4 → Latest departure
+  index 5 → Earliest arrival
+  index 6 → Latest arrival
+
+FORBIDDEN for sort:
+  ❌ tapOn: id: "flight_result_v4_sort_button"   ← not in a11y tree
+  ❌ tapOn: id: "rbg_sort"                        ← not in a11y tree (flight module prefix)
+  ❌ tapOn: text: "Cheapest"                      ← i18n, also appears on flight cards
+  ❌ tapOn: text: "Sort by"                       ← i18n
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRONG CONSTRAINT B — FILTER DIALOG ENTRY POINT (adb dump verified 2026-06-12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+flight_result_v4_quick_filter_cell opens the STOPS BOTTOM SHEET only.
+It uses check_box + button_apply_filter. layout_filter_dialog will NEVER appear after tapping it.
+
+THE ONLY WAY TO OPEN THE FULL FILTER DIALOG (FlightResultRevampFilterDialog):
+  - tapOn:
+      id: "flight_result_v4_filter_button"
+  - extendedWaitUntil:
+      visible:
+        id: "layout_filter_dialog"
+      timeout: 15000
+
+FILTER DIALOG SECTION ORDER (flight_result_revamp_filter_dialog.xml):
+  1. layer_transit   → button_direct, button_one_transit, button_two_transit (visible without scrolling)
+  2. layer_airline   → check_box index N (need 1 scroll to expose)
+  3. layer_time      → button_departure_morning etc. (need scrollUntilVisible to reach)
+  4. layer_price     → slider_price_range
+  5. layer_facilities, layer_flight_preferences, layer_flight_refund_reschedule
+
+FORBIDDEN for filter entry:
+  ❌ tapOn: id: "flight_result_v4_quick_filter_cell"  ← opens Stops sheet, NOT full filter
+  ❌ tapOn: id: "quick_filter_item"                    ← same problem
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRONG CONSTRAINT C — FILTER APPLY BUTTON (source verified 2026-06-12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+tvResult is a TextView that DISPLAYS the result count (e.g. "Show 25 results").
+Tapping it does NOT close the dialog or apply the filter.
+The actual clickable apply button is dbwShow (flight_result_revamp_filter_dialog.xml verified,
+FlightResultRevampFilterDialog.kt binding.dbwShow.setOnClickListener confirmed).
+
+CORRECT apply pattern:
+  - tapOn:
+      id: "dbwShow"            ← the ONLY correct apply button in the filter dialog
+  - extendedWaitUntil:
+      visible:
+        id: "flight_result_v4_navbar_toolbar_title"
+      timeout: 30000
+
+FORBIDDEN:
+  ❌ tapOn: id: "tvResult"     ← count label, not a button; dialog will NOT close
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRONG CONSTRAINT D — SCROLLING INSIDE FILTER DIALOG (verified 2026-06-12)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- scroll (bare) and swipe: direction: UP both scroll the RESULTS LIST behind the dialog,
+  NOT the dialog's internal NestedScrollView.
+- For any element inside the filter dialog that is below the fold (airline section,
+  departure time buttons, price slider), you MUST use scrollUntilVisible.
+
+CORRECT pattern to reach departure time section (or any deep filter section):
+  - scrollUntilVisible:
+      element:
+        id: "button_departure_morning"
+      direction: DOWN
+      timeout: 15000
+
+CORRECT pattern to reach airline section (1 scroll usually enough):
+  - scroll                        ← bare scroll (moves dialog content down slightly)
+  - extendedWaitUntil:
+      visible:
+        id: "layer_airline"
+      timeout: 10000
+  - tapOn:
+      id: "check_box"             ← first airline checkbox (flight_filter_airline_adapter_item.xml)
+      index: 0
+
+FORBIDDEN inside filter dialog:
+  ❌ - scroll\\n    direction: UP  ← sub-keys unsupported AND wrong target
+  ❌ - swipe:\\n    direction: UP  ← scrolls results list, not dialog
+  ❌ multiple bare - scroll steps  ← unreliable; use scrollUntilVisible for deep targets
 
 STRONG CONSTRAINT — SORT TRAY OPTIONS (dynamically generated, NO individual IDs):
 Source: FlightSortTrayWidgetPresenter.kt + MDSRadioButtonGroup.kt
@@ -1454,6 +1616,23 @@ function validateYaml(yaml: string, scenario: ScenarioDefinition): string[] {
     [/swipeOn|swipe:/,                'SYNTAX_ERROR: swipeOn/swipe not supported → use "- scroll"'],
     [/tapOn:\s+"[^"]+"/,              'SYNTAX_ERROR: tapOn with text string is forbidden (i18n app) → must use id: block'],
     [/file:\s*["'][^"']+\.yaml["']/,  'SYNTAX_ERROR: runFlow with external file: reference is forbidden — referenced yaml files do not exist at runtime. Inline all steps directly in this file instead.'],
+    // ── SESSION-VERIFIED CONSTRAINTS (2026-06-12) ────────────────────────
+    // Constraint A: Sort tray — flight_result_v4_sort_button never rendered
+    [/id:\s*["']?flight_result_v4_sort_button["']?/,
+      'SORT_ENTRY_ERROR: flight_result_v4_sort_button does not exist in a11y tree (shouldDisplaySortButtonInNavbar=false in staging). ' +
+      'Use: tapOn id: "bm_button" → extendedWaitUntil id: "rbg_sort" → tapOn id: "radio_button" index: N'],
+    // Constraint B: Filter entry — quick_filter_cell opens Stops sheet, not full filter
+    [/id:\s*["']?(?:flight_result_v4_quick_filter_cell|quick_filter_item)["']?(?:[\s\S]*?tapOn[\s\S]*?id:\s*["']?layout_filter_dialog["']?)?/,
+      'FILTER_ENTRY_WARNING: quick_filter_cell/quick_filter_item opens the Stops bottom sheet, NOT the full FlightResultRevampFilterDialog. ' +
+      'layout_filter_dialog will never appear. Use: tapOn id: "flight_result_v4_filter_button" instead.'],
+    // Constraint C: Apply button — tvResult is a count label, not the apply button
+    [/tapOn:\s*\n\s+id:\s*["']?tvResult["']?/,
+      'FILTER_APPLY_ERROR: tvResult is a count display label ("Show 25 results"), NOT a clickable apply button. ' +
+      'The dialog will NOT close. Use: tapOn id: "dbwShow" to apply the filter.'],
+    // Constraint D: Scrolling inside dialog — swipe hits results list, not dialog content
+    [/swipe:\s*\n\s+direction:\s*(UP|DOWN)/,
+      'DIALOG_SCROLL_ERROR: swipe: direction: UP/DOWN scrolls the results list behind the dialog, NOT the dialog content. ' +
+      'For elements inside filter dialog below fold, use: scrollUntilVisible: element: id: "target_id" direction: DOWN timeout: 15000'],
   ];
 
   for (const [pattern, message] of forbiddenPatterns) {
@@ -1529,11 +1708,11 @@ async function main() {
   let generated = 0;
   let skipped = 0;
   const startTime = Date.now();
-  // STRONG CONSTRAINT: accumulate all case YAML — written as ONE combined suite file at the end.
+  // Generate individual YAML files for each scenario (one file = one flow)
   const suiteChunks: string[] = [];
+  const individualFiles: Array<{ id: string; file: string }> = [];
 
   for (const scenario of ACTIVE_SCENARIOS) {
-    const relFile = path.relative(process.cwd(), SUITE_PATH);
     process.stdout.write(`  [${scenario.priority.toUpperCase()}] ${scenario.name} … `);
 
     if (DRY_RUN) {
@@ -1548,13 +1727,19 @@ async function main() {
       const elapsed = ((Date.now() - scenarioStart) / 1000).toFixed(1);
       const warnings = validateYaml(yaml, scenario);
 
-      // STRONG CONSTRAINT: do NOT write individual files — accumulate into suite only
-      // Inject name: <id> so Maestro labels each flow in stdout for per-flow result parsing
+      // Write individual YAML file for this scenario
+      const individualFile = path.join(OUTPUT_DIR, `${scenario.id}.yaml`);
       const yamlWithName = yaml.replace(
         /^(appId:[^\n]+)/m,
         `$1\nname: ${scenario.id}`
       );
+      fs.writeFileSync(individualFile, yamlWithName, 'utf8');
+      individualFiles.push({ id: scenario.id, file: individualFile });
+
+      // Also accumulate for combined suite (for reference only)
       suiteChunks.push(`# === ${scenario.priority.toUpperCase()}: ${scenario.name} ===\n${yamlWithName}`);
+
+      const relFile = path.relative(process.cwd(), individualFile);
       manifest.push({
         id: scenario.id,
         priority: scenario.priority,
@@ -1579,7 +1764,7 @@ async function main() {
         priority: scenario.priority,
         category: scenario.category,
         name: scenario.name,
-        file: relFile,
+        file: `${scenario.id}.yaml`,
         generatedAt: new Date().toISOString(),
         warnings: [`GENERATION_FAILED: ${msg}`],
       });
@@ -1590,24 +1775,25 @@ async function main() {
   const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
   if (!DRY_RUN) {
-    // STRONG CONSTRAINT: write ONE combined suite file — no individual per-scenario files
+    // Write combined suite file (for reference/multi-doc compatibility)
     const suiteHeader = [
       `# Auto-generated Android Maestro Suite`,
       `# Generated: ${new Date().toISOString()}`,
       `# ${generated} cases covering flight search results`,
-      `# STRONG CONSTRAINT: This is the single source of truth for this run.`,
-      `#   Do NOT split into per-scenario files.`,
+      `# NOTE: Individual YAML files (<caseId>.yaml) are the primary execution method`,
+      `#   This file is for reference and multi-document compatibility only.`,
     ].join('\n');
     fs.writeFileSync(SUITE_PATH, `${suiteHeader}\n\n${suiteChunks.join('\n---\n\n')}\n`, 'utf8');
 
     // Write manifest
     fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), 'utf8');
 
-    // run-all simply points at the single suite file
+    // run-all points to the individual flow runner (not the multi-doc suite)
     const runAllContent = [
       `# Auto-generated Android Maestro run-all`,
       `# Generated: ${new Date().toISOString()}`,
-      `# STRONG CONSTRAINT: Always references the single android-suite.yaml — never per-scenario files.`,
+      `# NOTE: The individual <caseId>.yaml files in 'generated/' are executed sequentially`,
+      `# This file is for reference only.`,
       `appId: ${APP_ID}`,
       '---',
       '',
@@ -1619,7 +1805,8 @@ async function main() {
     console.log(`✅ Generated  : ${generated} / ${ACTIVE_SCENARIOS.length} cases${EXTENDED ? ' (extended)' : ''}`);
     console.log(`⚠️  Skipped    : ${skipped}`);
     console.log(`⏱  Total time : ${totalElapsed}s`);
-    console.log(`📦 Suite file : ${SUITE_PATH}`);
+    console.log(`📦 Individual files : ${OUTPUT_DIR}/<caseId>.yaml (${generated} files)`);
+    console.log(`📦 Suite file : ${SUITE_PATH} (reference only)`);
     console.log(`📋 Manifest   : ${MANIFEST_PATH}`);
     console.log(`▶️  Run all    : maestro test ${RUN_ALL_PATH}`);
     console.log(`${'─'.repeat(60)}\n`);
