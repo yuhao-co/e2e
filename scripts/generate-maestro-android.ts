@@ -69,6 +69,36 @@ const RUN_ALL_PATH = path.resolve('maestro/flows/android/run-all-android.yaml');
 // Individual per-scenario files are NEVER written. Only android-suite.yaml is the output.
 const SUITE_PATH = path.resolve('maestro/flows/android/generated/android-suite.yaml');
 const APP_ID = 'com.traveloka.android.staging';
+const MEMORY_FILE = path.resolve('config/android-learning-memory.json');
+
+// ---------------------------------------------------------------------------
+// Learning memory reader (accumulative coverage feedback)
+// ---------------------------------------------------------------------------
+interface LearningMemorySnapshot {
+  stableScenarios: string[];
+  expansionQueue: string[];
+  coverageGaps: string[];
+  knownFixPatterns: string[];
+  totalRuns: number;
+}
+
+function readLearningMemory(): LearningMemorySnapshot {
+  try {
+    if (fs.existsSync(MEMORY_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(MEMORY_FILE, 'utf8'));
+      return {
+        stableScenarios: raw.stableScenarios ?? [],
+        expansionQueue: raw.expansionQueue ?? [],
+        coverageGaps: raw.coverageGaps ?? [],
+        knownFixPatterns: raw.knownFixPatterns ?? [],
+        totalRuns: raw.totalRuns ?? 0,
+      };
+    }
+  } catch { /* memory file not ready yet — first run */ }
+  return { stableScenarios: [], expansionQueue: [], coverageGaps: [], knownFixPatterns: [], totalRuns: 0 };
+}
+
+const LEARNING_MEMORY = readLearningMemory();
 
 // ---------------------------------------------------------------------------
 // COMPOSE MIGRATION CONSTRAINT
@@ -1225,6 +1255,43 @@ function buildSystemPrompt(prdContent?: string): string {
     return replacement ? `  "${id}" → use "${replacement}"` : `  "${id}" (no direct replacement)`;
   }).join('\n');
 
+  // Build accumulative coverage context from learning memory
+  const memCtx = (() => {
+    const { stableScenarios, expansionQueue, coverageGaps, knownFixPatterns, totalRuns } = LEARNING_MEMORY;
+    if (totalRuns === 0) return ''; // first run — no memory yet
+
+    const lines: string[] = [
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      `ACCUMULATIVE COVERAGE MEMORY (after ${totalRuns} workflow runs)`,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    ];
+
+    if (stableScenarios.length) {
+      lines.push(`STABLE SCENARIOS (confirmed passing — do NOT regress these):`);
+      lines.push(stableScenarios.map(s => `  ✅ ${s}`).join('\n'));
+    }
+
+    if (expansionQueue.length) {
+      lines.push('');
+      lines.push('EXPANSION QUEUE (passed 3+ consecutive runs — generate deeper variants):');
+      lines.push(expansionQueue.map(s => `  📈 ${s} → add variant scenarios (edge cases, combinations)`).join('\n'));
+    }
+
+    if (coverageGaps.length) {
+      lines.push('');
+      lines.push('COVERAGE GAPS (fewer than 2 stable scenarios in these categories — prioritize generating):');
+      lines.push(coverageGaps.map(g => `  🔴 ${g}`).join('\n'));
+    }
+
+    if (knownFixPatterns.length) {
+      lines.push('');
+      lines.push('KNOWN FIX PATTERNS (learned from real failures — these constraints are proven correct):');
+      lines.push(knownFixPatterns.map(p => `  🔧 ${p}`).join('\n'));
+    }
+
+    return '\n\n' + lines.join('\n');
+  })();
+
   return `You are an expert mobile test engineer who writes Maestro YAML test cases for Android apps.
 Maestro is a mobile UI testing framework that uses YAML-based test flows.
 
@@ -1458,7 +1525,7 @@ Return ONLY the YAML content, no markdown fences, no explanation.${prdContent ? 
 The following product requirement document(s) describe recent changes merged into android-v3.
 Use this to generate more relevant test scenarios that cover the described behaviors.
 
-${prdContent.length > 6000 ? prdContent.slice(0, 6000) + '\n\n[...truncated...]' : prdContent}` : ''}`;
+${prdContent.length > 6000 ? prdContent.slice(0, 6000) + '\n\n[...truncated...]' : prdContent}` : ''}${memCtx}`;
 }
 
 // ---------------------------------------------------------------------------

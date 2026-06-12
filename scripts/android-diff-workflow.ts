@@ -316,8 +316,28 @@ interface RunReport {
 interface AndroidLearningMemory {
   lastUpdated: string;
   totalRuns: number;
-  flakyScenarios: string[];   // consistently failing
-  stableScenarios: string[];  // consistently passing
+  flakyScenarios: string[];   // currently failing
+  stableScenarios: string[];  // have passed at least once
+  // ── Accumulative learning fields ──────────────────────────────────────────
+  /** How many consecutive passing runs each scenario has. Reset to 0 on failure. */
+  consecutivePasses: Record<string, number>;
+  /**
+   * Scenarios with consecutivePasses >= EXPANSION_THRESHOLD.
+   * Generator reads this to expand those into deeper variants.
+   */
+  expansionQueue: string[];
+  /**
+   * Scenario categories and how many distinct scenarios exist per category.
+   * Used to detect coverage gaps (categories with < 2 scenarios).
+   */
+  coverageMap: Record<string, string[]>;
+  /** Coverage gap categories (< MIN_COVERAGE_PER_CATEGORY scenarios confirmed stable). */
+  coverageGaps: string[];
+  /**
+   * Human-readable fix patterns recorded from real failures.
+   * Injected into the AI generator prompt as known constraints.
+   */
+  knownFixPatterns: string[];
   fixHistory: Array<{
     scenarioId: string;
     fixedAt: string;
@@ -447,9 +467,31 @@ function ensureEmulatorRunning(): void {
 
 function loadMemory(): AndroidLearningMemory {
   if (fs.existsSync(MEMORY_FILE)) {
-    try { return JSON.parse(fs.readFileSync(MEMORY_FILE, 'utf8')); } catch { /* fall through */ }
+    try {
+      const raw = JSON.parse(fs.readFileSync(MEMORY_FILE, 'utf8')) as Partial<AndroidLearningMemory>;
+      return {
+        lastUpdated: raw.lastUpdated ?? '',
+        totalRuns: raw.totalRuns ?? 0,
+        flakyScenarios: raw.flakyScenarios ?? [],
+        stableScenarios: raw.stableScenarios ?? [],
+        consecutivePasses: raw.consecutivePasses ?? {},
+        expansionQueue: raw.expansionQueue ?? [],
+        coverageMap: raw.coverageMap ?? {},
+        coverageGaps: raw.coverageGaps ?? [],
+        knownFixPatterns: raw.knownFixPatterns ?? [],
+        fixHistory: raw.fixHistory ?? [],
+        diffTriggers: raw.diffTriggers ?? [],
+      };
+    } catch { /* fall through */ }
   }
-  return { lastUpdated: '', totalRuns: 0, flakyScenarios: [], stableScenarios: [], fixHistory: [], diffTriggers: [] };
+  return {
+    lastUpdated: '', totalRuns: 0,
+    flakyScenarios: [], stableScenarios: [],
+    consecutivePasses: {}, expansionQueue: [],
+    coverageMap: {}, coverageGaps: [],
+    knownFixPatterns: [],
+    fixHistory: [], diffTriggers: [],
+  };
 }
 
 function saveMemory(mem: AndroidLearningMemory) {
@@ -725,6 +767,17 @@ async function stageNotify(
 // ---------------------------------------------------------------------------
 // Stage 7: Update learning memory
 // ---------------------------------------------------------------------------
+/** Consecutive passes required before a scenario enters the expansion queue. */
+const EXPANSION_THRESHOLD = 3;
+/** Minimum distinct stable scenarios per category before it's no longer a gap. */
+const MIN_COVERAGE_PER_CATEGORY = 2;
+
+/** Category for a scenario id (e.g. "android-results-filter-direct" → "filter") */
+function scenarioCategory(id: string): string {
+  const m = id.match(/android-(?:results|ssrv4)-([a-z]+)/);
+  return m ? m[1] : 'other';
+}
+
 async function stageUpdateMemory(
   report: RunReport | null,
   changedFiles: string[],
@@ -738,18 +791,62 @@ async function stageUpdateMemory(
     mem.lastUpdated = new Date().toISOString();
     mem.totalRuns += 1;
 
-    // Track consistently flaky scenarios (failed 3+ times in fix history)
     const failedIds = report.cases.filter(c => c.status === 'failed').map(c => c.id);
     const passedIds = report.cases.filter(c => c.status === 'passed').map(c => c.id);
 
-    // Update flaky list: add new failures, remove if now passing
+    // ── 1. Flaky / stable tracking ──────────────────────────────────────────
     for (const id of failedIds) {
       if (!mem.flakyScenarios.includes(id)) mem.flakyScenarios.push(id);
+      mem.consecutivePasses[id] = 0; // reset on failure
     }
     mem.flakyScenarios = mem.flakyScenarios.filter(id => !passedIds.includes(id));
     mem.stableScenarios = [...new Set([...mem.stableScenarios, ...passedIds])];
 
-    // Record fix history entries
+    // ── 2. Consecutive pass counter → expansion queue ───────────────────────
+    for (const id of passedIds) {
+      mem.consecutivePasses[id] = (mem.consecutivePasses[id] ?? 0) + 1;
+      if (mem.consecutivePasses[id] >= EXPANSION_THRESHOLD && !mem.expansionQueue.includes(id)) {
+        mem.expansionQueue.push(id);
+        console.log(`  📈 Expansion candidate: ${id} (${mem.consecutivePasses[id]} consecutive passes)`);
+      }
+    }
+    // Remove from queue if it started failing again
+    mem.expansionQueue = mem.expansionQueue.filter(id => !failedIds.includes(id));
+
+    // ── 3. Coverage map and gap detection ───────────────────────────────────
+    // Rebuild coverage map from all stable scenarios
+    mem.coverageMap = {};
+    for (const id of mem.stableScenarios) {
+      const cat = scenarioCategory(id);
+      if (!mem.coverageMap[cat]) mem.coverageMap[cat] = [];
+      if (!mem.coverageMap[cat].includes(id)) mem.coverageMap[cat].push(id);
+    }
+    // Identify categories with fewer than MIN_COVERAGE_PER_CATEGORY stable scenarios
+    const allCategories = ['sort', 'filter', 'smoke', 'scroll', 'select', 'calendar', 'airline', 'time'];
+    mem.coverageGaps = allCategories.filter(cat =>
+      (mem.coverageMap[cat] ?? []).length < MIN_COVERAGE_PER_CATEGORY
+    );
+
+    // ── 4. Record known fix patterns from fix history ────────────────────────
+    const patternMap: Record<string, string> = {
+      'flight_result_v4_sort_button': 'FIXED: flight_result_v4_sort_button → bm_button + rbg_sort + radio_button index N (sort tray)',
+      'quick_filter_item': 'FIXED: quick_filter_item/quick_filter_cell → flight_result_v4_filter_button (opens full filter dialog)',
+      'tvResult': 'FIXED: tvResult → dbwShow (tvResult is count label; dbwShow is the apply button)',
+      'scroll.*direction': 'FIXED: swipe/scroll inside dialog → scrollUntilVisible (bare scroll targets results list behind dialog)',
+      'runFlowIfVisible': 'FIXED: runFlowIfVisible removed in Maestro 2.x → use runFlow with when: condition',
+      'tapOn.*text.*Direct': 'FIXED: tapOn text: "Direct" → tapOn id: "button_direct" (text matches flight cards, not filter)',
+    };
+    for (const entry of mem.fixHistory) {
+      for (const [pattern, fix] of Object.entries(patternMap)) {
+        if (new RegExp(pattern, 'i').test(entry.failureReason) && !mem.knownFixPatterns.includes(fix)) {
+          mem.knownFixPatterns.push(fix);
+        }
+      }
+    }
+    // Keep list compact
+    mem.knownFixPatterns = [...new Set(mem.knownFixPatterns)].slice(0, 20);
+
+    // ── 5. Record fix history entries ────────────────────────────────────────
     for (const c of report.cases.filter(x => x.status === 'failed')) {
       mem.fixHistory.push({
         scenarioId: c.id,
@@ -758,24 +855,21 @@ async function stageUpdateMemory(
         fixApplied: false,
       });
     }
-    // Keep last 100 entries
     mem.fixHistory = mem.fixHistory.slice(-100);
 
-    // Record this diff trigger
-    mem.diffTriggers.push({
-      date: new Date().toISOString(),
-      changedFiles,
-      affectedScenarios,
-      passRate: report.passRate,
-    });
+    // ── 6. Record this diff trigger ──────────────────────────────────────────
+    mem.diffTriggers.push({ date: new Date().toISOString(), changedFiles, affectedScenarios, passRate: report.passRate });
     mem.diffTriggers = mem.diffTriggers.slice(-30);
 
     saveMemory(mem);
+
+    const gapSummary = mem.coverageGaps.length ? ` | Gaps: [${mem.coverageGaps.join(', ')}]` : ' | No gaps';
+    const expandSummary = mem.expansionQueue.length ? ` | Expand: [${mem.expansionQueue.slice(0, 3).join(', ')}…]` : '';
     return {
       stage: 'update-memory',
       success: true,
       durationMs: Date.now() - t,
-      output: `Memory updated. Flaky: [${mem.flakyScenarios.join(', ')}]`,
+      output: `Memory updated (run #${mem.totalRuns}). Stable: ${mem.stableScenarios.length} | Flaky: [${mem.flakyScenarios.join(', ') || 'none'}]${gapSummary}${expandSummary}`,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
