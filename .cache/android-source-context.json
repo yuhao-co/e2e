@@ -1,0 +1,209 @@
+{
+  "_meta": {
+    "extractedAt": "2026-06-12T07:33:32.442Z",
+    "repoHead": "3c049cebe",
+    "source": "android-v3 live git grep"
+  },
+  "appId": "com.traveloka.android.staging",
+  "screen": "Flight Search Results",
+  "precondition": [
+    "- launchApp",
+    "- tapOn:\n    text: \"Flights\"      # Home screen product tile — no testTag, text-only contract",
+    "- assertVisible:\n    id: \"search_tab\"",
+    "- tapOn:\n    id: \"search_tab\"",
+    "- assertVisible:\n    id: \"btn_search\"",
+    "- tapOn:\n    id: \"btn_search\"",
+    "- assertVisible:\n    id: \"flight_result_v4_navbar_toolbar_title\"",
+    "- extendedWaitUntil:\n    visible:\n      id: \"flight_result_v4_inventory_card\"\n    timeout: 30000"
+  ],
+  "textLabels": {
+    "filterChips": [
+      "Direct",
+      "1 Stop",
+      "2+ Stops",
+      "Airline",
+      "Price",
+      "Departure Time"
+    ],
+    "sortOptions": [
+      "Cheapest",
+      "Fastest",
+      "Best"
+    ],
+    "filterSheet": [
+      "Apply",
+      "Reset"
+    ],
+    "note": "NEVER use text labels in tapOn — use id: only. Text labels are locale-sensitive."
+  },
+  "accessibilityIds": {
+    "resultPage": [
+      "flight_result_v4_badge_item",
+      "flight_result_v4_banner",
+      "flight_result_v4_coupon_carousel_banner",
+      "flight_result_v4_date_flow_row",
+      "flight_result_v4_depart_leg_info",
+      "flight_result_v4_error_widget_route",
+      "flight_result_v4_filter_button",
+      "flight_result_v4_inventory_card",
+      "flight_result_v4_inventory_card_airline_logo_and_baggage_section",
+      "flight_result_v4_inventory_card_connector_view",
+      "flight_result_v4_inventory_card_price_section",
+      "flight_result_v4_inventory_debug_button",
+      "flight_result_v4_navbar_baliho_button",
+      "flight_result_v4_navbar_debug_icon",
+      "flight_result_v4_navbar_price_alert_icon",
+      "flight_result_v4_navbar_toolbar_subtitle_chevron",
+      "flight_result_v4_navbar_toolbar_title",
+      "flight_result_v4_quick_filter_cell",
+      "flight_result_v4_sort_button",
+      "flight_result_v4_top_pick_campaign_container"
+    ],
+    "sort": [
+      "flight_result_sort_button_chevron",
+      "flight_result_sort_button_image",
+      "flight_result_sort_button_title",
+      "flight_result_v4_sort_button",
+      "flight_searchresult_imageview_sort",
+      "flight_searchresult_imageview_sortcheck",
+      "flight_searchresult_layout_sort",
+      "flight_searchresult_layout_sortfilter",
+      "flight_searchresult_layout_sortfilter_background",
+      "flight_searchresult_textview_sort",
+      "image_view_sort_check",
+      "l_sort",
+      "layout_background_filter_sort",
+      "layout_sort",
+      "layout_sort_filter",
+      "rbg_sort",
+      "text_view_sort",
+      "tv_sort"
+    ],
+    "filter": [
+      "flight_result_filter_button_chevron",
+      "flight_result_filter_button_image",
+      "flight_result_filter_button_title",
+      "flight_result_v4_filter_button",
+      "flight_result_v4_quick_filter_cell",
+      "btn_remove_saved_filter",
+      "button_apply_filter",
+      "button_show_transit_filter",
+      "cb_save_filter",
+      "filter_non_sticky",
+      "filter_non_sticky_fill",
+      "filter_sticky",
+      "flight_filter_radiobutton_group",
+      "flight_filter_radiobutton_layout",
+      "flight_filter_radiobutton_title",
+      "flight_result_quickfilter_description_banner",
+      "flight_result_quickfilter_description_container",
+      "flight_searchresult_imageview_filter",
+      "flight_searchresult_imageview_filtercheck",
+      "flight_searchresult_layout_filter",
+      "flight_searchresult_layout_sortfilter",
+      "flight_searchresult_layout_sortfilter_background",
+      "flight_searchresult_textview_filter",
+      "flight_searchresult_widget_quickfilter",
+      "icon_quickfilter_desc",
+      "image_saved_filter",
+      "image_view_filter_check",
+      "layout_background_filter_sort",
+      "layout_box_saved_filter",
+      "layout_container_quick_filter",
+      "layout_container_quickfilter",
+      "layout_filter",
+      "layout_filter_applicable_promo",
+      "layout_filter_dialog",
+      "layout_quick_filter_desc",
+      "layout_sort_filter",
+      "layout_sticky_quick_filter_description",
+      "layout_transit_filter_expandable",
+      "primary_filter_item",
+      "primary_filter_item_chevron",
+      "primary_filter_item_name",
+      "quick_filter_item",
+      "quick_filter_item_icon",
+      "quick_filter_item_name",
+      "reapply_filter",
+      "recent_filter",
+      "recycler_view_quick_filter",
+      "text_quickfilter_desc",
+      "text_show_transit_filter",
+      "text_view_filter",
+      "view_quick_filter_description"
+    ],
+    "navigation": [
+      "flight_changeflight_navbar",
+      "flight_changeflight_searchform_container",
+      "flight_changeflight_widget_container",
+      "flight_result_v4_navbar_baliho_button",
+      "flight_result_v4_navbar_debug_icon",
+      "flight_result_v4_navbar_price_alert_icon",
+      "flight_result_v4_navbar_toolbar_subtitle_chevron",
+      "flight_result_v4_navbar_toolbar_title",
+      "search_tab"
+    ],
+    "card": [
+      "flight_popup_coupon_per_pax_label",
+      "flight_popup_coupon_price_value",
+      "flight_result_v4_banner",
+      "flight_result_v4_coupon_carousel_banner",
+      "flight_result_v4_inventory_card",
+      "flight_result_v4_inventory_card_airline_logo_and_baggage_section",
+      "flight_result_v4_inventory_card_connector_view",
+      "flight_result_v4_inventory_card_price_section",
+      "flight_result_v4_top_pick_campaign_container",
+      "flight_summary_page_inventory_card_v2_toggle"
+    ],
+    "searchForm": [
+      "btn_search",
+      "search_tab",
+      "btn_swap"
+    ]
+  },
+  "forbiddenIds": {
+    "rbg_sort": "flight_result_v4_sort_button",
+    "result_container": "flight_result_v4_navbar_toolbar_title",
+    "image_arrow_back": "(no direct replacement — use back gesture or assertVisible on previous screen)",
+    "bm_button": "flight_result_v4_sort_button",
+    "button_direct": "flight_result_v4_quick_filter_cell (index: 0)",
+    "dbwShow": "flight_result_v4_filter_button",
+    "flight_result_filter_list": "(removed — filter via flight_result_v4_filter_button)"
+  },
+  "interactions": [
+    {
+      "name": "Open Sort Sheet",
+      "trigger": "tapOn: id: \"flight_result_v4_sort_button\"",
+      "outcome": "Sort bottom sheet opens"
+    },
+    {
+      "name": "Open Filter Sheet",
+      "trigger": "tapOn: id: \"flight_result_v4_filter_button\"",
+      "outcome": "Filter bottom sheet opens"
+    },
+    {
+      "name": "Quick Filter (Direct)",
+      "trigger": "tapOn: id: \"flight_result_v4_quick_filter_cell\"\n  index: 0",
+      "outcome": "Direct flights filtered"
+    },
+    {
+      "name": "Open Date Flow",
+      "trigger": "tapOn: id: \"flight_result_v4_date_flow_row\"",
+      "outcome": "Date flow calendar opens"
+    },
+    {
+      "name": "Select Flight Card",
+      "trigger": "tapOn: id: \"flight_result_v4_inventory_card\"\n  index: 0",
+      "outcome": "Flight detail opens"
+    },
+    {
+      "name": "View Price Calendar",
+      "trigger": "tapOn: id: \"flight_result_v4_date_flow_row\"",
+      "outcome": "Price calendar visible"
+    }
+  ],
+  "apiEndpoints": [
+    "/v1/flight/search/results",
+    "/v1/flight/search/filter"
+  ]
+}

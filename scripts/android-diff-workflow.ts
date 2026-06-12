@@ -30,6 +30,14 @@ import * as path from 'node:path';
 import { execSync, spawn, spawnSync } from 'node:child_process';
 import { notifyCustom } from './lib/lark-notifier';
 
+// Ensure maestro + Java are always available regardless of how this script is invoked
+const MAESTRO_BIN = `${process.env.HOME}/.maestro/bin`;
+const JAVA_BIN = '/opt/homebrew/opt/openjdk@17/bin';
+const BREW_BIN = '/opt/homebrew/bin';
+const ADB_BIN = `${process.env.HOME}/Library/Android/sdk/platform-tools`;
+process.env.JAVA_HOME = process.env.JAVA_HOME || '/opt/homebrew/opt/openjdk@17';
+process.env.PATH = [MAESTRO_BIN, JAVA_BIN, BREW_BIN, ADB_BIN, process.env.PATH].join(':');
+
 // ---------------------------------------------------------------------------
 // CLI args
 // ---------------------------------------------------------------------------
@@ -556,11 +564,17 @@ async function stageSyncDiff(): Promise<StageResult & { changedFiles: string[]; 
 // ---------------------------------------------------------------------------
 // Stage 3: Generate Maestro cases
 // ---------------------------------------------------------------------------
-async function stageGenerate(affectedScenarios: string[], prdFile?: string | null): Promise<StageResult> {
+async function stageGenerate(affectedScenarios: string[], prdFile?: string | null, sourceContextFile?: string): Promise<StageResult> {
   const t = Date.now();
   try {
     const genArgs = ['tsx', 'scripts/generate-maestro-android.ts'];
-    if (SOURCE_JSON) genArgs.push('--source-json', SOURCE_JSON);
+    // STRONG CONSTRAINT: always pass live source context — never use hardcoded DEFAULT_SOURCE_CONTEXT
+    const resolvedSourceJson = SOURCE_JSON ?? sourceContextFile;
+    if (resolvedSourceJson && fs.existsSync(resolvedSourceJson)) {
+      genArgs.push('--source-json', resolvedSourceJson);
+    } else {
+      console.warn('  ⚠️  No source-json available — generator will use DEFAULT_SOURCE_CONTEXT (stale)');
+    }
     if (DRY_RUN) genArgs.push('--dry-run');
     if (prdFile && fs.existsSync(prdFile)) genArgs.push('--prd-file', prdFile);
 
@@ -786,7 +800,7 @@ async function main() {
   const completedStages: StageResult[] = [];
 
   // Stage 1: Validate
-  console.log('[1/7] Validating environment…');
+  console.log('[1/8] Validating environment…');
   const validate = await stageValidate();
   completedStages.push(validate);
   console.log(`  ${validate.success ? '✅' : '❌'} ${validate.output ?? validate.error}\n`);
@@ -796,15 +810,28 @@ async function main() {
   }
 
   // Stage 2: Sync diff + fetch PR Lark links
-  console.log('[2/7] Syncing android-v3 diff + PR PRD links…');
+  console.log('[2/8] Syncing android-v3 diff + PR PRD links…');
   const syncResult = await stageSyncDiff();
   completedStages.push(syncResult);
   console.log(`  ${syncResult.success ? '✅' : '⚠️'} ${syncResult.output ?? syncResult.error}\n`);
   const { changedFiles, affectedScenarios, prdFile } = syncResult;
 
+  // Stage 2.5: Extract source context from android-v3 live source
+  console.log('[3/8] Extracting source context from android-v3…');
+  const SOURCE_CONTEXT_FILE = path.resolve('.cache/android-source-context.json');
+  try {
+    const extractResult = spawnSync('npx', ['tsx', 'scripts/extract-android-source-context.ts'], {
+      stdio: 'inherit', encoding: 'utf8', env: { ...process.env },
+    });
+    if (extractResult.status !== 0) throw new Error('Extraction exited non-zero');
+    console.log('  ✅ Source context extracted\n');
+  } catch (err) {
+    console.warn(`  ⚠️  Source extraction failed (${err}) — falling back to DEFAULT_SOURCE_CONTEXT\n`);
+  }
+
   // Stage 3: Generate
-  console.log('[3/7] Generating Maestro cases…');
-  const generate = await stageGenerate(affectedScenarios, prdFile);
+  console.log('[4/8] Generating Maestro cases…');
+  const generate = await stageGenerate(affectedScenarios, prdFile, SOURCE_CONTEXT_FILE);
   completedStages.push(generate);
   console.log(`  ${generate.success ? '✅' : '❌'} ${generate.output ?? generate.error}\n`);
   if (!generate.success && !DRY_RUN) {
@@ -813,25 +840,25 @@ async function main() {
   }
 
   // Stage 4: Run
-  console.log('[4/7] Running cases on Android…');
+  console.log('[5/8] Running cases on Android…');
   const runResult = await stageRun();
   completedStages.push(runResult);
   console.log(`  ${runResult.success ? '✅' : '❌'} ${runResult.output ?? runResult.error}\n`);
 
   // Stage 5: Fix failures
-  console.log('[5/7] Fixing failures with AI…');
+  console.log('[6/8] Fixing failures with AI…');
   const fix = await stageFix(runResult.report);
   completedStages.push(fix);
   console.log(`  ${fix.success ? '✅' : '❌'} ${fix.output ?? fix.error}\n`);
 
   // Stage 6: Lark notification
-  console.log('[6/7] Sending Lark notification…');
+  console.log('[7/8] Sending Lark notification…');
   await stageNotify(completedStages, runResult.report, changedFiles, Date.now() - workflowStart);
   completedStages.push({ stage: 'notify', success: true, durationMs: 0 });
   console.log('  ✅ Notification sent\n');
 
   // Stage 7: Update memory
-  console.log('[7/7] Updating learning memory…');
+  console.log('[8/8] Updating learning memory…');
   const memory = await stageUpdateMemory(runResult.report, changedFiles, affectedScenarios);
   completedStages.push(memory);
   console.log(`  ${memory.success ? '✅' : '⚠️'} ${memory.output ?? memory.error}\n`);

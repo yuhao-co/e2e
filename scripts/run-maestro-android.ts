@@ -36,6 +36,7 @@ const RUN_ALL_PRIORITIES = args.includes('--all');
 // ---------------------------------------------------------------------------
 const MANIFEST_PATH = path.resolve('maestro/flows/android/manifest.json');
 const GENERATED_DIR = path.resolve('maestro/flows/android/generated');
+const SUITE_PATH = path.resolve('maestro/flows/android/generated/android-suite.yaml');
 const RESULTS_DIR = path.resolve('test-results/android');
 const RESULTS_JSON = path.join(RESULTS_DIR, 'results.json');
 const SCREENSHOTS_DIR = path.join(RESULTS_DIR, 'screenshots');
@@ -157,32 +158,84 @@ function extractFailureReason(stdout: string, stderr: string): string | null {
   return null;
 }
 
-function runMaestroCase(flowFile: string, timeoutMs = 120000): {
+function runMaestroSuite(flowFile: string, timeoutMs = 600000): {
   exitCode: number;
   stdout: string;
   stderr: string;
 } {
   const deviceId = getDeviceId();
-  // --format NOOP = no report file; plain is not valid in Maestro 2.x
   const args = deviceId
     ? ['test', '--udid', deviceId, '--no-ansi', flowFile]
     : ['test', '--no-ansi', flowFile];
 
-  const result = spawnSync(
-    'maestro',
-    args,
-    {
-      encoding: 'utf8',
-      timeout: timeoutMs,
-      env: { ...process.env },
-    }
-  );
+  const result = spawnSync('maestro', args, {
+    encoding: 'utf8',
+    timeout: timeoutMs,
+    env: { ...process.env },
+  });
 
   return {
     exitCode: result.status ?? 1,
     stdout: result.stdout ?? '',
     stderr: result.stderr ?? '',
   };
+}
+
+/**
+ * Extract YAML documents for the given case IDs from the combined suite file.
+ * Each flow is identified by its `name:` field.
+ * A flow = everything from one `appId:` line up to (but not including) the next `appId:` line.
+ */
+function extractFilteredSuite(caseIds: Set<string>): string {
+  const content = fs.readFileSync(SUITE_PATH, 'utf8');
+  // Split on lines that start a new flow (start with 'appId:' or comment + 'appId:')
+  // Each flow block starts at the comment line before appId, identified by appId: boundary
+  const flowBlocks: string[] = [];
+  const lines = content.split('\n');
+  let currentBlock: string[] = [];
+  let inFlow = false;
+
+  for (const line of lines) {
+    if (line.startsWith('appId:')) {
+      if (inFlow && currentBlock.length > 0) {
+        flowBlocks.push(currentBlock.join('\n'));
+      }
+      currentBlock = [line];
+      inFlow = true;
+    } else if (inFlow) {
+      currentBlock.push(line);
+    }
+    // Lines before first appId (file header comments) are skipped
+  }
+  if (inFlow && currentBlock.length > 0) {
+    flowBlocks.push(currentBlock.join('\n'));
+  }
+
+  const matching = flowBlocks.filter((block) => {
+    const m = block.match(/^name:\s*(\S+)/m);
+    return m && caseIds.has(m[1].trim());
+  });
+
+  if (matching.length === 0) throw new Error('No matching flows found in android-suite.yaml');
+  return matching.join('\n---\n\n');
+}
+
+/**
+ * Parse Maestro stdout for a multi-flow run.
+ * Returns a map of flowId → { passed, stdout }.
+ */
+function parseSuiteStdout(stdout: string): Map<string, { passed: boolean; block: string }> {
+  const results = new Map<string, { passed: boolean; block: string }>();
+  // Each flow starts with " > Flow <name>" in Maestro output
+  const blocks = stdout.split(/(?=\n > Flow )/);
+  for (const block of blocks) {
+    const nameMatch = block.match(/> Flow (\S+)/);
+    if (!nameMatch) continue;
+    const id = nameMatch[1].trim();
+    const passed = !block.includes('FAILED') && !block.toUpperCase().includes('ASSERTION IS FALSE');
+    results.set(id, { passed, block });
+  }
+  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -307,15 +360,48 @@ async function main() {
 
   console.log(`   Cases to run: ${cases.length} (${cases.map((c) => c.id).join(', ')})\n`);
 
-  fs.mkdirSync(RESULTS_DIR, { recursive: true });
+  if (!fs.existsSync(SUITE_PATH)) {
+    console.error(`❌ Suite file not found: ${SUITE_PATH}`);
+    console.error('   Run first: npm run maestro:android:generate');
+    process.exit(1);
+  }
 
-  const results: CaseResult[] = [];
+  fs.mkdirSync(RESULTS_DIR, { recursive: true });
+  fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
+
   const runStart = Date.now();
 
+  // Extract only the matching flows into a temp file and run ONCE
+  const caseIds = new Set(cases.map((c) => c.id));
+  const tmpFile = path.join(GENERATED_DIR, '_run-tmp.yaml');
+  try {
+    const filteredYaml = extractFilteredSuite(caseIds);
+    fs.writeFileSync(tmpFile, filteredYaml, 'utf8');
+  } catch (err) {
+    console.error(`❌ Failed to extract flows from suite: ${err}`);
+    process.exit(1);
+  }
+
+  console.log(`  Running ${cases.length} flow(s) from android-suite.yaml …`);
+  const suiteStart = Date.now();
+  const { stdout: suiteStdout, stderr: suiteStderr } = runMaestroSuite(tmpFile);
+  const suiteDurationMs = Date.now() - suiteStart;
+
+  // Clean up temp file
+  try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+
+  // Maestro writes " > Flow <name>" to stderr in some versions — merge both streams for parsing
+  const suiteOutput = suiteStdout + '\n' + suiteStderr;
+  const flowResults = parseSuiteStdout(suiteOutput);
+  const perFlowMs = cases.length > 0 ? Math.round(suiteDurationMs / cases.length) : 0;
+
+  const results: CaseResult[] = [];
+
   for (const entry of cases) {
-    const flowFile = path.resolve(entry.file);
-    if (!fs.existsSync(flowFile)) {
-      console.log(`  ⚠️  [SKIP] ${entry.name} — file not found: ${entry.file}`);
+    const flowResult = flowResults.get(entry.id);
+    if (!flowResult) {
+      // Flow didn't appear in output — likely skipped or suite crashed before reaching it
+      console.log(`  ⚠️  [SKIP] ${entry.name} — not found in Maestro output`);
       results.push({
         id: entry.id,
         name: entry.name,
@@ -325,28 +411,27 @@ async function main() {
         durationMs: 0,
         exitCode: -1,
         stdout: '',
-        stderr: 'File not found',
+        stderr: suiteStderr.slice(0, 500),
         screenshotPath: null,
-        failureReason: 'YAML file not found',
+        failureReason: 'Flow not reached in suite run',
         runAt: new Date().toISOString(),
       });
       continue;
     }
 
-    process.stdout.write(`  [${entry.priority.toUpperCase()}] ${entry.name} … `);
-    const caseStart = Date.now();
-
-    const { exitCode, stdout, stderr } = runMaestroCase(flowFile);
-    const durationMs = Date.now() - caseStart;
-
+    const status: CaseResult['status'] = flowResult.passed ? 'passed' : 'failed';
     let screenshotPath: string | null = null;
     let failureReason: string | null = null;
-    let status: CaseResult['status'] = exitCode === 0 ? 'passed' : 'failed';
 
     if (status === 'failed') {
       screenshotPath = takeScreenshot(entry.id);
-      failureReason = extractFailureReason(stdout, stderr);
+      failureReason = extractFailureReason(flowResult.block, suiteStderr);
     }
+
+    const icon = status === 'passed' ? '✅' : '❌';
+    console.log(`  [${entry.priority.toUpperCase()}] ${entry.name} … ${icon}`);
+    if (failureReason) console.log(`      Reason: ${failureReason}`);
+    if (screenshotPath) console.log(`      Screenshot: ${screenshotPath}`);
 
     results.push({
       id: entry.id,
@@ -354,23 +439,14 @@ async function main() {
       priority: entry.priority,
       category: entry.category,
       status,
-      durationMs,
-      exitCode,
-      stdout: stdout.slice(0, 3000), // cap to avoid huge JSON
-      stderr: stderr.slice(0, 1000),
+      durationMs: perFlowMs,
+      exitCode: flowResult.passed ? 0 : 1,
+      stdout: flowResult.block.slice(0, 3000),
+      stderr: suiteStderr.slice(0, 500),
       screenshotPath,
       failureReason,
       runAt: new Date().toISOString(),
     });
-
-    const elapsed = (durationMs / 1000).toFixed(1);
-    if (status === 'passed') {
-      console.log(`✅ PASS (${elapsed}s)`);
-    } else {
-      console.log(`❌ FAIL (${elapsed}s)`);
-      if (failureReason) console.log(`      Reason: ${failureReason}`);
-      if (screenshotPath) console.log(`      Screenshot: ${screenshotPath}`);
-    }
   }
 
   // Write results report

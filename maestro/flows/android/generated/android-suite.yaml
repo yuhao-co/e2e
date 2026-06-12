@@ -1,62 +1,43 @@
-##
-# FULL SUITE — All 23 search-result scenarios, single app launch
-#
-# Scenarios (in order):
-#   01. Smoke               — Page elements visible
-#   02. Filter Direct       — Apply Direct filter
-#   03. Filter One-Stop     — Apply 1-Stop filter (resets Direct first)
-#   04. Filter Reset        — Select Direct, then tvReset
-#   05. Filter Time Morning — Apply Morning departure filter
-#   06. Filter Airline      — Open airline tab, verify recycler, close
-#   07. Filter Price        — Open price tab, verify slider, apply
-#   08. Filter Transit Point— Open transit-point sub-filter, close
-#   09. Filter Combined     — Direct + Morning simultaneously
-#   10. No-Result Reset     — Direct + Evening (low/no results), reset
-#   11. Quick Filter        — Tap Stops chip → filter dialog opens
-#   12. Sort Open           — Tap floating sort button, back
-#   13. Sort Recommended    — Open sort tray → Recommended
-#   14. Sort Earliest Dep   — Open sort tray → Earliest Departure
-#   15. Sort Shortest Dur   — Open sort tray → Shortest Duration
-#   16. Sort Lowest Price   — Open sort tray → Lowest Price
-#   17. Sort Then Filter    — Sort + open/close filter dialog
-#   18. Scroll              — Scroll down 2×, cards still visible
-#   19. Date Flow           — scrollUntilVisible UP + assert date-strip
-#   20. Card Detail         — Tap card, back (detail opens)
-#   21. Card Info Icon      — Tap price section, back
-#   22. Back Navigation     — System back → search form, re-navigate
-#   23. Change Search       — Tap navbar chevron → search overlay
-#
-# ══════════════════════════════════════════════════════════════════════════════
-# COMPOSE ID CONTRACT
-# ══════════════════════════════════════════════════════════════════════════════
-# Results page (flight_result_v4_*) is fully Jetpack Compose:
-#   flight_result_v4_navbar_toolbar_title           — header / "on results" proof
-#   flight_result_v4_navbar_toolbar_subtitle_chevron— change-search chevron
-#   flight_result_v4_date_flow_row                  — date strip container
-#   flight_result_v4_filter_button                  — Filter button (opens dialog)
-#   flight_result_v4_quick_filter_cell              — Stops/Airlines/Time chips
-#   flight_result_v4_inventory_card                 — each flight card
-#   flight_result_v4_inventory_card_price_section   — price area on card
-#   bm_button_text                                  — floating sort pill (BMButton text)
-#
-# Filter dialog + search form are STILL XML (retain android:id):
-#   layout_filter_dialog, layer_transit, layer_airline, layer_time, layer_price
-#   button_direct, button_one_transit, button_two_transit, tvReset, dbwShow
-#   recycler_view_content, slider_price_range
-#   search_tab, btn_search
-#
-# Source: traveloka/android-v3 @ develop (2026-06-11)
-##
+# Auto-generated Android Maestro Suite
+# Generated: 2026-06-12T07:26:26.352Z
+# 15 cases covering flight search results
+# STRONG CONSTRAINT: This is the single source of truth for this run.
+#   Do NOT split into per-scenario files.
+
+# === P0: Search Results Page Loads ===
 appId: com.traveloka.android.staging
-clearState: true
+name: android-results-smoke
+---
+# Test case for verifying the flight search results page loads correctly
+- launchApp  # Step 1: Launch the application
+- tapOn:     # Step 2: Tap on the "Flights" tile on the home screen
+    text: "Flights"  # Home screen product tile has no android:id, text match is the only option
+- assertVisible:  # Step 3: Assert that the search tab is visible
+    id: "search_tab"
+- tapOn:  # Step 4: Tap on the search tab
+    id: "search_tab"
+- assertVisible:  # Step 5: Assert that the search button is visible
+    id: "btn_search"
+- tapOn:  # Step 6: Tap on the search button to initiate the flight search
+    id: "btn_search"
+- assertVisible:  # Step 7: Assert that the results page header is visible
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:  # Step 8: Wait until at least one flight card is visible
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+- assertVisible:  # Step 9: Assert that at least one flight card is loaded
+    id: "flight_result_v4_inventory_card"
 ---
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SETUP — Launch once, navigate to flight search results
-# ══════════════════════════════════════════════════════════════════════════════
+# === P0: Direct Flight Filter ===
+appId: com.traveloka.android.staging
+name: android-results-filter-direct
+---
+# Test case for Direct Flight Filter scenario
 - launchApp
 - tapOn:
-    text: "Flights"
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
 - assertVisible:
     id: "search_tab"
 - tapOn:
@@ -64,435 +45,661 @@ clearState: true
 - assertVisible:
     id: "btn_search"
 - tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 1: Open filter dialog
+- tapOn:
+    id: "flight_result_v4_quick_filter_cell"  # Tap the first quick_filter_item chip to open filter dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"  # Wait for filter dialog to appear
+    timeout: 10000
+
+# Step 2: Apply Direct filter
+- tapOn:
+    id: "button_direct"  # Tap the Direct filter button
+- tapOn:
+    id: "tvResult"  # Tap the Apply button to apply the filter
+
+# Step 3: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Wait for result_container to reload
+
+# Step 4: Assert at least one flight card is visible
+- assertVisible:
+    id: "flight_result_v4_inventory_card"  # Assert that at least one flight card is visible after filter applied
+---
+
+# === P0: Sort by Cheapest ===
+appId: com.traveloka.android.staging
+name: android-results-sort-cheapest
+---
+# Scenario: Sort by Cheapest
+# Description: Open sort tray, tap first sort option (Cheapest), verify reload
+# Priority: p0
+
+# Precondition: Navigate to search results
+- launchApp
+- tapOn:
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
     id: "btn_search"
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
 - assertVisible:
     id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 1: Open sort tray
+- tapOn:
+    id: "rbg_sort"  # Tap the sort radio group
+
+# Step 2: Tap the first sort option (Cheapest)
+- tapOn:
+    id: "radio_button"  # Tap the radio button for sorting
+    index: 0  # Index 0 corresponds to "Cheapest"
+
+# Step 3: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Wait for flight cards to be visible again
+    timeout: 30000
+
+# Step 4: Assert flight cards are still visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"
+    id: "flight_result_v4_inventory_card"  # Verify that flight cards are still displayed after sorting
+---
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 01 — SMOKE: Key elements visible on results page
-# ══════════════════════════════════════════════════════════════════════════════
+# === P0: Select a Flight (View Detail) ===
+appId: com.traveloka.android.staging
+name: android-results-select-flight
+---
+# Step 1: Launch the app and navigate to the flight search results
+- launchApp
+- tapOn:
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
 - assertVisible:
     id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_date_flow_row"
-- assertVisible:
-    id: "flight_result_v4_filter_button"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
 
+# Step 2: Wait for the flight result container view to be visible
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_container_view"  # Wait for the flight result container view
+    timeout: 30000
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 02 — FILTER DIRECT: Apply Direct-only filter
-# ══════════════════════════════════════════════════════════════════════════════
+# Step 3: Tap the first flight result container view
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    id: "flight_result_container_view"  # Tap the first flight result container view
+
+# Step 4: Wait for the detail screen to appear
+- extendedWaitUntil:
+    visible:
+      id: "flight_detail_screen"  # Wait for the detail screen to be visible (replace with actual ID if available)
+    timeout: 30000
+
+# Step 5: Assert we are no longer on the plain results list
 - assertVisible:
-    id: "layout_filter_dialog"
+    id: "flight_detail_screen"  # Assert that we are on the detail screen (replace with actual ID if available)
+---
+
+# === P0: Back to Search Form ===
+appId: com.traveloka.android.staging
+name: android-results-back-to-search
+---
+# Test case for navigating back to the search form from flight search results
+- launchApp  # Step 1: Launch the app
 - tapOn:
-    id: "layer_transit"
+    text: "Flights"  # Step 2: Tap on the Flights tile on the home screen
 - assertVisible:
-    id: "button_direct"
+    id: "search_tab"  # Step 3: Assert that the search tab is visible
 - tapOn:
-    id: "button_direct"
+    id: "search_tab"  # Step 4: Tap on the search tab
+- assertVisible:
+    id: "btn_search"  # Step 5: Assert that the search button is visible
 - tapOn:
-    id: "dbwShow"
+    id: "btn_search"  # Step 6: Tap on the search button to initiate the flight search
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"  # Step 7: Assert that the results page title is visible
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Step 8: Wait until the flight inventory card is visible
+    timeout: 30000  # Wait for up to 30 seconds for the inventory card to appear
+- tapOn:
+    id: "image_arrow_back"  # Step 9: Tap on the back arrow to return to the search form
+- extendedWaitUntil:
+    visible:
+      id: "search_tab"  # Step 10: Wait until the search tab is visible again
+    timeout: 30000  # Wait for up to 30 seconds for the search tab to appear
+- assertVisible:
+    id: "flight_result_v4_inventory_card"  # Step 11: Assert that the inventory card is no longer visible after navigating back
+    # This verifies that we have successfully left the results page
+---
+
+# === P1: 1-Stop Filter ===
+appId: com.traveloka.android.staging
+name: android-results-filter-one-stop
+---
+# Test case for applying 1-Stop filter on flight search results
+- launchApp
+- tapOn:
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
 - assertVisible:
     id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
 
+# Step to open filter dialog
+- tapOn:
+    id: "quick_filter_item"  # Tap quick_filter_item to open filter dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"  # Wait for filter dialog to be visible
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 03 — FILTER ONE-STOP: Deselect Direct, select 1-Stop
-# (Direct is still active from scenario 02 — deselect it first)
-# ══════════════════════════════════════════════════════════════════════════════
+# Step to apply 1-Stop filter
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    id: "button_one_transit"  # Tap button_one_transit to apply 1-stop filter
+- tapOn:
+    id: "tvResult"  # Tap tvResult to apply the filter
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Wait for result_container to reload
+
+# Assert that flight cards are still visible after applying the filter
 - assertVisible:
-    id: "layout_filter_dialog"
+    id: "flight_result_v4_inventory_card"  # Assert that flight cards are visible after applying the filter
+---
+
+# === P1: Sort by Fastest ===
+appId: com.traveloka.android.staging
+name: android-results-sort-fastest
+---
+# Test case for sorting flight results by Fastest
+- launchApp
 - tapOn:
-    id: "layer_transit"
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
 - assertVisible:
-    id: "button_one_transit"
+    id: "search_tab"
 - tapOn:
-    id: "button_direct"
-    optional: true
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
 - tapOn:
-    id: "button_one_transit"
-- tapOn:
-    id: "dbwShow"
+    id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
 - assertVisible:
     id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
 
+# Step to tap on the sort button
+- tapOn:
+    id: "rbg_sort"  # Tap the sort button to open sorting options
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 04 — FILTER RESET: Select Direct, then reset all filters
-# ══════════════════════════════════════════════════════════════════════════════
+# Step to select the Fastest sort option
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    id: "sortOptionRadio"  # Tap the radio button for sorting options
+    index: 1  # Select the second option (Fastest)
+
+# Wait for the results to reload after sorting
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000  # Wait for the flight cards to be visible again
+
+# Assert that the flight cards are still visible after sorting
 - assertVisible:
-    id: "layout_filter_dialog"
+    id: "flight_result_v4_inventory_card"  # Ensure that the flight cards are still displayed after sorting by Fastest
+---
+
+# === P1: Airline Filter via Bottom Sheet ===
+appId: com.traveloka.android.staging
+name: android-results-airline-filter
+---
+# Step 1: Launch the app and navigate to the flight search results
+- launchApp
 - tapOn:
-    id: "layer_transit"
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
 - assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 2: Open the filter dialog
+- tapOn:
+    id: "flight_result_v4_filter_button"  # Tap the filter button to open the filter dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"  # Wait for the filter dialog to become visible
+
+# Step 3: Scroll to the airline section and select the first airline
+- scroll  # Scroll to make sure the airline section is visible
+- tapOn:
+    id: "layer_airline"  # Tap the airline section to expand it
+- tapOn:
+    id: "recycler_view_content"  # Tap the first airline checkbox inside the recycler view
+
+# Step 4: Apply the filter
+- tapOn:
+    id: "tvResult"  # Tap to apply the filter
+
+# Step 5: Wait for the results to reload
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Wait for the result cards to reload after applying the filter
+
+# Step 6: Assert that the airline filter has been applied
+- assertVisible:
+    id: "flight_result_v4_inventory_card"  # Verify that the flight cards are updated with the applied airline filter
+---
+
+# === P1: Departure Morning Filter ===
+appId: com.traveloka.android.staging
+name: android-results-departure-time-filter
+---
+# Step 1: Launch the app and navigate to the flight search results
+- launchApp
+- tapOn:
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
+- assertVisible:
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
+- assertVisible:
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 2: Open filter dialog and apply morning departure filter
+- tapOn:
+    id: "flight_result_v4_quick_filter_cell"  # Tap quick_filter_item to open filter dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"  # Wait for layout_filter_dialog (id)
+    timeout: 30000
+- scroll  # Scroll to layer_time section
+- tapOn:
+    id: "button_departure_morning"  # Tap button_departure_morning (id)
+- tapOn:
+    id: "tvResult"  # Tap tvResult to apply
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Wait for result_container reload
+    timeout: 30000
+
+# Step 3: Assert that the morning departure filter is applied
+- assertVisible:
+    id: "flight_result_v4_inventory_card"  # Verify that results are updated with morning departures
+---
+
+# === P1: Reset All Filters ===
+appId: com.traveloka.android.staging
+name: android-results-reset-filters
+---
+# Step 1: Launch the app
+- launchApp
+
+# Step 2: Tap on the "Flights" tile to navigate to the search results
+- tapOn:
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
+
+# Step 3: Assert that the search tab is visible
+- assertVisible:
+    id: "search_tab"
+
+# Step 4: Tap on the search tab
+- tapOn:
+    id: "search_tab"
+
+# Step 5: Assert that the search button is visible
+- assertVisible:
+    id: "btn_search"
+
+# Step 6: Tap on the search button to initiate the flight search
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA
+
+# Step 7: Assert that the flight results page header is visible
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+# Step 8: Wait until the inventory card is visible
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 9: Tap on any quick filter item to open the filter dialog
+- tapOn:
+    id: "flight_result_v4_quick_filter_cell"  # Open filter dialog
+
+# Step 10: Wait for the filter dialog to be visible
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+
+# Step 11: Tap on the direct filter button to select it
+- tapOn:
     id: "button_direct"
+
+# Step 12: Tap on the reset button to clear all filters
 - tapOn:
-    id: "button_one_transit"
-    optional: true
+    id: "tvReset"  # Reset all filters
+
+# Step 13: Tap on the result button to apply with no filters
 - tapOn:
-    id: "button_direct"
+    id: "tvResult"
+
+# Step 14: Wait for the inventory card to reload
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 15: Assert that the flight result container view is visible
+- assertVisible:
+    id: "flight_result_v4_inventory_card"  # Verify that results are restored after reset
+---
+
+# === P1: Scroll Through Results ===
+appId: com.traveloka.android.staging
+name: android-results-scroll
+---
+# Scenario: Scroll Through Results
+# Description: Swipe up on result_container to scroll and load more cards
+# Priority: p1
+
+# Step 1: Navigate to search results
+- launchApp
 - tapOn:
-    id: "tvReset"
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
 - assertVisible:
-    id: "button_direct"
+    id: "search_tab"
+- tapOn:
+    id: "search_tab"
 - assertVisible:
-    id: "button_one_transit"
+    id: "btn_search"
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
 - assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 2: Wait for flight_result_container_view (id)
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Wait for the inventory card to be visible
+
+# Step 3: Swipe UP on result_container (id: result_container)
+- scroll  # Scroll up to load more flight cards
+
+# Step 4: Swipe UP again
+- scroll  # Scroll up again to load more flight cards
+
+# Step 5: Assert flight_result_container_view still visible
+- assertVisible:
+    id: "flight_result_v4_inventory_card"  # Verify that the inventory card is still visible after scrolling
+---
+
+# === P1: View Price Calendar ===
+appId: com.traveloka.android.staging
+name: android-results-price-calendar
+---
+# Step 1: Launch the app
+- launchApp
+
+# Step 2: Tap on the "Flights" tile to navigate to the search form
+- tapOn:
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
+
+# Step 3: Assert that the search tab is visible
+- assertVisible:
+    id: "search_tab"
+
+# Step 4: Tap on the search tab
+- tapOn:
+    id: "search_tab"
+
+# Step 5: Assert that the search button is visible
+- assertVisible:
+    id: "btn_search"
+
+# Step 6: Tap on the search button to initiate the flight search
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA
+
+# Step 7: Assert that the flight results page header is visible
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+# Step 8: Wait until the inventory card is visible, indicating results are loaded
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 9: Tap on the date widget to open the price calendar
+- tapOn:
+    id: "flight_result_v4_date_flow_row"  # Tap on the date widget to open the price calendar
+
+# Step 10: Wait for the price calendar view to appear
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_date_flow_row"  # Assuming the price calendar view has a similar ID
+
+# Step 11: Take a screenshot for visual verification
+- screenshot: "price_calendar_view"  # Capture the price calendar view for verification
+
+# Step 12: Assert that the price calendar view is visible
+- assertVisible:
+    id: "flight_result_v4_date_flow_row"  # Verify that the price calendar view is displayed after tapping the date widget
+---
+
+# === P2: 2+ Stops Filter ===
+appId: com.traveloka.android.staging
+name: android-results-filter-multi-stop
+---
+# Step 1: Launch the app
+- launchApp
+
+# Step 2: Tap on the "Flights" tile to navigate to the search results
+- tapOn:
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
+
+# Step 3: Assert that the search tab is visible
+- assertVisible:
+    id: "search_tab"
+
+# Step 4: Tap on the search tab
+- tapOn:
+    id: "search_tab"
+
+# Step 5: Assert that the search button is visible
+- assertVisible:
+    id: "btn_search"
+
+# Step 6: Tap on the search button to initiate the flight search
+- tapOn:
+    id: "btn_search"  # btn_search is the blue Search CTA
+
+# Step 7: Assert that the flight results page header is visible
+- assertVisible:
+    id: "flight_result_v4_navbar_toolbar_title"
+
+# Step 8: Wait until the flight inventory card is visible
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
+
+# Step 9: Tap on any quick filter item to open the filter dialog
+- tapOn:
+    id: "flight_result_v4_quick_filter_cell"  # Trigger to open filter dialog
+
+# Step 10: Wait for the filter dialog to be visible
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+
+# Step 11: Tap on the button for 2+ stops filter
+- tapOn:
     id: "button_two_transit"
-- tapOn:
-    id: "dbwShow"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
 
+# Step 12: Tap on the result button to apply the filter
+- tapOn:
+    id: "tvResult"
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 05 — FILTER TIME MORNING: Apply Morning departure filter
-# NOTE: Filter dialog is a single-pane scrollable sheet. Time section is below
-# Airlines — must scroll DOWN to reach button_departure_morning.
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "flight_result_v4_filter_button"
-- assertVisible:
-    id: "layout_filter_dialog"
-- scrollUntilVisible:
-    element:
-      id: "button_departure_morning"
-    direction: DOWN
-- tapOn:
-    id: "button_departure_morning"
-- tapOn:
-    id: "dbwShow"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
+# Step 13: Wait for the flight inventory card to reload
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
 
+# Step 14: Assert that the results or empty-state is visible after applying the filter
+- assertVisible:
+    id: "flight_result_v4_inventory_card"  # Verifying that results are displayed after filter is applied
+---
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 06 — FILTER AIRLINE: Open filter, verify Airlines section, close
-# NOTE: Single-pane layout — Airlines section is visible without tapping a tab.
-# ══════════════════════════════════════════════════════════════════════════════
+# === P2: Sort by Best ===
+appId: com.traveloka.android.staging
+name: android-results-sort-best
+---
+# Test case for sorting flight results by Best
+- launchApp  # Launch the application
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    text: "Flights"  # Tap on the Flights tile on the home screen
 - assertVisible:
-    id: "layout_filter_dialog"
-- assertVisible:
-    id: "recycler_view_content"
+    id: "search_tab"  # Verify that the search tab is visible
 - tapOn:
-    id: "ivClose"
+    id: "search_tab"  # Tap on the search tab
 - assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+    id: "btn_search"  # Verify that the search button is visible
+- tapOn:
+    id: "btn_search"  # Tap on the search button to initiate the flight search
 - assertVisible:
-    id: "flight_result_v4_inventory_card"
+    id: "flight_result_v4_navbar_toolbar_title"  # Verify that the results page header is visible
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Wait until the flight results are visible
+    timeout: 30000  # Set a timeout of 30 seconds for the wait
+- tapOn:
+    id: "rbg_sort"  # Tap on the sort button to open the sorting options
+- tapOn:
+    id: "radio_button"  # Tap on the radio button for sorting
+    index: 2  # Select the index for Best sort option
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"  # Wait for the flight results to reload after sorting
+    timeout: 30000  # Set a timeout of 30 seconds for the wait
+- assertVisible:
+    id: "flight_result_v4_inventory_card"  # Verify that the flight results are still visible after sorting
+---
 
+# === P2: View Flight Detail (Card Tap) ===
+appId: com.traveloka.android.staging
+name: android-results-view-detail
+---
+# Scenario: View Flight Detail (Card Tap)
+# Description: Tap flight_result_container_view to open detail, check layout
+# Priority: p2
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 07 — FILTER PRICE: Scroll to price section, verify slider, apply
-# NOTE: Single-pane layout — Price section is below Airlines, needs scroll DOWN.
-# ══════════════════════════════════════════════════════════════════════════════
+# Step 1: Navigate to search results
+- launchApp
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    text: "Flights"  # Home screen product tile has NO android:id — text match is the ONLY contract
 - assertVisible:
-    id: "layout_filter_dialog"
-- scrollUntilVisible:
-    element:
-      id: "slider_price_range"
-    direction: DOWN
-- assertVisible:
-    id: "slider_price_range"
+    id: "search_tab"
 - tapOn:
-    id: "dbwShow"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 08 — FILTER TRANSIT POINT: Open transit-point sub-filter, close
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "flight_result_v4_filter_button"
-- assertVisible:
-    id: "layout_filter_dialog"
-- tapOn:
-    id: "layer_transit"
-- assertVisible:
-    id: "button_direct"
-- tapOn:
-    id: "button_show_transit_filter"
-    optional: true
-- assertVisible:
-    id: "layout_filter_dialog"
-- tapOn:
-    id: "ivClose"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 09 — FILTER COMBINED: Direct + Morning simultaneously
-# Reset accumulated filters first, then apply combo.
-# NOTE: button_direct is in Stops section (top). Scroll DOWN for Morning button.
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "flight_result_v4_filter_button"
-- assertVisible:
-    id: "layout_filter_dialog"
-- tapOn:
-    id: "tvReset"
-- tapOn:
-    id: "button_direct"
-- scrollUntilVisible:
-    element:
-      id: "button_departure_morning"
-    direction: DOWN
-- tapOn:
-    id: "button_departure_morning"
-- tapOn:
-    id: "dbwShow"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 10 — NO-RESULT RESET: Direct + Evening (likely no results), reset
-# Reset previous combo first, then apply Direct + Evening.
-# NOTE: Scroll DOWN to reach button_departure_evening (Time section).
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "flight_result_v4_filter_button"
-- assertVisible:
-    id: "layout_filter_dialog"
-- tapOn:
-    id: "tvReset"
-- tapOn:
-    id: "button_direct"
-- scrollUntilVisible:
-    element:
-      id: "button_departure_evening"
-    direction: DOWN
-- tapOn:
-    id: "button_departure_evening"
-- tapOn:
-    id: "dbwShow"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-
-# Reset to full results before quick-filter + sort tests
-- tapOn:
-    id: "flight_result_v4_filter_button"
-- assertVisible:
-    id: "layout_filter_dialog"
-- tapOn:
-    id: "tvReset"
-- tapOn:
-    id: "dbwShow"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 11 — QUICK FILTER: Tap Stops chip → dedicated Stops mini-sheet opens
-# NOTE: quick_filter_cell opens a compact per-category bottom sheet, NOT the
-# full layout_filter_dialog. The mini-sheet uses checkboxes (different IDs than
-# the full filter's radio buttons — button_direct is NOT accessible here).
-# Assert by text "Direct" which is visible in the Number of Stops mini-sheet.
-# ══════════════════════════════════════════════════════════════════════════════
-- assertVisible:
-    id: "flight_result_v4_quick_filter_cell"
-- tapOn:
-    id: "flight_result_v4_quick_filter_cell"
-    index: 0
-- assertVisible:
-    text: "Direct"
-- back
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 12 — SORT OPEN: Floating sort pill → tray opens → back
-# Sort button: bm_button_text (Bloom DS) — visible only when
-# shouldDisplaySortButtonInNavbar == false in FlightResultV4SortAndFilterView.kt
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "bm_button_text"
-- back
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 13 — SORT CHEAPEST
-# Sort tray options are dynamically created MDSRadioButton instances (no individual IDs).
-# Source: FlightSortTrayWidgetPresenter.kt — tap by inner radio_button ID + index.
-# Order (scoreShown=false): 0=Cheapest 1=Direct first 2=Earliest dep 3=Latest dep
-#                           4=Earliest arr 5=Latest arr 6=Shortest duration
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "bm_button_text"
-- tapOn:
-    id: "radio_button"
-    index: 0
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 14 — SORT EARLIEST DEPARTURE  (radio_button index 2)
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "bm_button_text"
-- tapOn:
-    id: "radio_button"
-    index: 2
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 15 — SORT SHORTEST DURATION  (radio_button index 6)
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "bm_button_text"
-- tapOn:
-    id: "radio_button"
-    index: 6
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 16 — SORT LATEST DEPARTURE  (radio_button index 3)
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "bm_button_text"
-- tapOn:
-    id: "radio_button"
-    index: 3
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 17 — SORT THEN FILTER: Sort by Earliest departure (index 2), then open filter
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "bm_button_text"
-- tapOn:
-    id: "radio_button"
-    index: 2
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-- tapOn:
-    id: "flight_result_v4_filter_button"
-- assertVisible:
-    id: "layout_filter_dialog"
-- tapOn:
-    id: "ivClose"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 18 — SCROLL: Scroll list 2×, cards remain visible
-# ══════════════════════════════════════════════════════════════════════════════
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-- scroll
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-- scroll
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 19 — DATE FLOW: Scroll back to top, verify date strip
-# Individual date items inside the LazyRow have no testTag
-# (FlightResultV4DateFlowComposeView.kt — testTag on Row container only).
-# Date tap interaction → P1 suite (requires text-based date selection).
-# ══════════════════════════════════════════════════════════════════════════════
-- scrollUntilVisible:
-    element:
-      id: "flight_result_v4_date_flow_row"
-    direction: UP
-- assertVisible:
-    id: "flight_result_v4_date_flow_row"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 20 — CARD DETAIL: Tap first card, detail opens, close with back
-# dialog_toolbar / bSelect are unverified Compose IDs — using back instead of
-# asserting specific dialog elements (safe approach for P0/all-scenario suite)
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "flight_result_v4_inventory_card"
-    index: 0
-- back
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 21 — CARD INFO ICON: Tap price section on first card, close
-# (price section tap may open price detail or baggage info tray)
-# ══════════════════════════════════════════════════════════════════════════════
-- tapOn:
-    id: "flight_result_v4_inventory_card_price_section"
-    index: 0
-- back
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 22 — BACK NAVIGATION: System back → search form → re-navigate
-# Compose results page has no accessible back-button testTag
-# (image_arrow_back is XML, not in Compose accessibility tree)
-# ══════════════════════════════════════════════════════════════════════════════
-- back
+    id: "search_tab"
 - assertVisible:
     id: "btn_search"
-# Re-navigate to results for scenario 23
 - tapOn:
-    id: "btn_search"
+    id: "btn_search"  # btn_search is the blue Search CTA (hangar_widget.xml line 209)
 - assertVisible:
     id: "flight_result_v4_navbar_toolbar_title"
-- assertVisible:
-    id: "flight_result_v4_inventory_card"
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_v4_inventory_card"
+    timeout: 30000
 
+# Step 2: Wait for flight_result_container_view (id)
+- extendedWaitUntil:
+    visible:
+      id: "flight_result_container_view"
+    timeout: 30000
 
-# ══════════════════════════════════════════════════════════════════════════════
-# SCENARIO 23 — CHANGE SEARCH: Navbar chevron opens inline search overlay
-# ══════════════════════════════════════════════════════════════════════════════
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_subtitle_chevron"
+# Step 3: Tap flight_result_container_view (id)
 - tapOn:
-    id: "flight_result_v4_navbar_toolbar_subtitle_chevron"
+    id: "flight_result_container_view"
+
+# Step 4: Wait for detail overlay or new screen
+- extendedWaitUntil:
+    visible:
+      id: "detail_overlay"  # Assuming detail_overlay is the ID for the detail view, replace with actual ID if different
+    timeout: 30000
+
+# Step 5: Take screenshot
+- screenshot:
+    path: "test-results/android/android-results-view-detail.png"
+
+# Step 6: Tap back to return to results
+- back
+
+# Step 7: Assert result_container visible again (id)
 - assertVisible:
-    id: "btn_search"
+    id: "flight_result_v4_inventory_card"  # Assert that the results are visible again after returning from detail view

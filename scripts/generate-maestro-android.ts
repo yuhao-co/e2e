@@ -1549,7 +1549,12 @@ async function main() {
       const warnings = validateYaml(yaml, scenario);
 
       // STRONG CONSTRAINT: do NOT write individual files — accumulate into suite only
-      suiteChunks.push(`# === ${scenario.priority.toUpperCase()}: ${scenario.name} ===\n${yaml}`);
+      // Inject name: <id> so Maestro labels each flow in stdout for per-flow result parsing
+      const yamlWithName = yaml.replace(
+        /^(appId:[^\n]+)/m,
+        `$1\nname: ${scenario.id}`
+      );
+      suiteChunks.push(`# === ${scenario.priority.toUpperCase()}: ${scenario.name} ===\n${yamlWithName}`);
       manifest.push({
         id: scenario.id,
         priority: scenario.priority,

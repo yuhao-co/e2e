@@ -1,26 +1,7 @@
 # Auto-generated Android Maestro run-all
-# Generated: 2026-06-12T07:03:32.140Z
-# 15 cases covering flight search results
+# Generated: 2026-06-12T07:26:26.353Z
+# STRONG CONSTRAINT: Always references the single android-suite.yaml — never per-scenario files.
 appId: com.traveloka.android.staging
 ---
 
-# === P0: Critical smoke ===
-- runFlow: generated/android-results-smoke.yaml
-- runFlow: generated/android-results-filter-direct.yaml
-- runFlow: generated/android-results-sort-cheapest.yaml
-- runFlow: generated/android-results-select-flight.yaml
-- runFlow: generated/android-results-back-to-search.yaml
-
-# === P1: Core coverage ===
-- runFlow: generated/android-results-filter-one-stop.yaml
-- runFlow: generated/android-results-sort-fastest.yaml
-- runFlow: generated/android-results-airline-filter.yaml
-- runFlow: generated/android-results-departure-time-filter.yaml
-- runFlow: generated/android-results-reset-filters.yaml
-- runFlow: generated/android-results-scroll.yaml
-- runFlow: generated/android-results-price-calendar.yaml
-
-# === P2: Edge cases ===
-- runFlow: generated/android-results-filter-multi-stop.yaml
-- runFlow: generated/android-results-sort-best.yaml
-- runFlow: generated/android-results-view-detail.yaml
+- runFlow: generated/android-suite.yaml
