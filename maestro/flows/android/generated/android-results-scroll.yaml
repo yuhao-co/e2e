@@ -1,10 +1,10 @@
 appId: com.traveloka.android.staging
 name: android-results-scroll
 ---
-# Step 1: Launch the app and navigate to the flight search results
+# Step 1: Launch the app and navigate to the search results
 - launchApp
 - tapOn:
-    text: "Flights"      # Home screen product tile has NO android:id — text match is the ONLY contract
+    text: "Flights"      # Home screen product tile — no testTag, text-only contract
 - assertVisible:
     id: "search_tab"
 - tapOn:
@@ -12,7 +12,7 @@ name: android-results-scroll
 - assertVisible:
     id: "btn_search"
 - tapOn:
-    id: "btn_search"     # btn_search is the blue Search CTA (hangar_widget.xml line 209)
+    id: "btn_search"
 - assertVisible:
     id: "flight_result_v4_navbar_toolbar_title"
 - extendedWaitUntil:
@@ -20,10 +20,10 @@ name: android-results-scroll
       id: "flight_result_v4_inventory_card"
     timeout: 30000
 
-# Step 2: Scroll through the results
-- scroll              # Swipe up to load more flight cards
-- scroll              # Swipe up again to load more flight cards
+# Step 2: Swipe up to scroll through the results
+- scroll              # First swipe up to load more cards
+- scroll              # Second swipe up to continue loading more cards
 
-# Step 3: Assert that flight cards are still visible after scrolling
+# Step 3: Assert that the flight result cards are still visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"  # Ensure that flight cards are still visible after scrolling
+    id: "flight_result_v4_inventory_card"  # Ensure cards are still visible after scrolling

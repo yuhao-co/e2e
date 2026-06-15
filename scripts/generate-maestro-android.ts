@@ -1620,7 +1620,7 @@ async function generateYaml(
   context: AndroidSourceContext,
   scenario: ScenarioDefinition,
   prdContent?: string,
-  retries = 2
+  retries = 3
 ): Promise<string> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -1648,8 +1648,12 @@ async function generateYaml(
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (attempt < retries) {
+        // Parse "Please wait N seconds" from GitHub Models 429 response
+        const waitMatch = msg.match(/wait\s+(\d+)\s+second/i);
+        const waitMs = waitMatch ? (parseInt(waitMatch[1], 10) + 2) * 1000 : 2000 * (attempt + 1);
         console.warn(`  [retry ${attempt + 1}] ${msg}`);
-        await sleep(2000 * (attempt + 1));
+        console.warn(`  [rate-limit] Waiting ${Math.round(waitMs / 1000)}s before retry...`);
+        await sleep(waitMs);
       } else {
         throw new Error(`AI generation failed after ${retries + 1} attempts: ${msg}`);
       }
@@ -1710,9 +1714,16 @@ function validateYaml(yaml: string, scenario: ScenarioDefinition): string[] {
   // These old XML android:id values no longer appear in the Accessibility tree
   // after the flight results page was migrated to Jetpack Compose (v4).
   // Any generated YAML using them will always fail at runtime.
+  // Exception: rbg_sort is valid in extendedWaitUntil context (sort tray container
+  // appears in a11y tree after bm_button tap). Only flag tapOn/assertVisible uses.
   for (const forbiddenId of FORBIDDEN_XML_IDS) {
     const pattern = new RegExp(`id:\\s*["']?${forbiddenId}["']?`);
     if (pattern.test(yaml)) {
+      // Allow rbg_sort inside extendedWaitUntil — it IS in the a11y tree when sort tray is open
+      if (forbiddenId === 'rbg_sort' && /extendedWaitUntil[\s\S]*?id:\s*["']?rbg_sort/.test(yaml)) {
+        const hasBadUse = /(?:tapOn|assertVisible):[\s\S]*?id:\s*["']?rbg_sort/.test(yaml);
+        if (!hasBadUse) continue;
+      }
       const replacement = COMPOSE_ID_MAP[forbiddenId];
       const hint = replacement ? ` → use "${replacement}" instead` : ' (no direct replacement; see COMPOSE_ID_MAP)';
       warnings.push(
@@ -1823,6 +1834,8 @@ async function main() {
         console.log(`✅ (${elapsed}s)`);
       }
       generated++;
+      // Throttle between requests to stay within GitHub Models 60k tokens/min limit
+      if (githubToken) await sleep(6000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.log(`❌ FAILED: ${msg}`);

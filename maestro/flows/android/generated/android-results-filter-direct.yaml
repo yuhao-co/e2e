@@ -1,9 +1,13 @@
 appId: com.traveloka.android.staging
 name: android-results-filter-direct
 ---
+# Test case for filtering direct flights
+# Scenario: Open full filter dialog, apply Direct filter, verify results
+
+# Step 1: Navigate to search results (precondition)
 - launchApp
 - tapOn:
-    text: "Flights"
+    text: "Flights"      # Home screen product tile — no testTag, text-only contract
 - assertVisible:
     id: "search_tab"
 - tapOn:
@@ -18,19 +22,25 @@ name: android-results-filter-direct
     visible:
       id: "flight_result_v4_inventory_card"
     timeout: 30000
+
+# Step 2: Open full filter dialog
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    id: "flight_result_v4_filter_button"  # Opens full filter dialog
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "layout_filter_dialog"           # Wait for filter dialog to appear
     timeout: 15000
+
+# Step 3: Apply Direct flights filter
 - tapOn:
-    id: "button_direct"
+    id: "button_direct"                    # Direct flights checkbox
 - tapOn:
-    id: "dbwShow"
+    id: "dbwShow"                          # Apply/Show Results button
+
+# Step 4: Verify results
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "flight_result_v4_navbar_toolbar_title"  # Wait for results to reload
     timeout: 30000
 - assertVisible:
-    id: "flight_result_v4_inventory_card"
+    id: "flight_result_v4_inventory_card"  # Assert at least one card is visible after filter applied

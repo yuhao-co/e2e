@@ -656,7 +656,8 @@ async function stageRun(): Promise<StageResult & { report: RunReport | null }> {
   try {
     let runArgs = ['tsx', 'scripts/run-maestro-android.ts'];
     if (PRIORITY) runArgs.push('--priority', PRIORITY);
-    else if (!FULL_RUN) runArgs.push('--priority', 'p0'); // default: P0+P1 only on diff runs
+    // No --priority default: run-maestro-android.ts defaults to P0+P1 when no filter set
+    // Previously was '--priority p0' which silently skipped all P1 cases
 
     const result = spawnSync('npx', runArgs, {
       stdio: 'inherit', encoding: 'utf8', env: { ...process.env },

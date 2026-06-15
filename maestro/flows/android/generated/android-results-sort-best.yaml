@@ -1,10 +1,14 @@
 appId: com.traveloka.android.staging
 name: android-results-sort-best
 ---
+# Test case for sorting flights by Best option
+# Scenario ID: android-results-sort-best
+# Description: Tap sort index 2 (Best) in sort tray
+
 # Step 1: Navigate to search results
 - launchApp
 - tapOn:
-    text: "Flights"      # Home screen product tile has NO android:id — text match is the ONLY contract
+    text: "Flights"      # Home screen product tile — no testTag, text-only contract
 - assertVisible:
     id: "search_tab"
 - tapOn:
@@ -12,7 +16,7 @@ name: android-results-sort-best
 - assertVisible:
     id: "btn_search"
 - tapOn:
-    id: "btn_search"     # btn_search is the blue Search CTA (hangar_widget.xml line 209)
+    id: "btn_search"
 - assertVisible:
     id: "flight_result_v4_navbar_toolbar_title"
 - extendedWaitUntil:
@@ -26,27 +30,23 @@ name: android-results-sort-best
       id: "flight_result_v4_navbar_toolbar_title"
     timeout: 30000
 
-# Step 3: Tap flight_result_v4_sort_button (Compose id) to open sort tray
+# Step 3: Tap bm_button (floating sort pill) to open sort tray
 - tapOn:
-    id: "flight_result_v4_sort_button"
+    id: "bm_button"          # Floating sort suggestion pill at bottom of results page
 
-# Step 4: Wait for sort tray to appear
+# Step 4: Wait for rbg_sort to appear
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_sort_button"
-    timeout: 30000
+      id: "rbg_sort"         # Wait for Sort tray container to appear
+    timeout: 10000
 
-# Step 5: Tap the radio_button at index 2 (Best) to sort by best value
+# Step 5: Tap the radio_button at index 2 (Direct first) to sort
 - tapOn:
     id: "radio_button"
-    index: 2
+    index: 2                 # Sort by Direct flights first
 
 # Step 6: Wait for flight_result_v4_navbar_toolbar_title to reload
 - extendedWaitUntil:
     visible:
       id: "flight_result_v4_navbar_toolbar_title"
     timeout: 30000
-
-# Success Criteria: Best sort applied, no crash
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"

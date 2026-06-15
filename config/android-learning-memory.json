@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-06-12T09:55:58.268Z",
-  "totalRuns": 13,
+  "lastUpdated": "2026-06-15T05:05:16.605Z",
+  "totalRuns": 14,
   "flakyScenarios": [],
   "stableScenarios": [
     "android-results-smoke",
@@ -15,6 +15,73 @@
     "android-results-price-calendar",
     "android-results-back-to-search",
     "android-results-scroll"
+  ],
+  "consecutivePasses": {
+    "android-results-smoke": 2,
+    "android-results-filter-direct": 2,
+    "android-results-select-flight": 1,
+    "android-results-sort-cheapest": 1,
+    "android-results-sort-fastest": 1,
+    "android-results-filter-one-stop": 1,
+    "android-results-airline-filter": 1,
+    "android-results-departure-time-filter": 1,
+    "android-results-reset-filters": 1,
+    "android-results-price-calendar": 1,
+    "android-results-back-to-search": 1,
+    "android-results-scroll": 1
+  },
+  "expansionQueue": [],
+  "coverageMap": {
+    "smoke": [
+      "android-results-smoke"
+    ],
+    "filter": [
+      "android-results-filter-direct",
+      "android-results-filter-one-stop"
+    ],
+    "select": [
+      "android-results-select-flight"
+    ],
+    "sort": [
+      "android-results-sort-cheapest",
+      "android-results-sort-fastest"
+    ],
+    "airline": [
+      "android-results-airline-filter"
+    ],
+    "departure": [
+      "android-results-departure-time-filter"
+    ],
+    "reset": [
+      "android-results-reset-filters"
+    ],
+    "price": [
+      "android-results-price-calendar"
+    ],
+    "back": [
+      "android-results-back-to-search"
+    ],
+    "scroll": [
+      "android-results-scroll"
+    ]
+  },
+  "coverageGaps": [
+    "smoke",
+    "scroll",
+    "select",
+    "calendar",
+    "airline",
+    "time"
+  ],
+  "knownFixPatterns": [
+    "FIXED: flight_result_v4_sort_button → bm_button + extendedWaitUntil rbg_sort + tapOn radio_button index N (sort tray, shouldDisplaySortButtonInNavbar=false in staging)",
+    "FIXED: quick_filter_item/quick_filter_cell → flight_result_v4_filter_button (opens Stops sheet only, NOT layout_filter_dialog)",
+    "FIXED: tvResult → dbwShow (tvResult is count display label; dbwShow is the actual apply button)",
+    "FIXED: swipe/scroll inside filter dialog → scrollUntilVisible (bare scroll targets results list behind dialog overlay)",
+    "FIXED: runFlowIfVisible removed in Maestro 2.x → use runFlow with when: condition",
+    "FIXED: tapOn text: \"Direct\" → tapOn id: \"button_direct\" (text matches flight card labels)",
+    "FIXED: price calendar icon has no testTag → tap at coordinate \"96%, 14%\" then assert calendar_navbar_close",
+    "FIXED: flight_result_v4_sort_button → bm_button + rbg_sort + radio_button index N (sort tray)"
   ],
   "fixHistory": [
     {
@@ -252,72 +319,12 @@
       "changedFiles": [],
       "affectedScenarios": [],
       "passRate": "60%"
+    },
+    {
+      "date": "2026-06-15T05:05:16.606Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "100%"
     }
-  ],
-  "consecutivePasses": {
-    "android-results-smoke": 1,
-    "android-results-filter-direct": 1,
-    "android-results-select-flight": 1,
-    "android-results-sort-cheapest": 1,
-    "android-results-sort-fastest": 1,
-    "android-results-filter-one-stop": 1,
-    "android-results-airline-filter": 1,
-    "android-results-departure-time-filter": 1,
-    "android-results-reset-filters": 1,
-    "android-results-price-calendar": 1,
-    "android-results-back-to-search": 1,
-    "android-results-scroll": 1
-  },
-  "expansionQueue": [],
-  "coverageMap": {
-    "smoke": [
-      "android-results-smoke"
-    ],
-    "filter": [
-      "android-results-filter-direct",
-      "android-results-filter-one-stop"
-    ],
-    "select": [
-      "android-results-select-flight"
-    ],
-    "sort": [
-      "android-results-sort-cheapest",
-      "android-results-sort-fastest"
-    ],
-    "airline": [
-      "android-results-airline-filter"
-    ],
-    "departure": [
-      "android-results-departure-time-filter"
-    ],
-    "reset": [
-      "android-results-reset-filters"
-    ],
-    "price": [
-      "android-results-price-calendar"
-    ],
-    "back": [
-      "android-results-back-to-search"
-    ],
-    "scroll": [
-      "android-results-scroll"
-    ]
-  },
-  "coverageGaps": [
-    "smoke",
-    "scroll",
-    "select",
-    "calendar",
-    "airline",
-    "time"
-  ],
-  "knownFixPatterns": [
-    "FIXED: flight_result_v4_sort_button → bm_button + extendedWaitUntil rbg_sort + tapOn radio_button index N (sort tray, shouldDisplaySortButtonInNavbar=false in staging)",
-    "FIXED: quick_filter_item/quick_filter_cell → flight_result_v4_filter_button (opens Stops sheet only, NOT layout_filter_dialog)",
-    "FIXED: tvResult → dbwShow (tvResult is count display label; dbwShow is the actual apply button)",
-    "FIXED: swipe/scroll inside filter dialog → scrollUntilVisible (bare scroll targets results list behind dialog overlay)",
-    "FIXED: runFlowIfVisible removed in Maestro 2.x → use runFlow with when: condition",
-    "FIXED: tapOn text: \"Direct\" → tapOn id: \"button_direct\" (text matches flight card labels)",
-    "FIXED: price calendar icon has no testTag → tap at coordinate \"96%, 14%\" then assert calendar_navbar_close"
   ]
 }

@@ -1,9 +1,14 @@
 appId: com.traveloka.android.staging
 name: android-results-price-calendar
 ---
+# Test case for viewing the price calendar from flight search results
+# Scenario ID: android-results-price-calendar
+# Description: Tap calendar icon at far-right of flight_result_v4_date_flow_row to open FlightBloomCalendarDialog, assert calendar_navbar_close visible
+
+# Step 1: Navigate to search results
 - launchApp
 - tapOn:
-    text: "Flights"
+    text: "Flights"      # Home screen product tile — no testTag, text-only contract
 - assertVisible:
     id: "search_tab"
 - tapOn:
@@ -18,15 +23,24 @@ name: android-results-price-calendar
     visible:
       id: "flight_result_v4_inventory_card"
     timeout: 30000
+
+# Step 2: Wait for the date flow row to be visible
 - extendedWaitUntil:
     visible:
       id: "flight_result_v4_date_flow_row"
     timeout: 10000
+
+# Step 3: Tap the calendar icon at the far-right of the date flow row
+# No testTag on this icon — percentage coordinates are device-independent
 - tapOn:
-    point: "96%, 14%"
+    point: "96%, 14%"  # Calendar icon at far-right of date_flow_row (verified fix pattern)
+
+# Step 4: Wait for the calendar dialog to open
 - extendedWaitUntil:
     visible:
       id: "calendar_navbar_close"
     timeout: 10000
+
+# Step 5: Assert that the calendar dialog is visible
 - assertVisible:
     id: "calendar_navbar_close"

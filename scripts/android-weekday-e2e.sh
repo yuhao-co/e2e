@@ -61,12 +61,20 @@ echo "[2/4] Running android:workflow:full …"
 npm run android:workflow:full 2>&1 | tee "$RUN_LOG"
 EXIT_CODE=${PIPESTATUS[0]}
 
-# ── 3. Keep only last 14 run logs ────────────────────────────────────────────
-echo "[3/4] Pruning old logs …"
+# ── 3. Shut down emulator (only if we started it; leave alone if pre-existing) ─
+if [ "$DEVICE_ONLINE" -eq 0 ]; then
+  echo "[3/4] Shutting down emulator …"
+  "$ADB" emu kill 2>/dev/null || true
+else
+  echo "[3/4] Emulator was pre-existing — leaving it running."
+fi
+
+# ── 4. Keep only last 14 run logs ────────────────────────────────────────────
+echo "[4/4] Pruning old logs …"
 ls -t "$LOG_DIR"/run-*.log 2>/dev/null | tail -n +15 | xargs rm -f || true
 
-# ── 4. Open HTML report (only when running interactively / not headless) ──────
-echo "[4/4] Report written to: $HTML_REPORT"
+# ── 5. Open HTML report (only when running interactively / not headless) ──────
+echo "[5/4] Report written to: $HTML_REPORT"
 if [ -t 1 ] && [ -f "$HTML_REPORT" ]; then
   open "$HTML_REPORT"
 fi
