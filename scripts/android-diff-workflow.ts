@@ -248,6 +248,137 @@ function fetchPrdWithCache(larkUrl: string): string | null {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// New-scenario discovery via gpt-4o
+// ---------------------------------------------------------------------------
+const PENDING_SCENARIOS_PATH = path.resolve('.cache/pending-scenarios.json');
+const EXISTING_SCENARIO_IDS = [
+  'android-results-smoke', 'android-results-filter-direct', 'android-results-sort-cheapest',
+  'android-results-select-flight', 'android-results-back-to-search', 'android-results-filter-one-stop',
+  'android-results-sort-fastest', 'android-results-airline-filter', 'android-results-departure-time-filter',
+  'android-results-reset-filters', 'android-results-scroll', 'android-results-price-calendar',
+  'android-results-filter-multi-stop', 'android-results-sort-best', 'android-results-view-detail',
+];
+
+interface PendingScenario {
+  id: string;
+  priority: 'p0' | 'p1' | 'p2';
+  category: 'smoke' | 'filter' | 'sort' | 'navigation' | 'interaction';
+  name: string;
+  description: string;
+  stepOutline: string[];
+  successCriteria: string[];
+  discoveredFrom: string; // PR title or component name
+}
+
+async function stageDiscoverNewScenarios(
+  prContexts: FlightPrContext[]
+): Promise<StageResult & { newScenarios: PendingScenario[] }> {
+  const t = Date.now();
+  const empty = { stage: 'discover-scenarios', success: true, durationMs: 0, newScenarios: [] as PendingScenario[] };
+
+  if (prContexts.length === 0) {
+    return { ...empty, output: 'Skipped (no [FLIGHT] PRs)' };
+  }
+
+  // Find PR components not covered by DIFF_SCENARIO_MAP
+  const uncoveredComponents: Array<{ prTitle: string; name: string; files: string[]; summary: string }> = [];
+  for (const pr of prContexts) {
+    for (const comp of pr.components) {
+      const isCovered = DIFF_SCENARIO_MAP.some(rule =>
+        comp.files.some(f => rule.pattern.test(f)) || rule.pattern.test(comp.name)
+      );
+      if (!isCovered) {
+        uncoveredComponents.push({ prTitle: pr.title, name: comp.name, files: comp.files, summary: comp.summary });
+      }
+    }
+  }
+
+  if (uncoveredComponents.length === 0) {
+    return { ...empty, output: 'No uncovered PR components — all changes map to existing scenarios' };
+  }
+
+  console.log(`  🔍 Found ${uncoveredComponents.length} uncovered component(s) — asking gpt-4o to propose scenarios…`);
+
+  const token = process.env.GITHUB_TOKEN || shSafe('gh auth token');
+  if (!token) return { ...empty, output: 'Skipped (no GitHub token for gpt-4o call)' };
+
+  const prompt = `You are a mobile QA engineer generating Maestro E2E test scenarios for the Traveloka Android flight app.
+
+The following PR components are NOT covered by any existing Maestro test scenario.
+Generate NEW test scenario definitions for them.
+
+EXISTING SCENARIO IDs (do NOT duplicate):
+${EXISTING_SCENARIO_IDS.join(', ')}
+
+UNCOVERED COMPONENTS:
+${uncoveredComponents.map((c, i) =>
+  `${i + 1}. Component: "${c.name}" (from PR: "${c.prTitle}")
+   Files: ${c.files.join(', ') || 'unknown'}
+   Summary: ${c.summary || 'no summary'}`
+).join('\n\n')}
+
+CONSTRAINTS:
+- Only generate scenarios for the Flight Search Results page (the page shown after tapping Search).
+- Each scenario must be testable with Maestro YAML (tap, assertVisible, extendedWaitUntil).
+- Use only accessibility IDs from the Compose-migrated codebase (no old XML IDs like rbg_sort for tapOn).
+- Priority: p0 for critical flows, p1 for important features, p2 for edge cases.
+- Category must be one of: smoke, filter, sort, navigation, interaction.
+- id must follow pattern: android-results-<short-kebab-name>
+
+Respond with ONLY a JSON array. No markdown, no explanation. Schema per item:
+{
+  "id": "android-results-<name>",
+  "priority": "p0|p1|p2",
+  "category": "smoke|filter|sort|navigation|interaction",
+  "name": "<human readable name>",
+  "description": "<one sentence>",
+  "stepOutline": ["step 1", "step 2", ...],
+  "successCriteria": ["assertion 1", ...],
+  "discoveredFrom": "<component or PR name>"
+}`;
+
+  try {
+    const { OpenAI } = await import('openai');
+    const client = new OpenAI({
+      apiKey: token,
+      baseURL: 'https://models.inference.ai.azure.com',
+      maxRetries: 1,
+      timeout: 60_000,
+    });
+
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o', // stronger model for semantic discovery
+      temperature: 0.3,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw = (response.choices[0]?.message?.content ?? '').trim()
+      .replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    const proposed = JSON.parse(raw) as PendingScenario[];
+    const novel = proposed.filter(s => !EXISTING_SCENARIO_IDS.includes(s.id));
+
+    if (novel.length > 0) {
+      fs.mkdirSync(path.dirname(PENDING_SCENARIOS_PATH), { recursive: true });
+      fs.writeFileSync(PENDING_SCENARIOS_PATH, JSON.stringify(novel, null, 2), 'utf8');
+      console.log(`  ✅ ${novel.length} new scenario(s) proposed:`);
+      novel.forEach(s => console.log(`     • [${s.priority.toUpperCase()}] ${s.id} — ${s.name}`));
+    }
+
+    return {
+      stage: 'discover-scenarios',
+      success: true,
+      durationMs: Date.now() - t,
+      output: `${novel.length} new scenario(s) discovered from ${uncoveredComponents.length} uncovered component(s)`,
+      newScenarios: novel,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`  ⚠️  Scenario discovery failed: ${msg}`);
+    return { stage: 'discover-scenarios', success: true, durationMs: Date.now() - t, output: `Skipped (${msg.slice(0, 80)})`, newScenarios: [] };
+  }
+}
+
 /** Fetch recent [FLIGHT]-tagged merged PRs and parse their full context. */
 function fetchRecentFlightPrContext(since: Date): FlightPrContext[] {
   try {
@@ -529,11 +660,12 @@ async function stageValidate(): Promise<StageResult> {
 // ---------------------------------------------------------------------------
 // Stage 2: Sync android-v3 diff
 // ---------------------------------------------------------------------------
-async function stageSyncDiff(): Promise<StageResult & { changedFiles: string[]; affectedScenarios: string[]; prdFile: string | null }> {
+async function stageSyncDiff(): Promise<StageResult & { changedFiles: string[]; affectedScenarios: string[]; prdFile: string | null; latestPrContexts: FlightPrContext[] }> {
   const t = Date.now();
   let changedFiles: string[] = [];
   let affectedScenarios: string[] = [];
   let prdFile: string | null = null;
+  let latestPrContexts: FlightPrContext[] = [];
 
   try {
     // Pull latest
@@ -565,6 +697,7 @@ async function stageSyncDiff(): Promise<StageResult & { changedFiles: string[]; 
     console.log('  Fetching recent [FLIGHT] PR context…');
     const prSince = new Date(Date.now() - 7 * 24 * 3600 * 1000);
     const flightPrs = fetchRecentFlightPrContext(prSince);
+    latestPrContexts = flightPrs;
     if (flightPrs.length > 0) {
       fs.mkdirSync(PRD_CACHE_DIR, { recursive: true });
       const combinedPath = path.join(PRD_CACHE_DIR, `flight-pr-context-${new Date().toISOString().slice(0, 10)}.md`);
@@ -596,10 +729,11 @@ async function stageSyncDiff(): Promise<StageResult & { changedFiles: string[]; 
       changedFiles,
       affectedScenarios,
       prdFile,
+      latestPrContexts,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { stage: 'sync-diff', success: false, durationMs: Date.now() - t, error: msg, changedFiles, affectedScenarios, prdFile };
+    return { stage: 'sync-diff', success: false, durationMs: Date.now() - t, error: msg, changedFiles, affectedScenarios, prdFile, latestPrContexts };
   }
 }
 
@@ -619,6 +753,7 @@ async function stageGenerate(affectedScenarios: string[], prdFile?: string | nul
     }
     if (DRY_RUN) genArgs.push('--dry-run');
     if (prdFile && fs.existsSync(prdFile)) genArgs.push('--prd-file', prdFile);
+    if (fs.existsSync(PENDING_SCENARIOS_PATH)) genArgs.push('--pending-scenarios', PENDING_SCENARIOS_PATH);
 
     const result = spawnSync('npx', genArgs, {
       stdio: 'inherit', encoding: 'utf8', env: { ...process.env },
@@ -713,7 +848,8 @@ async function stageNotify(
   stages: StageResult[],
   report: RunReport | null,
   changedFiles: string[],
-  workflowDurationMs: number
+  workflowDurationMs: number,
+  newScenarios: PendingScenario[] = []
 ): Promise<void> {
   const passed = report?.passed ?? 0;
   const failed = report?.failed ?? 0;
@@ -743,6 +879,11 @@ async function stageNotify(
     return `${icon} **${s.stage}** (${dur})${s.error ? ` — ${s.error.slice(0, 60)}` : ''}`;
   }).join('\n');
 
+  // New scenarios block
+  const newScenariosText = newScenarios.length > 0
+    ? newScenarios.map(s => `• **[${s.priority.toUpperCase()}]** \`${s.id}\` — ${s.name}\n  _${s.description.slice(0, 100)}_`).join('\n')
+    : '';
+
   const bodyContent = [
     `**Platform**: 📱 Android (${process.env.ANDROID_AVD ?? 'emulator'})`,
     `**Trigger**: ${FULL_RUN ? 'Manual full run' : 'Weekly diff'}`,
@@ -752,6 +893,7 @@ async function stageNotify(
     '',
     '**Changed Files (android-v3)**',
     diffText,
+    ...(newScenariosText ? ['', '🔍 **New Scenarios Discovered**', newScenariosText] : []),
     ...(failedCasesText ? ['', '**Failed Cases**', failedCasesText] : []),
     '',
     '**Stages**',
@@ -911,6 +1053,26 @@ async function main() {
   console.log(`  ${syncResult.success ? '✅' : '⚠️'} ${syncResult.output ?? syncResult.error}\n`);
   const { changedFiles, affectedScenarios, prdFile } = syncResult;
 
+  // Stage 2.5: Discover new scenarios from uncovered PR components
+  // Non-blocking: times out after 45s so it never stalls the main pipeline
+  console.log('[2.5/8] Discovering new scenarios from PR components…');
+  type DiscoverResult = StageResult & { newScenarios: PendingScenario[] };
+  const DISCOVER_TIMEOUT_MS = 45_000;
+  const discoverResult = await Promise.race<DiscoverResult>([
+    stageDiscoverNewScenarios(syncResult.latestPrContexts ?? []),
+    new Promise<DiscoverResult>(resolve =>
+      setTimeout(() => resolve({
+        stage: 'discover-scenarios',
+        success: true,
+        durationMs: DISCOVER_TIMEOUT_MS,
+        output: 'Timed out after 45s — skipped to avoid blocking main pipeline',
+        newScenarios: [],
+      }), DISCOVER_TIMEOUT_MS)
+    ),
+  ]);
+  completedStages.push(discoverResult);
+  console.log(`  ${discoverResult.success ? '✅' : '⚠️'} ${discoverResult.output}\n`);
+
   // Stage 2.5: Extract source context from android-v3 live source
   console.log('[3/8] Extracting source context from android-v3…');
   const SOURCE_CONTEXT_FILE = path.resolve('.cache/android-source-context.json');
@@ -930,7 +1092,7 @@ async function main() {
   completedStages.push(generate);
   console.log(`  ${generate.success ? '✅' : '❌'} ${generate.output ?? generate.error}\n`);
   if (!generate.success && !DRY_RUN) {
-    await stageNotify(completedStages, null, changedFiles, Date.now() - workflowStart);
+    await stageNotify(completedStages, null, changedFiles, Date.now() - workflowStart, discoverResult.newScenarios);
     process.exit(1);
   }
 
@@ -948,7 +1110,7 @@ async function main() {
 
   // Stage 6: Lark notification
   console.log('[7/8] Sending Lark notification…');
-  await stageNotify(completedStages, runResult.report, changedFiles, Date.now() - workflowStart);
+  await stageNotify(completedStages, runResult.report, changedFiles, Date.now() - workflowStart, discoverResult.newScenarios);
   completedStages.push({ stage: 'notify', success: true, durationMs: 0 });
   console.log('  ✅ Notification sent\n');
 

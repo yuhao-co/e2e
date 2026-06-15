@@ -56,6 +56,10 @@ const CLI_MODEL = (() => {
   const idx = args.indexOf('--model');
   return idx !== -1 ? args[idx + 1] : null;
 })();
+const PENDING_SCENARIOS_FILE = (() => {
+  const idx = args.indexOf('--pending-scenarios');
+  return idx !== -1 ? args[idx + 1] : null;
+})();
 /** --extended: generate extra SSR-V4 multi-filter / mini-tray / bug-hunt scenarios */
 const EXTENDED = args.includes('--extended');
 
@@ -1246,9 +1250,21 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
 ];
 
 // Active scenario set: base always included; extended appended with --extended
-const ACTIVE_SCENARIOS: ScenarioDefinition[] = EXTENDED
-  ? [...SCENARIOS, ...EXTENDED_SCENARIOS]
-  : SCENARIOS;
+// --pending-scenarios: AI-discovered scenarios from new PR components are merged in
+const PENDING_SCENARIOS: ScenarioDefinition[] = (() => {
+  if (!PENDING_SCENARIOS_FILE) return [];
+  try {
+    const raw = JSON.parse(fs.readFileSync(PENDING_SCENARIOS_FILE, 'utf8')) as ScenarioDefinition[];
+    const existingIds = new Set([...SCENARIOS, ...EXTENDED_SCENARIOS].map(s => s.id));
+    const novel = raw.filter(s => !existingIds.has(s.id));
+    if (novel.length) console.log(`  🔍 Merging ${novel.length} AI-discovered scenario(s) from ${PENDING_SCENARIOS_FILE}`);
+    return novel;
+  } catch { return []; }
+})();
+const ACTIVE_SCENARIOS: ScenarioDefinition[] = [
+  ...(EXTENDED ? [...SCENARIOS, ...EXTENDED_SCENARIOS] : SCENARIOS),
+  ...PENDING_SCENARIOS,
+];
 function buildSystemPrompt(prdContent?: string): string {
   const forbiddenIdList = FORBIDDEN_XML_IDS.map(id => {
     const replacement = COMPOSE_ID_MAP[id];
