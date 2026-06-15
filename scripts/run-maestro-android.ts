@@ -469,12 +469,21 @@ async function main() {
   for (const [caseId, flowFile] of flowFiles.entries()) {
     // Flow file already exists, just run it directly
     const flowStart = Date.now();
-    const { stdout: flowStdout, stderr: flowStderr } = runMaestroSuite(flowFile, 120000);
+    const { stdout: flowStdout, stderr: flowStderr, exitCode: flowExitCode } = runMaestroSuite(flowFile, 120000);
     const flowDuration = Date.now() - flowStart;
     totalStderr += flowStderr + '\n';
 
-    const passed = !flowStdout.includes('FAILED') && !flowStderr.toUpperCase().includes('ASSERTION IS FALSE');
-    flowResults.set(caseId, { passed, block: flowStdout + '\n' + flowStderr });
+    // Exit code is the primary signal — non-zero always means failure.
+    // Text patterns are a secondary safety net for edge cases where Maestro
+    // exits 0 but reports a failure inline (e.g. assertion warnings).
+    const FAILURE_PATTERNS = [
+      'FAILED', 'ASSERTION IS FALSE', 'Element not found',
+      'Timeout exceeded', 'No views found', 'java.lang.', 'Error:',
+    ];
+    const outputText = flowStdout + '\n' + flowStderr;
+    const hasFailureKeyword = FAILURE_PATTERNS.some(p => outputText.includes(p));
+    const passed = flowExitCode === 0 && !hasFailureKeyword;
+    flowResults.set(caseId, { passed, block: outputText });
 
     // Log progress
     const icon = passed ? '✅' : '❌';
@@ -496,13 +505,13 @@ async function main() {
         name: entry.name,
         priority: entry.priority,
         category: entry.category,
-        status: 'skipped',
+        status: 'failed',  // not found = execution error = real failure, not a skip
         durationMs: 0,
         exitCode: -1,
         stdout: '',
         stderr: suiteStderr.slice(0, 500),
         screenshotPath: null,
-        failureReason: 'Execution error',
+        failureReason: 'Case did not execute — flow file missing or runner error',
         runAt: new Date().toISOString(),
       });
       continue;
