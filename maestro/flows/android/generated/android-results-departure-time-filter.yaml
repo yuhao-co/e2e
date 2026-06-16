@@ -1,41 +1,48 @@
 appId: com.traveloka.android.staging
 name: android-results-departure-time-filter
 ---
-- launchApp
-- tapOn:
-    text: "Flights"
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+# Test case for applying the morning departure filter in flight search results
+# Scenario ID: android-results-departure-time-filter
+# Description: Open FULL filter dialog, scroll to reach layer_time, tap button_departure_morning, apply with dbwShow
+
+# Step 1: Navigate to search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
+
+# Step 2: Open the full filter dialog
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    id: "flight_result_filter_button_title"  # Opens FlightResultRevampFilterDialog
 - extendedWaitUntil:
     visible:
       id: "layout_filter_dialog"
     timeout: 15000
+
+# Step 3: Scroll to the departure time section
 - scrollUntilVisible:
     element:
       id: "button_departure_morning"
     direction: DOWN
-    timeout: 15000
+    timeout: 15000  # Ensure we can reach the button
+
+# Step 4: Tap the morning departure button
 - tapOn:
     id: "button_departure_morning"
+
+# Step 5: Apply the filter
 - tapOn:
-    id: "dbwShow"
-- extendedWaitUntil:
+    id: "dbwShow"  # Apply button in the filter dialog
+
+# Step 6: Wait for the results to update
+- extendedWaitUntil:     # [fix: added extended wait to ensure the results page is fully updated after applying the filter]
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "card_result"
     timeout: 30000
+
+# Step 7: Assert that the inventory card is visible, confirming the filter was applied
 - assertVisible:
-    id: "flight_result_v4_inventory_card"
+    id: "card_result"

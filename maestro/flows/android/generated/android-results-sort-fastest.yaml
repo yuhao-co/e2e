@@ -1,35 +1,40 @@
 appId: com.traveloka.android.staging
 name: android-results-sort-fastest
 ---
-- launchApp
-- tapOn:
-    text: "Flights"
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+# Test case for sorting flights by the fastest duration
+# Scenario ID: android-results-sort-fastest
+# Description: Tap bm_button (floating sort pill), select radio_button index 1 (Shortest duration)
+
+# Step 1: Navigate to search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
+
+# Step 3: Tap on the floating sort suggestion pill
 - tapOn:
-    id: "bm_button"
+    id: "flight_result_sort_button_title"          # Floating sort suggestion pill
+
+# Step 4: Wait for the sort tray to appear
 - extendedWaitUntil:
     visible:
-      id: "rbg_sort"
+      id: "layout_tray"         # Wait for Sort tray container to appear
     timeout: 10000
+
+# Step 5: Select the shortest duration sort option
 - tapOn:
-    id: "radio_button"
-    index: 1
-- extendedWaitUntil:
+    id: "radio_button"      # Tap on the radio button for sorting
+    index: 1                 # Index 1 corresponds to Shortest duration
+
+# Step 6: Wait for the results page to load again
+- extendedWaitUntil:        # [fix: added extendedWaitUntil to ensure results page reloads after sorting]
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "card_result"
     timeout: 30000
+
+# Step 7: Assert that the flight inventory cards are visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"
+    id: "card_result"  # Verify that flight cards are displayed after sorting

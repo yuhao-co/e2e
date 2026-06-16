@@ -5,7 +5,7 @@
     "category": "smoke",
     "name": "Search Results Page Loads",
     "file": "maestro/flows/android/generated/android-results-smoke.yaml",
-    "generatedAt": "2026-06-15T05:01:40.456Z",
+    "generatedAt": "2026-06-16T05:00:50.054Z",
     "warnings": []
   },
   {
@@ -14,7 +14,7 @@
     "category": "filter",
     "name": "Direct Flight Filter",
     "file": "maestro/flows/android/generated/android-results-filter-direct.yaml",
-    "generatedAt": "2026-06-15T05:01:50.020Z",
+    "generatedAt": "2026-06-16T05:01:06.001Z",
     "warnings": []
   },
   {
@@ -22,10 +22,10 @@
     "priority": "p0",
     "category": "sort",
     "name": "Sort by Cheapest",
-    "file": "android-results-sort-cheapest.yaml",
-    "generatedAt": "2026-06-15T05:02:05.440Z",
+    "file": "maestro/flows/android/generated/android-results-sort-cheapest.yaml",
+    "generatedAt": "2026-06-16T05:01:25.324Z",
     "warnings": [
-      "GENERATION_FAILED: AI generation failed after 3 attempts: 429 Rate limit of 60000 per 60s exceeded for UserByModelByMinuteTokens. Please wait 51 seconds before retrying."
+      "COMPOSE_MIGRATION_ERROR: id \"rbg_sort\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). → use \"bm_button\" instead"
     ]
   },
   {
@@ -33,43 +33,37 @@
     "priority": "p0",
     "category": "interaction",
     "name": "Select a Flight (View Detail)",
-    "file": "android-results-select-flight.yaml",
-    "generatedAt": "2026-06-15T05:02:13.714Z",
-    "warnings": [
-      "GENERATION_FAILED: AI generation failed after 3 attempts: 429 Rate limit of 60000 per 60s exceeded for UserByModelByMinuteTokens. Please wait 43 seconds before retrying."
-    ]
+    "file": "maestro/flows/android/generated/android-results-select-flight.yaml",
+    "generatedAt": "2026-06-16T05:01:40.973Z",
+    "warnings": []
   },
   {
     "id": "android-results-back-to-search",
     "priority": "p0",
     "category": "navigation",
     "name": "Back to Search Form",
-    "file": "android-results-back-to-search.yaml",
-    "generatedAt": "2026-06-15T05:02:22.881Z",
-    "warnings": [
-      "GENERATION_FAILED: AI generation failed after 3 attempts: 429 Rate limit of 60000 per 60s exceeded for UserByModelByMinuteTokens. Please wait 33 seconds before retrying."
-    ]
+    "file": "maestro/flows/android/generated/android-results-back-to-search.yaml",
+    "generatedAt": "2026-06-16T05:01:56.786Z",
+    "warnings": []
   },
   {
     "id": "android-results-filter-one-stop",
     "priority": "p1",
     "category": "filter",
     "name": "1-Stop Filter",
-    "file": "android-results-filter-one-stop.yaml",
-    "generatedAt": "2026-06-15T05:02:31.024Z",
-    "warnings": [
-      "GENERATION_FAILED: AI generation failed after 3 attempts: 429 Rate limit of 60000 per 60s exceeded for UserByModelByMinuteTokens. Please wait 25 seconds before retrying."
-    ]
+    "file": "maestro/flows/android/generated/android-results-filter-one-stop.yaml",
+    "generatedAt": "2026-06-16T05:02:15.479Z",
+    "warnings": []
   },
   {
     "id": "android-results-sort-fastest",
     "priority": "p1",
     "category": "sort",
     "name": "Sort by Fastest",
-    "file": "android-results-sort-fastest.yaml",
-    "generatedAt": "2026-06-15T05:02:39.372Z",
+    "file": "maestro/flows/android/generated/android-results-sort-fastest.yaml",
+    "generatedAt": "2026-06-16T05:03:35.916Z",
     "warnings": [
-      "GENERATION_FAILED: AI generation failed after 3 attempts: 429 Rate limit of 60000 per 60s exceeded for UserByModelByMinuteTokens. Please wait 17 seconds before retrying."
+      "COMPOSE_MIGRATION_ERROR: id \"rbg_sort\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). → use \"bm_button\" instead"
     ]
   },
   {
@@ -77,22 +71,18 @@
     "priority": "p1",
     "category": "filter",
     "name": "Airline Filter via Bottom Sheet",
-    "file": "android-results-airline-filter.yaml",
-    "generatedAt": "2026-06-15T05:02:48.036Z",
-    "warnings": [
-      "GENERATION_FAILED: AI generation failed after 3 attempts: 429 Rate limit of 60000 per 60s exceeded for UserByModelByMinuteTokens. Please wait 8 seconds before retrying."
-    ]
+    "file": "maestro/flows/android/generated/android-results-airline-filter.yaml",
+    "generatedAt": "2026-06-16T05:03:51.034Z",
+    "warnings": []
   },
   {
     "id": "android-results-departure-time-filter",
     "priority": "p1",
     "category": "filter",
     "name": "Departure Morning Filter",
-    "file": "android-results-departure-time-filter.yaml",
-    "generatedAt": "2026-06-15T05:02:56.442Z",
-    "warnings": [
-      "GENERATION_FAILED: AI generation failed after 3 attempts: 429 Rate limit of 60000 per 60s exceeded for UserByModelByMinuteTokens. Please wait 0 seconds before retrying."
-    ]
+    "file": "maestro/flows/android/generated/android-results-departure-time-filter.yaml",
+    "generatedAt": "2026-06-16T05:04:05.525Z",
+    "warnings": []
   },
   {
     "id": "android-results-reset-filters",
@@ -100,7 +90,7 @@
     "category": "filter",
     "name": "Reset All Filters",
     "file": "maestro/flows/android/generated/android-results-reset-filters.yaml",
-    "generatedAt": "2026-06-15T05:03:05.971Z",
+    "generatedAt": "2026-06-16T05:04:21.186Z",
     "warnings": []
   },
   {
@@ -109,7 +99,7 @@
     "category": "interaction",
     "name": "Scroll Through Results",
     "file": "maestro/flows/android/generated/android-results-scroll.yaml",
-    "generatedAt": "2026-06-15T05:03:12.961Z",
+    "generatedAt": "2026-06-16T05:04:33.051Z",
     "warnings": []
   },
   {
@@ -118,7 +108,7 @@
     "category": "interaction",
     "name": "View Price Calendar",
     "file": "maestro/flows/android/generated/android-results-price-calendar.yaml",
-    "generatedAt": "2026-06-15T05:03:20.112Z",
+    "generatedAt": "2026-06-16T05:04:47.023Z",
     "warnings": [
       "Hard-coded coordinates detected — remove them"
     ]
@@ -129,7 +119,7 @@
     "category": "filter",
     "name": "2+ Stops Filter",
     "file": "maestro/flows/android/generated/android-results-filter-multi-stop.yaml",
-    "generatedAt": "2026-06-15T05:03:28.734Z",
+    "generatedAt": "2026-06-16T05:05:01.215Z",
     "warnings": []
   },
   {
@@ -138,7 +128,7 @@
     "category": "sort",
     "name": "Sort by Best",
     "file": "maestro/flows/android/generated/android-results-sort-best.yaml",
-    "generatedAt": "2026-06-15T05:03:36.794Z",
+    "generatedAt": "2026-06-16T05:05:15.758Z",
     "warnings": [
       "COMPOSE_MIGRATION_ERROR: id \"rbg_sort\" is a forbidden old XML android:id. This ID does not exist in the Accessibility tree (Compose migration). → use \"bm_button\" instead"
     ]
@@ -149,7 +139,7 @@
     "category": "interaction",
     "name": "View Flight Detail (Card Tap)",
     "file": "maestro/flows/android/generated/android-results-view-detail.yaml",
-    "generatedAt": "2026-06-15T05:03:47.004Z",
+    "generatedAt": "2026-06-16T05:05:29.459Z",
     "warnings": []
   }
 ]

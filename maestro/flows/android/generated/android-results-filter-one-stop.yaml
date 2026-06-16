@@ -1,36 +1,39 @@
 appId: com.traveloka.android.staging
 name: android-results-filter-one-stop
 ---
-- launchApp
-- tapOn:
-    text: "Flights"
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+# Test case for applying 1-stop filter in flight search results
+# Scenario ID: android-results-filter-one-stop
+# Description: Open FULL filter dialog via flight_result_v4_filter_button, tap button_one_transit, apply with dbwShow
+
+# Step 1: Navigate to search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
+
+# Step 2: Open the full filter dialog
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    id: "flight_result_filter_button_title"  # Opens FlightResultRevampFilterDialog
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "layout_filter_dialog"           # Wait for filter dialog to appear
     timeout: 15000
+
+# Step 3: Apply the 1-stop filter
 - tapOn:
-    id: "button_one_transit"
+    id: "button_one_transit"               # Tap the 1-stop toggle
 - tapOn:
-    id: "dbwShow"
+    id: "dbwShow"                          # Apply/Show Results button
+
+# Step 4: Wait for the results to update
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "text_result_title"  # Wait for the results page to load
     timeout: 30000
+
+# Step 5: Assert that the flight cards are still visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"
+    id: "card_result"  # Ensure that flight cards are visible after applying the filter

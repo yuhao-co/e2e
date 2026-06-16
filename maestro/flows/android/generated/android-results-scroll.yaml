@@ -2,28 +2,18 @@ appId: com.traveloka.android.staging
 name: android-results-scroll
 ---
 # Step 1: Launch the app and navigate to the search results
-- launchApp
-- tapOn:
-    text: "Flights"      # Home screen product tile — no testTag, text-only contract
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
 
-# Step 2: Swipe up to scroll through the results
-- scroll              # First swipe up to load more cards
-- scroll              # Second swipe up to continue loading more cards
+# Step 2: Scroll through the results
+- scroll              # First scroll to load more cards
+- scroll              # Second scroll to load more cards
 
 # Step 3: Assert that the flight result cards are still visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"  # Ensure cards are still visible after scrolling
+    id: "card_result"  # Ensure that the flight cards are still visible after scrolling

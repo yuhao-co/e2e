@@ -19,3 +19,10 @@ session-data.json
 
 # Meegle PRD disk cache (opencode results, survives restarts)
 .cache/meegle-prd-resolution/
+
+# Source code caches (large, local only)
+.cache/traveloka-www/
+.cache/weekly-diff-repos/
+
+# Maestro/test runtime screenshots
+*.png

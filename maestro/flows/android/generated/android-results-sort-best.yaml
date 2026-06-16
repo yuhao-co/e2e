@@ -4,49 +4,38 @@ name: android-results-sort-best
 # Test case for sorting flights by Best option
 # Scenario ID: android-results-sort-best
 # Description: Tap sort index 2 (Best) in sort tray
+# Priority: p2
 
-# Step 1: Navigate to search results
-- launchApp
-- tapOn:
-    text: "Flights"      # Home screen product tile — no testTag, text-only contract
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+# Precondition: Navigate to search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
 
-# Step 2: Wait for flight_result_v4_navbar_toolbar_title (Compose id)
+# Step 1: Wait for the results page header to ensure the page is loaded
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "text_result_title"
     timeout: 30000
 
-# Step 3: Tap bm_button (floating sort pill) to open sort tray
+# Step 2: Open the sort tray
 - tapOn:
-    id: "bm_button"          # Floating sort suggestion pill at bottom of results page
-
-# Step 4: Wait for rbg_sort to appear
+    id: "flight_result_sort_button_title"          # Floating sort suggestion pill at bottom of results page
 - extendedWaitUntil:
     visible:
-      id: "rbg_sort"         # Wait for Sort tray container to appear
+      id: "layout_tray"         # Wait for Sort tray container to appear
     timeout: 10000
 
-# Step 5: Tap the radio_button at index 2 (Direct first) to sort
+# Step 3: Tap the radio button at index 2 (Direct flights first)
 - tapOn:
     id: "radio_button"
     index: 2                 # Sort by Direct flights first
 
-# Step 6: Wait for flight_result_v4_navbar_toolbar_title to reload
+# Step 4: Wait for the results page header to reload
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "text_result_title"
     timeout: 30000

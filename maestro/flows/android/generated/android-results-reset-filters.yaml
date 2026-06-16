@@ -2,31 +2,21 @@ appId: com.traveloka.android.staging
 name: android-results-reset-filters
 ---
 # Test case for resetting all filters in the flight search results
-# Scenario: Reset All Filters
+# Scenario ID: android-results-reset-filters
 # Description: Open FULL filter dialog, apply direct filter, tap tvReset to clear, apply with dbwShow
 
 # Step 1: Navigate to search results
-- launchApp
-- tapOn:
-    text: "Flights"      # Home screen product tile — no testTag, text-only contract
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
 
 # Step 2: Open the full filter dialog
 - tapOn:
-    id: "flight_result_v4_filter_button"  # Opens FlightResultRevampFilterDialog
+    id: "flight_result_filter_button_title"  # Opens FlightResultRevampFilterDialog
 - extendedWaitUntil:
     visible:
       id: "layout_filter_dialog"
@@ -45,11 +35,11 @@ name: android-results-reset-filters
     id: "dbwShow"  # Apply button with no filters active (NOT tvResult)
 
 # Step 6: Wait for results to load
-- extendedWaitUntil:
+- extendedWaitUntil:      # [fix: added extendedWaitUntil to ensure results are fully loaded]
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "card_result"
     timeout: 30000
 
 # Step 7: Assert that inventory cards are visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"  # All filters cleared, full result set restored
+    id: "card_result"  # All filters cleared, full result set restored

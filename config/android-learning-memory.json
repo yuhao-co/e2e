@@ -1,7 +1,20 @@
 {
-  "lastUpdated": "2026-06-15T05:05:16.605Z",
-  "totalRuns": 14,
-  "flakyScenarios": [],
+  "lastUpdated": "2026-06-16T05:15:10.754Z",
+  "totalRuns": 15,
+  "flakyScenarios": [
+    "android-results-smoke",
+    "android-results-filter-direct",
+    "android-results-sort-cheapest",
+    "android-results-select-flight",
+    "android-results-back-to-search",
+    "android-results-filter-one-stop",
+    "android-results-sort-fastest",
+    "android-results-airline-filter",
+    "android-results-departure-time-filter",
+    "android-results-reset-filters",
+    "android-results-scroll",
+    "android-results-price-calendar"
+  ],
   "stableScenarios": [
     "android-results-smoke",
     "android-results-filter-direct",
@@ -17,18 +30,18 @@
     "android-results-scroll"
   ],
   "consecutivePasses": {
-    "android-results-smoke": 2,
-    "android-results-filter-direct": 2,
-    "android-results-select-flight": 1,
-    "android-results-sort-cheapest": 1,
-    "android-results-sort-fastest": 1,
-    "android-results-filter-one-stop": 1,
-    "android-results-airline-filter": 1,
-    "android-results-departure-time-filter": 1,
-    "android-results-reset-filters": 1,
-    "android-results-price-calendar": 1,
-    "android-results-back-to-search": 1,
-    "android-results-scroll": 1
+    "android-results-smoke": 0,
+    "android-results-filter-direct": 0,
+    "android-results-select-flight": 0,
+    "android-results-sort-cheapest": 0,
+    "android-results-sort-fastest": 0,
+    "android-results-filter-one-stop": 0,
+    "android-results-airline-filter": 0,
+    "android-results-departure-time-filter": 0,
+    "android-results-reset-filters": 0,
+    "android-results-price-calendar": 0,
+    "android-results-back-to-search": 0,
+    "android-results-scroll": 0
   },
   "expansionQueue": [],
   "coverageMap": {
@@ -239,6 +252,78 @@
       "fixedAt": "2026-06-12T08:15:42.533Z",
       "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
       "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-smoke",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "Unknown Property: coordinates at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-price-calendar.yaml:-1:-1",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-filter-direct",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: search_tab is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-sort-cheapest",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-select-flight",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-back-to-search",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "Unknown Property: coordinates at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-price-calendar.yaml:-1:-1",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-filter-one-stop",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: search_tab is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-sort-fastest",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-airline-filter",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-departure-time-filter",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-reset-filters",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-scroll",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: flight_result_v4_navbar_toolbar_title is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-price-calendar",
+      "fixedAt": "2026-06-16T05:15:10.755Z",
+      "failureReason": "Unknown Property: coordinates at /Users/yu.hao/Desktop/task/e2e/maestro/flows/android/generated/android-results-price-calendar.yaml:-1:-1",
+      "fixApplied": false
     }
   ],
   "diffTriggers": [
@@ -325,6 +410,12 @@
       "changedFiles": [],
       "affectedScenarios": [],
       "passRate": "100%"
+    },
+    {
+      "date": "2026-06-16T05:15:10.755Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "0%"
     }
   ]
 }

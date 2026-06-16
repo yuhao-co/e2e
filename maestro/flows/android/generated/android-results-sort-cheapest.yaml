@@ -1,35 +1,42 @@
 appId: com.traveloka.android.staging
 name: android-results-sort-cheapest
 ---
-- launchApp
-- tapOn:
-    text: "Flights"
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+# Step 1: Navigate to search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
-- tapOn:
-    id: "bm_button"
+
+# Step 2: Wait for card_result
 - extendedWaitUntil:
     visible:
-      id: "rbg_sort"
+      id: "card_result"
+    timeout: 30000
+
+# Step 3: Tap bm_button to open Sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"          # floating sort suggestion pill at bottom of results page
+
+# Step 4: Wait for rbg_sort to appear
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"         # wait for Sort tray container to appear
     timeout: 10000
+
+# Step 5: Tap radio_button index 0 for Cheapest option
 - tapOn:
     id: "radio_button"
-    index: 0
-- extendedWaitUntil:
+    index: 0                 # Cheapest option in Sort tray
+
+# Step 6: Wait for card_result to reload
+- extendedWaitUntil:        # [fix: Changed wait target to card_result instead of text_result_title]
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "card_result"
     timeout: 30000
+
+# Step 7: Assert card_result still visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"
+    id: "card_result"

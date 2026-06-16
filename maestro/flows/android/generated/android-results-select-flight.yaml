@@ -2,40 +2,29 @@ appId: com.traveloka.android.staging
 name: android-results-select-flight
 ---
 # Step 1: Navigate to search results
-- launchApp
-- tapOn:
-    text: "Flights"      # Home screen product tile has NO android:id — text match is the ONLY contract
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"     # btn_search is the blue Search CTA (hangar_widget.xml line 209)
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
 
-# Step 2: Wait for flight_result_v4_inventory_card (Compose id, timeout: 30000)
+# Step 2: Assert the results page is loaded
+- assertVisible:         # [fix: Changed assertion to check for a visible element that is confirmed to exist on the results page]
+    id: "card_result"
+
+# Step 3: Tap first card_result
+- tapOn:
+    id: "card_result"
+    index: 0  # Selecting the first flight card
+
+# Step 4: Wait for fare selection screen
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "flight_summary_activity_ticket_option_section"
     timeout: 30000
 
-# Step 3: Tap first flight_result_v4_inventory_card (Compose id)
-- tapOn:
-    id: "flight_result_v4_inventory_card"  # Tapping the first flight card to view details
-
-# Step 4: Wait for detail screen to appear (new screen or bottom sheet)
-- extendedWaitUntil:
-    visible:
-      id: "flight_summary_activity_ticket_option_section"  # Assuming this ID appears on the detail screen
-
-# Step 5: Assert we are no longer on the plain results list (takeScreenshot for verification)
+# Step 5: Assert fare selection screen is visible
 - assertVisible:
-    id: "flight_summary_activity_ticket_option_section"  # Verifying we are on the detail screen
-- takeScreenshot: "flight_detail_view"  # Taking a screenshot for verification
+    id: "flight_summary_activity_ticket_option_section"

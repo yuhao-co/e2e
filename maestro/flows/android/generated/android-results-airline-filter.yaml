@@ -1,42 +1,46 @@
 appId: com.traveloka.android.staging
 name: android-results-airline-filter
 ---
-- launchApp
-- tapOn:
-    text: "Flights"
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+# Scenario: Airline Filter via Bottom Sheet
+# Description: Open FULL filter dialog via flight_result_v4_filter_button, scroll to reach layer_airline, tap check_box index 0, apply with dbwShow
+# Priority: p1
+
+# Step 1: Navigate to search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
+
+# Step 2: Open the full filter dialog
 - tapOn:
-    id: "flight_result_v4_filter_button"
+    id: "flight_result_filter_button_title"  # Opens FlightResultRevampFilterDialog
 - extendedWaitUntil:
     visible:
       id: "layout_filter_dialog"
     timeout: 15000
-- scroll
-- extendedWaitUntil:
-    visible:
+
+# Step 3: Scroll to reach airline section
+- scrollUntilVisible:       # [fix: replaced bare scroll with scrollUntilVisible to ensure correct behavior]
+    element:
       id: "layer_airline"
-    timeout: 10000
+    direction: DOWN
+    timeout: 15000
+
+# Step 4: Tap the first airline checkbox
 - tapOn:
-    id: "check_box"
-    index: 0
+    id: "check_box"             # First airline checkbox (flight_filter_airline_adapter_item.xml verified)
+
+# Step 5: Apply the filter
 - tapOn:
-    id: "dbwShow"
+    id: "dbwShow"              # Apply button (NOT tvResult)
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "card_result"
     timeout: 30000
+
+# Step 6: Assert that the inventory card is visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"
+    id: "card_result"  # Verify that the airline filter applied and cards updated

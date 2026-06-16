@@ -1,49 +1,39 @@
 appId: com.traveloka.android.staging
 name: android-results-view-detail
 ---
-# Step 1: Launch the app and navigate to the search results
-- launchApp
-- tapOn:
-    text: "Flights"      # Home screen product tile — no testTag, text-only contract
-- assertVisible:
-    id: "search_tab"
-- tapOn:
-    id: "search_tab"
-- assertVisible:
-    id: "btn_search"
-- tapOn:
-    id: "btn_search"
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+# Step 1: Navigate to search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
 
-# Step 2: Wait for the flight inventory card to be visible
+# Step 2: Wait for card_result (Compose id)
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
 
-# Step 3: Tap on the flight inventory card to open detail
+# Step 3: Tap card_result (Compose id)
 - tapOn:
-    id: "flight_result_v4_inventory_card"
-    index: 0  # Assuming we want to tap the first card
+    id: "card_result"
+    index: 0  # Assuming we want to tap the first flight card
 
-# Step 4: Wait for the detail overlay or new screen to appear
+# Step 4: Wait for detail overlay or new screen
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"  # Assuming this ID is present in the detail view
+      id: "text_result_title"  # Assuming this ID is present in the detail view
     timeout: 30000
 
-# Step 5: Take a screenshot of the detail view
-- takeScreenshot:
+# Step 5: Take screenshot
+- screenshot:
     path: "test-results/android/android-results-view-detail.png"
 
-# Step 6: Tap back to return to the results
+# Step 6: Tap back to return to results (system back)
 - back
 
-# Step 7: Assert that the flight result navbar title is visible again
+# Step 7: Assert text_result_title visible again (Compose id)
 - assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
+    id: "text_result_title"

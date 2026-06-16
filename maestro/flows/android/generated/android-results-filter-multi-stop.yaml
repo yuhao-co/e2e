@@ -1,63 +1,35 @@
 appId: com.traveloka.android.staging
 name: android-results-filter-multi-stop
 ---
-# Step 1: Launch the app
-- launchApp
-
-# Step 2: Tap on "Flights" to navigate to the flight search
-- tapOn:
-    text: "Flights"  # Home screen product tile — no testTag, text-only contract
-
-# Step 3: Assert that the search tab is visible
-- assertVisible:
-    id: "search_tab"
-
-# Step 4: Tap on the search tab
-- tapOn:
-    id: "search_tab"
-
-# Step 5: Assert that the search button is visible
-- assertVisible:
-    id: "btn_search"
-
-# Step 6: Tap on the search button to initiate the search
-- tapOn:
-    id: "btn_search"
-
-# Step 7: Assert that the flight results page header is visible
-- assertVisible:
-    id: "flight_result_v4_navbar_toolbar_title"
-
-# Step 8: Wait until the flight inventory card is visible
+# Step 1: Launch the app and navigate to the search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_inventory_card"
+      id: "card_result"
     timeout: 30000
 
-# Step 9: Tap on the filter button to open the full filter dialog
+# Step 2: Open the filter dialog
 - tapOn:
-    id: "flight_result_v4_filter_button"
-
-# Step 10: Wait for the filter dialog to be visible
+    id: "flight_result_filter_button_title"  # Open full filter dialog
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "layout_filter_dialog"           # Wait for filter dialog to appear
     timeout: 15000
 
-# Step 11: Tap on the button for 2+ stops
+# Step 3: Apply the 2+ Stops filter
 - tapOn:
-    id: "button_two_transit"
-
-# Step 12: Tap on the apply button to apply the filter
+    id: "button_two_transit"               # Select 2+ Stops filter option
 - tapOn:
-    id: "dbwShow"  # Correct apply button in the filter dialog
+    id: "dbwShow"                          # Apply the filter (correct apply button)
 
-# Step 13: Wait for the flight results page header to reload
+# Step 4: Wait for the results to reload
 - extendedWaitUntil:
     visible:
-      id: "flight_result_v4_navbar_toolbar_title"
+      id: "text_result_title"  # Wait for results to reload after applying filter
     timeout: 30000
 
-# Success criteria: Assert that the results or empty-state is visible
+# Success criteria: Verify that the results or empty-state is visible
 - assertVisible:
-    id: "flight_result_v4_inventory_card"  # Check if results are displayed after applying the filter
+    id: "card_result"  # Check that results are displayed after applying the filter
