@@ -297,19 +297,24 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
 
   precondition: [
     // ─────────────────────────────────────────────────────────────────────────
-    // STRONG CONSTRAINT: ALWAYS use deeplink navigation. NEVER use home screen
-    // product tile navigation. FlightSearchFormV2Activity has a staging DI bug:
-    // SharedPreferences cache owner persists across force-stop, causing
-    // IllegalStateException crash on 2nd+ test run. Deeplink bypasses it entirely.
+    // STRONG CONSTRAINT: ALWAYS use stopApp → launchApp → openLink pattern.
+    // NEVER skip launchApp. NEVER use home screen product tile navigation.
     //
-    // Deeplink verified working (SIN→CGK, Wed 2026-06-17):
-    //   traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY
+    // WHY launchApp is required:
+    //   After stopApp (force-stop), Android puts the app in "stopped state".
+    //   In stopped state, the OS BLOCKS all implicit intents (including deep links).
+    //   openLink sends an implicit ACTION_VIEW intent → silently ignored → app never starts.
+    //   launchApp sends an explicit intent → bypasses stopped state → app starts.
+    //   Then openLink fires immediately → deep link router navigates to results
+    //   BEFORE FlightSearchFormV2Activity can initialize its SharedPreferences cache.
+    //   This avoids the IllegalStateException crash on 2nd+ run.
     //
-    // FORBIDDEN: launchApp + tapOn home tile + tapOn search_tab + tapOn btn_search
-    //   These cause: IllegalStateException: Try to replace cache owner when existing
-    //   cache owner is not disposed yet (FlightSearchFormV2Activity.kt:113)
+    // FORBIDDEN patterns:
+    //   stopApp → openLink           ← app in stopped state, deep link silently ignored
+    //   launchApp → tapOn search_tab  ← crashes FlightSearchFormV2Activity on 2nd+ run
     // ─────────────────────────────────────────────────────────────────────────
     '- stopApp',
+    '- launchApp',
     '- openLink:\n    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"',
     '- extendedWaitUntil:\n    visible:\n      id: "card_result"\n    timeout: 30000',
   ],
