@@ -1248,13 +1248,21 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
 // Active scenario set: base always included; extended appended with --extended
 // --pending-scenarios: AI-discovered scenarios from new PR components are merged in
 const PENDING_SCENARIOS: ScenarioDefinition[] = (() => {
-  if (!PENDING_SCENARIOS_FILE) return [];
+  // 1. Explicit --pending-scenarios flag (from android-diff-workflow)
+  // 2. Auto-resume: config/remaining-scenarios.json left by a previous quota-hit run
+  const sourceFile = PENDING_SCENARIOS_FILE
+    ?? (fs.existsSync(path.resolve('config/remaining-scenarios.json')) ? path.resolve('config/remaining-scenarios.json') : null);
+  if (!sourceFile) return [];
   try {
-    const raw = JSON.parse(fs.readFileSync(PENDING_SCENARIOS_FILE, 'utf8')) as ScenarioDefinition[];
+    const raw = JSON.parse(fs.readFileSync(sourceFile, 'utf8')) as ScenarioDefinition[];
     const existingIds = new Set([...SCENARIOS, ...EXTENDED_SCENARIOS].map(s => s.id));
     const novel = raw.filter(s => !existingIds.has(s.id));
-    if (novel.length) console.log(`  🔍 Merging ${novel.length} AI-discovered scenario(s) from ${PENDING_SCENARIOS_FILE}`);
-    return novel;
+    if (novel.length) console.log(`  🔍 Merging ${novel.length} AI-discovered scenario(s) from ${sourceFile}`);
+    // If resuming from remaining-scenarios.json, log that
+    if (!PENDING_SCENARIOS_FILE && sourceFile.endsWith('remaining-scenarios.json')) {
+      console.log(`  ⏩ Resuming ${raw.length} scenario(s) left over from previous quota-hit run`);
+    }
+    return raw; // include all (even existing IDs) when resuming quota leftovers
   } catch { return []; }
 })();
 const ACTIVE_SCENARIOS: ScenarioDefinition[] = [
@@ -1716,6 +1724,13 @@ Generate the complete Maestro YAML test case now:`;
 // ---------------------------------------------------------------------------
 // AI call with retry
 // ---------------------------------------------------------------------------
+
+// Thrown when GitHub Models 429 quota is exhausted — signals main() to stop
+// generating and save remaining scenarios for the next run.
+class QuotaExhaustedError extends Error {
+  constructor(msg: string) { super(msg); this.name = 'QuotaExhaustedError'; }
+}
+
 async function generateYaml(
   context: AndroidSourceContext,
   scenario: ScenarioDefinition,
@@ -1747,6 +1762,10 @@ async function generateYaml(
         .trim();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      // 429 quota exhausted — stop immediately, no retry, let main() save remaining scenarios
+      if (/429|rate.?limit|quota/i.test(msg)) {
+        throw new QuotaExhaustedError(msg);
+      }
       if (attempt < retries) {
         // Parse "Please wait N seconds" from GitHub Models 429 response
         const waitMatch = msg.match(/wait\s+(\d+)\s+second/i);
@@ -1906,12 +1925,20 @@ async function main() {
 
   let generated = 0;
   let skipped = 0;
+  let quotaHit = false;
+  const remainingScenarios: ScenarioDefinition[] = [];
   const startTime = Date.now();
   // Generate individual YAML files for each scenario (one file = one flow)
   const suiteChunks: string[] = [];
   const individualFiles: Array<{ id: string; file: string }> = [];
 
   for (const scenario of ACTIVE_SCENARIOS) {
+    // Quota was exhausted by a previous scenario — collect remaining without attempting
+    if (quotaHit) {
+      remainingScenarios.push(scenario);
+      continue;
+    }
+
     process.stdout.write(`  [${scenario.priority.toUpperCase()}] ${scenario.name} … `);
 
     if (DRY_RUN) {
@@ -1959,6 +1986,12 @@ async function main() {
       if (githubToken) await sleep(6000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      if (err instanceof QuotaExhaustedError) {
+        console.log(`⏸  QUOTA EXHAUSTED — stopping generation. Remaining scenarios saved for next run.`);
+        quotaHit = true;
+        remainingScenarios.push(scenario);
+        continue;
+      }
       console.log(`❌ FAILED: ${msg}`);
       manifest.push({
         id: scenario.id,
@@ -1974,6 +2007,18 @@ async function main() {
   }
 
   const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  // Save remaining scenarios for next run if quota was exhausted mid-generation
+  const REMAINING_PATH = path.resolve('config/remaining-scenarios.json');
+  if (!DRY_RUN) {
+    if (remainingScenarios.length > 0) {
+      fs.writeFileSync(REMAINING_PATH, JSON.stringify(remainingScenarios, null, 2), 'utf8');
+      console.log(`\n⏸  Quota hit \u2014 ${remainingScenarios.length} scenario(s) saved to ${REMAINING_PATH} for next run.`);
+    } else if (fs.existsSync(REMAINING_PATH)) {
+      // All scenarios completed \u2014 clear the remaining file
+      fs.unlinkSync(REMAINING_PATH);
+    }
+  }
 
   if (!DRY_RUN) {
     // Write combined suite file (for reference/multi-doc compatibility)
@@ -2005,6 +2050,7 @@ async function main() {
     console.log(`\n${'─'.repeat(60)}`);
     console.log(`✅ Generated  : ${generated} / ${ACTIVE_SCENARIOS.length} cases${EXTENDED ? ' (extended)' : ''}`);
     console.log(`⚠️  Skipped    : ${skipped}`);
+    if (quotaHit) console.log(`⏸  Quota hit  : ${remainingScenarios.length} remaining → config/remaining-scenarios.json`);
     console.log(`⏱  Total time : ${totalElapsed}s`);
     console.log(`📦 Individual files : ${OUTPUT_DIR}/<caseId>.yaml (${generated} files)`);
     console.log(`📦 Suite file : ${SUITE_PATH} (reference only)`);
