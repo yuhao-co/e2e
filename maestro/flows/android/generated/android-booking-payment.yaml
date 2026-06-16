@@ -1,0 +1,198 @@
+appId: com.traveloka.android.staging
+name: android-booking-payment
+
+---
+# ============================================================
+# Android Maestro E2E: Search → Select → Book → Payment Form
+# All selectors use android:id / Compose testTag (NO text:)
+# Exceptions documented inline where no ID exists in source.
+# ============================================================
+
+# ============================================================
+# LOCKED SECTION — DO NOT MODIFY
+# Verified passing in test run 2026-06-16
+# ============================================================
+
+# --- PHASE 1: Home → Flight Search Form ---
+- launchApp
+
+- extendedWaitUntil:
+    visible:
+      id: "widget_highlighted_product"
+    timeout: 30000
+
+
+# image_view_product_icon: testTag from HomeHighlightedProductIcon.kt
+# index 0 = first product tile (Flights), locale-independent
+- tapOn:
+    id: "image_view_product_icon"
+    index: 0
+
+- assertVisible:
+    id: "search_tab"
+
+- tapOn:
+    id: "search_tab"
+
+- assertVisible:
+    id: "btn_search"
+
+- tapOn:
+    id: "btn_search"
+
+# --- PHASE 2: Results Page → Select Flight Card ---
+# text_result_title: XML id in results activity
+- assertVisible:
+    id: "text_result_title"
+
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 60000
+
+
+- tapOn:
+    id: "card_result"
+    index: 0
+
+# --- PHASE 3: Fare Selection → Booking Form ---
+# flight_summary_activity_ticket_option_section: UIAutomator-verified
+- extendedWaitUntil:
+    visible:
+      id: "flight_summary_activity_ticket_option_section"
+    timeout: 15000
+
+
+# ticket_option_select_button: from flight_ticket_option_slimming_down_widget.xml
+- tapOn:
+    id: "ticket_option_select_button"
+    index: 0
+
+# flight_booking_page_viewpager: root of booking form (flightbooking_impl module)
+- extendedWaitUntil:
+    visible:
+      id: "flight_booking_page_viewpager"
+    timeout: 20000
+
+
+# --- PHASE 4: Passenger — Select Existing Traveler ---
+# traveler_data_container: clickable row in flight_booking_traveler_detail_item_layout.xml
+- tapOn:
+    id: "traveler_data_container"
+
+# search_box: unique to flight_booking_traveler_picker_widget.xml (confirms picker opened)
+- extendedWaitUntil:
+    visible:
+      id: "search_box"
+    timeout: 10000
+
+
+# label: name field in flight_booking_traveler_picker_item_layout.xml
+# index 1 = first real traveler (index 0 = "Add A New Name" header row)
+- tapOn:
+    id: "label"
+    index: 1
+
+# Scroll to reveal Save button (button is below fold)
+- scroll
+
+# primary_submit_button: Save/保留 CTA in flight_booking_form_widget.xml
+- extendedWaitUntil:
+    visible:
+      id: "primary_submit_button"
+    timeout: 10000
+
+
+- scroll
+
+- tapOn:
+    id: "primary_submit_button"
+
+# Handle "There's repetition in this name" dialog (appears for Andini Andini etc.)
+# Buttons inside widget_button have no resource-id (confirmed via uiautomator dump)
+- runFlow:
+    when:
+      visible:
+        id: "text_title"
+    commands:
+      - tapOn:
+          text: "Yes, continue"
+
+
+# ============================================================
+# TODO SECTION — IDs below NOT YET VERIFIED at runtime
+# Run test, check failure screenshot, fix IDs before unlocking
+# ============================================================
+
+# --- PHASE 5: Addons Page ---
+- extendedWaitUntil:
+    visible:
+      id: "addons_page_container"
+    timeout: 15000
+
+
+# --- PHASE 6: Go to Payment ---
+- extendedWaitUntil:
+    visible:
+      id: "button_go_to_payment"
+    timeout: 10000
+
+- tapOn:
+    id: "button_go_to_payment"
+
+- extendedWaitUntil:
+    visible:
+      id: "payment_form_container"
+    timeout: 20000
+
+
+# --- PHASE 7: Fill Payment Card Form ---
+- extendedWaitUntil:
+    visible:
+      id: "payment_card_number_input"
+    timeout: 10000
+
+- tapOn:
+    id: "payment_card_number_input"
+
+- inputText: "5555555555554444"
+
+- extendedWaitUntil:
+    visible:
+      id: "payment_card_expiry_input"
+    timeout: 5000
+
+- tapOn:
+    id: "payment_card_expiry_input"
+
+- inputText: "12/25"
+
+- extendedWaitUntil:
+    visible:
+      id: "payment_card_cvv_input"
+    timeout: 5000
+
+- tapOn:
+    id: "payment_card_cvv_input"
+
+- inputText: "123"
+
+- extendedWaitUntil:
+    visible:
+      id: "payment_card_name_input"
+    timeout: 5000
+
+- tapOn:
+    id: "payment_card_name_input"
+
+- inputText: "YU HAO"
+
+
+# --- PHASE 8: Verify form complete (DO NOT SUBMIT) ---
+- extendedWaitUntil:
+    visible:
+      id: "button_place_order"
+    timeout: 10000
+
+
+# END — payment form filled, order NOT submitted
