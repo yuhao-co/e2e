@@ -1736,6 +1736,46 @@ class QuotaExhaustedError extends Error {
   constructor(msg: string) { super(msg); this.name = 'QuotaExhaustedError'; }
 }
 
+// ---------------------------------------------------------------------------
+// YAML post-processing sanitizer — prevents recurring AI-generation bugs
+// ---------------------------------------------------------------------------
+function sanitizeYaml(raw: string): string {
+  let s = raw;
+
+  // 1. Fix broken URL strings: AI sometimes inserts a newline inside a quoted
+  //    link: "...ECO\nNOMY" value. Rejoin the line.
+  s = s.replace(/(link:\s*"[^\n"]{20,})\n\s+([A-Z0-9&=._\-]+?")/g, '$1$2');
+
+  // 2. Remove metadata fields (id:, description:, priority:) that AI places
+  //    in the commands section (after ---). Maestro only allows flow commands
+  //    after ---, not arbitrary key-value metadata.
+  const parts = s.split(/^---\s*$/m);
+  if (parts.length >= 2) {
+    const header = parts[0];
+    const commands = parts.slice(1).join('---\n');
+    const cleanedCommands = commands
+      .split('\n')
+      .filter(line => !/^\s*(id|description|priority):\s+\S/.test(line))
+      .join('\n');
+    s = header + '---\n' + cleanedCommands;
+  }
+
+  // 3. Fix bare extendedWaitUntil visible: with no child id:
+  //    visible:\n    timeout: → visible:\n      id: "card_result"\n    timeout:
+  s = s.replace(
+    /(\s+visible:)\s*\n(\s+timeout:)/g,
+    '$1\n      id: "card_result"\n$2'
+  );
+
+  // 4. Fix bare assertVisible: / assertNotVisible: with no value
+  s = s.replace(/^(- assert(?:Not)?Visible:)\s*$/gm, '$1\n    id: "card_result"');
+
+  // 5. Collapse 3+ consecutive blank lines into 2
+  s = s.replace(/\n{3,}/g, '\n\n');
+
+  return s;
+}
+
 async function generateYaml(
   context: AndroidSourceContext,
   scenario: ScenarioDefinition,
@@ -1960,10 +2000,10 @@ async function main() {
 
       // Write individual YAML file for this scenario
       const individualFile = path.join(OUTPUT_DIR, `${scenario.id}.yaml`);
-      const yamlWithName = yaml.replace(
+      const yamlWithName = sanitizeYaml(yaml.replace(
         /^(appId:[^\n]+)/m,
         `$1\nname: ${scenario.id}`
-      );
+      ));
       fs.writeFileSync(individualFile, yamlWithName, 'utf8');
       individualFiles.push({ id: scenario.id, file: individualFile });
 
