@@ -1781,7 +1781,7 @@ function sanitizeYaml(raw: string): string {
   // 4b. Remove bare `- tapOn:` with no sub-keys — causes "Incorrect Command Format: tapOn"
   //     which crashes the ENTIRE suite (all cases fail). Verified 2026-06-16.
   //     A tapOn with no target is meaningless; replacing with a comment is safer than crashing.
-  s = s.replace(/^- tapOn:\s*$/gm, '# [sanitized: bare tapOn removed — no target specified]');
+  s = s.replace(/^- tapOn:[ \t]*\n(?![ \t])/gm, '# [sanitized: bare tapOn removed — no target specified]\n');
 
   // 4c. Fix inline-object tapOn syntax: `tapOn: {id: "x"}` → block form
   //     Maestro only accepts block-indented sub-keys, not inline YAML objects.
@@ -1790,10 +1790,6 @@ function sanitizeYaml(raw: string): string {
   // 4d. Fix inline string tapOn: `tapOn: "some text"` → comment (can't safely infer id)
   //     i18n app — text is not a valid locator. Remove to prevent Incorrect Command Format.
   s = s.replace(/^- tapOn:\s*"[^"]+"\s*$/gm, '# [sanitized: tapOn with text removed — use id: instead]');
-
-  // 4e. Remove any other bare commands that are just a key with no value and no sub-keys:
-  //     `- extendedWaitUntil:` alone (no visible/notVisible block) crashes Maestro.
-  s = s.replace(/^- extendedWaitUntil:\s*$/gm, '# [sanitized: bare extendedWaitUntil removed — missing visible/notVisible block]');
 
   // 5. Remove standalone `- timeout: N` top-level commands.
   //    `timeout:` is ONLY valid as a NESTED key inside extendedWaitUntil (indented with spaces).
@@ -2058,12 +2054,17 @@ async function main() {
       // "Incorrect Command Format" or "Unknown Property" in Maestro — these
       // crash the ENTIRE suite (all cases fail). Verified 2026-06-16.
       // If found: delete the file immediately so it can never poison the suite.
+      // ⚠️  REGEX RULE: for multi-line block commands (tapOn, extendedWaitUntil, etc.)
+      // NEVER use ^- cmd:\s*$/m — $ matches end-of-line in /m mode, so it matches
+      // the FIRST LINE of a valid multi-line block (sub-keys are on the NEXT line).
+      // ALWAYS use lookahead: /^- cmd:[ \t]*\n(?![ \t])/m to ensure the next line
+      // has NO indented sub-keys before classifying as bare/invalid. (2026-06-16)
       const SUITE_CRASH_PATTERNS: Array<[RegExp, string]> = [
-        [/^- tapOn:\s*$/m,           'bare tapOn:'],
-        [/^- timeout:\s*\d+/m,       'top-level timeout:'],
-        [/^- extendedWaitUntil:\s*$/m,'bare extendedWaitUntil:'],
-        [/^- tapOn:\s*"[^"]+"\s*$/m, 'tapOn with inline string'],
-        [/^- tapOn:\s*\{/m,          'tapOn with inline object {}'],
+        [/^- tapOn:[ \t]*\n(?![ \t])/m,              'bare tapOn: (no sub-keys)'],
+        [/^- extendedWaitUntil:[ \t]*\n(?![ \t])/m,  'bare extendedWaitUntil: (no sub-keys)'],
+        [/^- timeout:\s*\d+/m,                        'top-level timeout:'],
+        [/^- tapOn:\s*"[^"]+"\s*$/m,                  'tapOn with inline string'],
+        [/^- tapOn:\s*\{/m,                            'tapOn with inline object {}'],
       ];
       const writtenContent = fs.readFileSync(individualFile, 'utf8');
       const crashPattern = SUITE_CRASH_PATTERNS.find(([re]) => re.test(writtenContent));

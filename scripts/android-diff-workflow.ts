@@ -1046,6 +1046,22 @@ async function main() {
     process.exit(1);
   }
 
+  // Stage 1.5: Validate YAML crash-detection regex patterns
+  // This catches any regex regression (e.g. ^- cmd:\s*$/m instead of lookahead)
+  // BEFORE it can corrupt generated YAML files and quarantine them all.
+  console.log('[1.5/8] Validating YAML regex patterns (anti-regression)…');
+  const regexCheck = spawnSync('npx', ['tsx', 'scripts/__tests__/yaml-crash-patterns.test.ts'], {
+    stdio: 'pipe', encoding: 'utf8', env: { ...process.env },
+  });
+  if (regexCheck.status !== 0) {
+    console.error('  ❌ YAML regex regression detected!\n');
+    console.error(regexCheck.stdout);
+    console.error(regexCheck.stderr);
+    await notifyCustom('❌ Android E2E — YAML regex regression', 'SUITE_CRASH_PATTERNS contains a bad regex that would quarantine ALL valid YAML. Run: npm run test:yaml-patterns', 'red');
+    process.exit(1);
+  }
+  console.log('  ✅ YAML crash-detection patterns OK\n');
+
   // Stage 2: Sync diff + fetch PR Lark links
   console.log('[2/8] Syncing android-v3 diff + PR PRD links…');
   const syncResult = await stageSyncDiff();

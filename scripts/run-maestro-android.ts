@@ -51,6 +51,7 @@ const SUITE_PATH = path.resolve('maestro/flows/android/generated/android-suite.y
 const RESULTS_DIR = path.resolve('test-results/android');
 const RESULTS_JSON = path.join(RESULTS_DIR, 'results.json');
 const SCREENSHOTS_DIR = path.join(RESULTS_DIR, 'screenshots');
+const APP_ID = 'com.traveloka.android.staging';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -460,54 +461,43 @@ async function main() {
     process.exit(1);
   }
 
-  // ── PRE-FLIGHT FORMAT CHECK ───────────────────────────────────────────────
-  // Run each file individually with a short timeout BEFORE the main test run.
-  // Maestro pre-validates ALL yaml files when any one is executed — one bad file
-  // causes ALL cases to fail with the same error (cascade failure, 2026-06-16).
-  // This pre-flight detects format/parse errors and quarantines bad files so they
-  // NEVER reach the main test run, regardless of what new bad pattern AI generates.
+  // ── PRE-FLIGHT STRUCTURAL CHECK (no Maestro execution) ───────────────────
+  // Validate each YAML file using regex patterns — NOT by running `maestro test`.
+  // Running Maestro with a short timeout causes JVM kill → noisy stderr with
+  // "Unknown Property" / "Commands Section Required" from Java crash handlers
+  // (false positives that quarantine perfectly valid files). Verified 2026-06-16.
   //
-  // Parse-error keywords that appear instantly (no device interaction needed):
-  const PARSE_ERROR_PATTERNS = [
-    /Incorrect Command Format/i,
-    /Unknown Property/i,
-    /Commands Section Required/i,
-    /Config Section Required/i,
-    /Parsing Failed/i,
-    /appId is required/i,
-    /Invalid Command/i,
-    /Invalid value/i,
+  // These patterns are guaranteed to cause Maestro parse errors:
+  const SUITE_CRASH_PATTERNS: Array<[RegExp, string]> = [
+    [/^- tapOn:[ \t]*\n(?![ \t])/m, 'bare tapOn: (no sub-keys)'],
+    [/^- timeout:\s*\d+/m,       'top-level timeout: (not nested in extendedWaitUntil)'],
+    [/^- tapOn:\s*"[^"]+"\s*$/m, 'tapOn with inline string (i18n violation)'],
+    [/^- tapOn:\s*\{/m,          'tapOn with inline object {} syntax'],
   ];
-  const maestroPath = process.env.MAESTRO_PATH || '/Users/yu.hao/.maestro/bin/maestro';
-  const deviceId = getDeviceId();
-  const quarantined: string[] = [];
 
-  console.log(`\n  🔍 Pre-flight format check (${flowFiles.size} files)…`);
+  const quarantined: string[] = [];
   for (const [caseId, flowFile] of flowFiles.entries()) {
-    const checkArgs = deviceId
-      ? ['test', '--udid', deviceId, '--no-ansi', flowFile]
-      : ['test', '--no-ansi', flowFile];
-    const check = spawnSync(maestroPath, checkArgs, {
-      encoding: 'utf8',
-      timeout: 6000,          // 6s: parse errors appear in <2s; runtime steps don't start
-      env: { ...process.env },
-    });
-    const checkOutput = (check.stdout ?? '') + (check.stderr ?? '');
-    const parseError = PARSE_ERROR_PATTERNS.find(p => p.test(checkOutput));
-    if (parseError) {
-      // Backup and delete — bad file must not exist when main run starts
+    const content = fs.readFileSync(flowFile, 'utf8');
+    // Must have appId and --- separator
+    if (!content.includes(`appId: ${APP_ID}`) || !content.includes('---')) {
       const bakFile = `${flowFile}.bad`;
       fs.renameSync(flowFile, bakFile);
       flowFiles.delete(caseId);
       quarantined.push(caseId);
-      const reason = checkOutput.match(parseError)?.[0]?.slice(0, 120) ?? 'format error';
-      console.log(`    🚨 QUARANTINED ${caseId} — "${reason}" (moved to .bad)`);
+      console.log(`    🚨 QUARANTINED ${caseId} — missing appId or --- separator`);
+      continue;
+    }
+    const crashPattern = SUITE_CRASH_PATTERNS.find(([re]) => re.test(content));
+    if (crashPattern) {
+      const bakFile = `${flowFile}.bad`;
+      fs.renameSync(flowFile, bakFile);
+      flowFiles.delete(caseId);
+      quarantined.push(caseId);
+      console.log(`    🚨 QUARANTINED ${caseId} — "${crashPattern[1]}"`);
     }
   }
   if (quarantined.length > 0) {
     console.log(`  ⚠️  ${quarantined.length} file(s) quarantined. Remaining: ${flowFiles.size}`);
-  } else {
-    console.log(`  ✅ All files passed format check`);
   }
   if (flowFiles.size === 0) {
     console.error(`❌ All files quarantined — nothing to run`);
@@ -515,7 +505,6 @@ async function main() {
   }
 
   // Run each flow individually to avoid multi-document parsing issues
-  // This is more reliable than multi-document YAML which may not parse correctly
   const suiteStart = Date.now();
   // per-flow stderr stored separately — NEVER accumulate into a shared string.
   // Accumulating totalStderr causes extractFailureReason to attribute errors from

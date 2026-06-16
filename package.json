@@ -4,6 +4,7 @@
   "private": true,
   "description": "E2E tests using Midscene.js with a local MLX-served Qwen2.5-VL model",
   "scripts": {
+    "test:yaml-patterns": "npx tsx scripts/__tests__/yaml-crash-patterns.test.ts",
     "mlx:server": "bash scripts/start-mlx-server.sh",
     "mlx:smoke": "bash scripts/mlx-smoke.sh",
     "generate:weekly-diff-cases": "tsx scripts/generate-cases-from-weekly-diff.ts",
