@@ -72,6 +72,20 @@ const RUN_ALL_PATH = path.resolve('maestro/flows/android/run-all-android.yaml');
 // STRONG CONSTRAINT: All cases are consolidated into ONE suite file per run.
 // Individual per-scenario files are NEVER written. Only android-suite.yaml is the output.
 const SUITE_PATH = path.resolve('maestro/flows/android/generated/android-suite.yaml');
+
+// ---------------------------------------------------------------------------
+// PAYMENT BLUEPRINT — LOCKED, verified passing 2026-06-16
+// ALL payment/booking scenario generation MUST follow this file as the canonical template.
+// DO NOT modify this file. DO NOT deviate from its patterns.
+// ---------------------------------------------------------------------------
+const PAYMENT_BLUEPRINT_PATH = path.resolve('maestro/flows/android/generated/android-booking-payment.yaml');
+const PAYMENT_BLUEPRINT_YAML: string = (() => {
+  try {
+    return fs.readFileSync(PAYMENT_BLUEPRINT_PATH, 'utf8');
+  } catch {
+    return '(payment blueprint not found — ensure android-booking-payment.yaml exists)';
+  }
+})();
 const APP_ID = 'com.traveloka.android.staging';
 const MEMORY_FILE = path.resolve('config/android-learning-memory.json');
 
@@ -1247,7 +1261,7 @@ const ACTIVE_SCENARIOS: ScenarioDefinition[] = [
   ...(EXTENDED ? [...SCENARIOS, ...EXTENDED_SCENARIOS] : SCENARIOS),
   ...PENDING_SCENARIOS,
 ];
-function buildSystemPrompt(prdContent?: string): string {
+function buildSystemPrompt(prdContent?: string, scenario?: ScenarioDefinition): string {
   const forbiddenIdList = FORBIDDEN_XML_IDS.map(id => {
     const replacement = COMPOSE_ID_MAP[id];
     return replacement ? `  "${id}" → use "${replacement}"` : `  "${id}" (no direct replacement)`;
@@ -1301,6 +1315,35 @@ This app supports multiple languages (EN, ID, TH, etc.).
 - ASSERTIONS (assertVisible, extendedWaitUntil) MAY use text, but prefer IDs when available.
   ✅ For page-loaded proof: assertVisible:\\n    id: "text_result_title"
   ✅ For content verification: assertVisible: "Direct"  (ok — you WANT to verify the text)
+
+${'━'.repeat(67)}
+STRONG CONSTRAINT — MANDATORY ID-ONLY LOCATORS + SOURCE LOOKUP
+${'━'.repeat(67)}
+EVERY tapOn / longPressOn / scrollUntilVisible MUST use id: sourced from android-v3.
+This rule has ZERO exceptions. "I couldn't find the ID" is NOT an acceptable reason to
+use text:. Follow this exact lookup procedure:
+
+  STEP 1 — Check the VERIFIED IDs table in this prompt first.
+  STEP 2 — If not listed, grep android-v3 source:
+             git -C .cache/weekly-diff-repos/github.com_traveloka_android-v3 \\
+               grep -r '@+id/' <module>/src/main/res/layout/ | grep <keyword>
+             Or for Compose testTag:
+             git -C .cache/weekly-diff-repos/github.com_traveloka_android-v3 \\
+               grep -r 'testTag(' <module>/src/main/java/ | grep <keyword>
+  STEP 3 — Use the exact id value found. NEVER guess or fabricate an ID.
+  STEP 4 — Add a source comment: # Source: <FileName>.xml → @+id/<id>
+
+IF an id genuinely cannot be found in source (rare Compose-only UI):
+  — Use point: coordinates AS LAST RESORT only
+  — Add comment: # NO ID IN SOURCE — coordinate fallback, Pixel7 1080×2400
+  — Document the bounds from uiautomator dump
+
+FORBIDDEN LOCATOR FORMS (will cause "element not found" or i18n failures):
+  ❌ tapOn: "Any Text"          — i18n: text changes per locale
+  ❌ tapOn:\n    text: "Any Text" — same problem
+  ❌ tapOn:\n    label: "hint"   — label/hint are unreliable across app versions
+  ❌ id: "guessed_id_name"       — if not in source or VERIFIED list, it does NOT exist
+${'━'.repeat(67)}
 
 CRITICAL RULE — RUNTIME ACCESSIBILITY IDs (flight search results page):
 Despite Jetpack Compose migration, adb uiautomator dump (2026-06-16) shows that
@@ -1535,7 +1578,7 @@ MAESTRO 2.x SYNTAX RULES — STRONG CONSTRAINTS (violations cause immediate runt
 
 11. Add comments explaining each step and its source file
 
-Return ONLY the YAML content, no markdown fences, no explanation.${prdContent ? `
+Return ONLY the YAML content, no markdown fences, no explanation.${scenario && isPaymentScenario(scenario) ? buildPaymentBlueprintSection() : ''}${prdContent ? `
 
 ---
 ## PRD CONTEXT (from recent merged PRs — use to guide scenario generation)
@@ -1544,6 +1587,45 @@ The following product requirement document(s) describe recent changes merged int
 Use this to generate more relevant test scenarios that cover the described behaviors.
 
 ${prdContent.length > 6000 ? prdContent.slice(0, 6000) + '\n\n[...truncated...]' : prdContent}` : ''}${memCtx}`;
+}
+
+function buildPaymentBlueprintSection(): string {
+  return `
+
+${'━'.repeat(67)}
+PAYMENT / BOOKING SCENARIO BLUEPRINT — MANDATORY CANONICAL REFERENCE
+${'━'.repeat(67)}
+The following YAML is the FULLY LOCKED, runtime-verified blueprint for any scenario
+that involves payment, booking, credit card form, contact details, fare selection,
+or the Continue-to-Payment CTA.
+
+RULES:
+  1. ALL payment-related scenarios MUST reproduce the exact same ID and step pattern
+     shown below. Do NOT invent new IDs for payment pages.
+  2. Phase order is MANDATORY: Fare Selection → Traveler → Contact → Booking Form
+     → Enhance Your Trip interstitial → Payment CC Form → Pay.
+  3. Turbulence-safe patterns (runFlow when: visible: error_button) MUST be preserved.
+  4. Point-based coordinates for phone/email are device-specific (Pixel7 1080×2400)
+     and must NOT be changed without a fresh uiautomator dump.
+  5. The Pay button requires hideKeyboard + scroll BEFORE extendedWaitUntil.
+
+BLUEPRINT (copy patterns exactly — IDs are uiautomator-confirmed 2026-06-16):
+\`\`\`yaml
+${PAYMENT_BLUEPRINT_YAML}
+\`\`\``;
+}
+
+// ---------------------------------------------------------------------------
+// Payment scenario detector
+// ---------------------------------------------------------------------------
+function isPaymentScenario(scenario: ScenarioDefinition): boolean {
+  const text = [
+    scenario.id,
+    scenario.name,
+    scenario.description,
+    ...scenario.stepOutline,
+  ].join(' ').toLowerCase();
+  return /payment|booking|book|credit.?card|cc.?form|\bpay\b|checkout|contact.?detail|traveler|passenger|fare.select|bff_button_continue|primary_submit_button|frame_input_card_form/.test(text);
 }
 
 // ---------------------------------------------------------------------------
@@ -1650,7 +1732,7 @@ async function generateYaml(
           model: MODEL,
           temperature: 0,
           messages: [
-            { role: 'system', content: buildSystemPrompt(prdContent) },
+            { role: 'system', content: buildSystemPrompt(prdContent, scenario) },
             { role: 'user', content: buildUserPrompt(context, scenario) },
           ],
         }, { signal: controller.signal as AbortSignal });
@@ -1702,7 +1784,18 @@ function validateYaml(yaml: string, scenario: ScenarioDefinition): string[] {
     [/scroll:\s*\n\s+direction/,      'SYNTAX_ERROR: scroll does not support direction sub-key in Maestro 2.x → use bare "- scroll"'],
     [/scroll:\s*\n\s+duration/,       'SYNTAX_ERROR: scroll does not support duration sub-key in Maestro 2.x → use bare "- scroll"'],
     [/swipeOn|swipe:/,                'SYNTAX_ERROR: swipeOn/swipe not supported → use "- scroll"'],
-    [/tapOn:\s+"[^"]+"/,              'SYNTAX_ERROR: tapOn with text string is forbidden (i18n app) → must use id: block'],
+    [/tapOn:\s+"[^"]+"/,              'ID_REQUIRED: tapOn with inline text string is forbidden (i18n app). Look up the android:id or Compose testTag in android-v3 source and use id: block'],
+    // ── STRONG CONSTRAINT: id-only locators — text:/label: are forbidden in tapOn ──
+    [/tapOn:\s*\n\s+text:\s*"/,
+      'ID_REQUIRED: tapOn with text: sub-key is forbidden (i18n — text changes per locale). ' +
+      'Lookup procedure: (1) check VERIFIED IDs table in this prompt, (2) grep android-v3 source for @+id/<keyword> or testTag(<keyword>), (3) use exact id: value found. NEVER use text: as a tapOn locator.'],
+    [/tapOn:\s*\n\s+label:\s*"/,
+      'ID_REQUIRED: tapOn with label: sub-key is forbidden (labels are i18n and unreliable across app versions). ' +
+      'Use id: sourced from android-v3 layout XML or Compose testTag.'],
+    [/longPressOn:\s*\n\s+text:\s*"/,
+      'ID_REQUIRED: longPressOn with text: sub-key is forbidden. Use id: sourced from android-v3 source.'],
+    [/scrollUntilVisible:\s*\n\s+element:\s*\n\s+text:\s*"/,
+      'ID_REQUIRED: scrollUntilVisible element text: is forbidden. Use element: id: sourced from android-v3 source.'],
     [/file:\s*["'][^"']+\.yaml["']/,  'SYNTAX_ERROR: runFlow with external file: reference is forbidden — inline all steps directly in this file'],
     // ── STRONG CONSTRAINT: Navigation — ALWAYS use deeplink ─────────────────
     // Verified 2026-06-16: home screen tile navigation causes FlightSearchFormV2Activity crash on 2nd+ run

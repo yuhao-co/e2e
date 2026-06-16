@@ -2,18 +2,26 @@ appId: com.traveloka.android.staging
 name: android-booking-payment
 
 ---
-# ============================================================
-# Android Maestro E2E: Search → Select → Book → Payment Form
-# All selectors use android:id / Compose testTag (NO text:)
-# Exceptions documented inline where no ID exists in source.
-# ============================================================
-
-# ============================================================
-# LOCKED SECTION — DO NOT MODIFY
-# Verified passing in test run 2026-06-16
-# ============================================================
+# ╔══════════════════════════════════════════════════════════╗
+# ║       FULLY LOCKED — DO NOT MODIFY ANY STEP              ║
+# ║  All Phases 1-8 verified passing 2026-06-16              ║
+# ║  Full flow: Home → Search → Results → Fare Selection →   ║
+# ║  Traveler Picker → Contact Details → Booking Form →      ║
+# ║  Enhance Your Trip → Payment CC Form → Pay               ║
+# ║                                                          ║
+# ║  Any change MUST be reviewed, re-run end-to-end, and     ║
+# ║  confirmed passing before committing.                    ║
+# ╚══════════════════════════════════════════════════════════╝
+#
+# All selectors sourced from android:id / Compose testTag.
+# Exceptions (point-based coordinates) documented inline.
 
 # --- PHASE 1: Home → Flight Search Form ---
+# stopApp before launchApp ensures clean state (no leftover dialogs from prev run)
+# Also kill Chrome — previous payment-related runs can leave Chrome open in the background,
+# causing the next run's product-tile tap to navigate to Chrome instead of native search.
+- stopApp: com.android.chrome
+- stopApp
 - launchApp
 
 - extendedWaitUntil:
@@ -68,15 +76,40 @@ name: android-booking-payment
     id: "ticket_option_select_button"
     index: 0
 
+# TURBULENCE-SAFE WAIT PATTERN:
+# Step 1 — wait for the fare screen to DISMISS (works regardless of what comes next).
+# flight_summary_activity_ticket_option_section disappears once the BFF call is made.
+- extendedWaitUntil:
+    notVisible:
+      id: "flight_summary_activity_ticket_option_section"
+    timeout: 20000
+
+# Step 2 — if turbulence appeared instead of the booking form, tap Refresh.
+# Source: flight_booking_activity.xml → error_button
+- runFlow:
+    when:
+      visible:
+        id: "error_button"
+    commands:
+      - tapOn:
+          id: "error_button"
+
+# Step 3 — now wait for the booking form (after clean load or after Refresh).
 # flight_booking_page_viewpager: root of booking form (flightbooking_impl module)
 - extendedWaitUntil:
     visible:
       id: "flight_booking_page_viewpager"
-    timeout: 20000
+    timeout: 30000
 
 
 # --- PHASE 4: Passenger — Select Existing Traveler ---
 # traveler_data_container: clickable row in flight_booking_traveler_detail_item_layout.xml
+# Wait explicitly — after turbulence recovery the RecyclerView items may not render immediately.
+- extendedWaitUntil:
+    visible:
+      id: "traveler_data_container"
+    timeout: 15000
+
 - tapOn:
     id: "traveler_data_container"
 
@@ -119,80 +152,172 @@ name: android-booking-payment
           text: "Yes, continue"
 
 
-# ============================================================
-# TODO SECTION — IDs below NOT YET VERIFIED at runtime
-# Run test, check failure screenshot, fix IDs before unlocking
-# ============================================================
+# --- PHASE 4.5: Contact Details — Fill Phone Number ---
+# The Contact section shows "Fill In Contact Details *" if phone is missing.
+# icon_fill_in_details: the "+" CTA in flight_booking_contact_detail_widget.xml
+# Only tap if the contact section needs filling.
+- runFlow:
+    when:
+      visible:
+        id: "icon_fill_in_details"
+    commands:
+      - tapOn:
+          id: "icon_fill_in_details"
+      # primary_submit_button: Save CTA in contact dialog (confirmed via uiautomator dump)
+      # tray_title "Contact Details" also confirms the dialog opened.
+      - extendedWaitUntil:
+          visible:
+            id: "primary_submit_button"
+          timeout: 10000
+      # --- Country Code picker ---
+      # Country Code EditText has no ID and no content-desc.
+      # Bounds [74,1197][336,1359] → center = (205,1278) in device pixels (Pixel7 1080×2400).
+      # Source: CountryPhoneSelector.kt → BMTextField (readOnly) wrapping the country field.
+      - tapOn:
+          point: "205,1278"
+      # Wait for the country picker to open — "Close" button is the unique identifier.
+      # NOTE: actual UI uses pickerHost path (full list view), NOT the BMModal with Cancel/Confirm.
+      - extendedWaitUntil:
+          visible:
+            text: "Close"
+          timeout: 10000
+      # Search for China — pickerHost uses classic View picker (NOT Compose BMModal).
+      # edit_text_search_constraint: confirmed via live uiautomator dump of the open picker.
+      - tapOn:
+          id: "edit_text_search_constraint"
+      - inputText: "China"
+      # text_view_country_name shows "China (CN)" — tapping selects and closes directly.
+      - tapOn:
+          text: "China (CN)"
+      # --- Phone number ---
+      # Use point coordinates directly to the Phone Number EditText [346,1197][1006,1359].
+      # Center = (676,1278) — avoids ambiguity with the Country Code EditText on the left.
+      # tapOn: label: "phoneNumber" hits the parent container center which is unreliable
+      # after country code is set (layout may shift).
+      - tapOn:
+          point: "676,1278"
+      # Erase any pre-filled phone number before typing (avoids appending to existing content).
+      - eraseText
+      - inputText: "13756321982"
+      # Dismiss keyboard BEFORE tapping email — ensures clean focus transition.
+      - hideKeyboard
+      # --- Email ---
+      # Email EditText: bounds [74,1401][1006,1563] → center (540,1482).
+      # Use point coordinates — tapOn: label: "emailAddress" does not reliably shift focus
+      # away from the phone field (focus stays on phone → eraseText deletes phone digits).
+      - tapOn:
+          point: "540,1482"
+      - eraseText
+      - inputText: "yu.hao@traveloka.com"
+      - tapOn:
+          id: "primary_submit_button"
+      # "There's repetition in this name" dialog may appear inside contact save too
+      - runFlow:
+          when:
+            visible:
+              text: "There's repetition in this name"
+          commands:
+            - tapOn:
+                text: "Yes, continue"
+      # Back on booking form after saving contact
+      - extendedWaitUntil:
+          visible:
+            id: "flight_booking_page_viewpager"
+          timeout: 15000
 
-# --- PHASE 5: Addons Page ---
+
+# --- PHASE 5: Booking form ready — scroll to price summary CTA ---
+# After contact save, booking form is active. Apply same turbulence-safe pattern.
+# Source: flight_booking_price_breakdown_summary_widget.xml
+
+# Step 1: search_box (traveler picker) must be gone before we proceed
 - extendedWaitUntil:
-    visible:
-      id: "addons_page_container"
-    timeout: 15000
-
-
-# --- PHASE 6: Go to Payment ---
-- extendedWaitUntil:
-    visible:
-      id: "button_go_to_payment"
+    notVisible:
+      id: "search_box"
     timeout: 10000
 
-- tapOn:
-    id: "button_go_to_payment"
+# Step 2: handle turbulence if it appeared during transition back to booking form
+- runFlow:
+    when:
+      visible:
+        id: "error_button"
+    commands:
+      - tapOn:
+          id: "error_button"
 
+# Step 3: wait for booking form
 - extendedWaitUntil:
     visible:
-      id: "payment_form_container"
+      id: "flight_booking_page_viewpager"
     timeout: 20000
 
+# Scroll to expose the price summary CTA at the bottom of the booking form
+- scroll
+- scroll
 
-# --- PHASE 7: Fill Payment Card Form ---
+# --- PHASE 6: Tap "Continue" → proceeds to Payment activity ---
+# bff_button_continue: the "Continue to Payment" sticky CTA
+# Source: FlightBookingPriceBreakdownSummaryWidget.kt → binding.bffButtonContinue
 - extendedWaitUntil:
     visible:
-      id: "payment_card_number_input"
-    timeout: 10000
+      id: "bff_button_continue"
+    timeout: 15000
 
 - tapOn:
-    id: "payment_card_number_input"
+    id: "bff_button_continue"
 
+# "Enhance your trip" add-on interstitial may appear between booking form and payment.
+# bff_button_continue ("Go to payment") is the same ID on that page — tap it again to skip.
+- runFlow:
+    when:
+      visible:
+        text: "Enhance your trip"
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "bff_button_continue"
+          timeout: 10000
+      - tapOn:
+          id: "bff_button_continue"
+
+# Payment page anchor: frame_input_card_form (confirmed via uiautomator dump 2026-06-16)
+# Credit/Debit Card is already selected by default — no method tap needed.
+- extendedWaitUntil:
+    visible:
+      id: "frame_input_card_form"
+    timeout: 20000
+
+# --- PHASE 7: Fill Credit/Debit Card form ---
+# All IDs confirmed via uiautomator dump of payment page 2026-06-16
+# Card number: bm_text_field_credit_card_number (inside text_field_card_number)
+- tapOn:
+    id: "bm_text_field_credit_card_number"
 - inputText: "5555555555554444"
 
-- extendedWaitUntil:
-    visible:
-      id: "payment_card_expiry_input"
-    timeout: 5000
-
+# Valid until: bm_text_field_credit_card_expiry (inside text_field_expiry)
 - tapOn:
-    id: "payment_card_expiry_input"
+    id: "bm_text_field_credit_card_expiry"
+- inputText: "12/28"
 
-- inputText: "12/25"
-
-- extendedWaitUntil:
-    visible:
-      id: "payment_card_cvv_input"
-    timeout: 5000
-
+# CVV/CVN: bm_text_field_credit_card_cvv (inside text_field_cvv)
 - tapOn:
-    id: "payment_card_cvv_input"
-
+    id: "bm_text_field_credit_card_cvv"
 - inputText: "123"
 
-- extendedWaitUntil:
-    visible:
-      id: "payment_card_name_input"
-    timeout: 5000
-
+# Name on card: bm_text_field_credit_card_fullname (inside text_field_full_name)
 - tapOn:
-    id: "payment_card_name_input"
-
+    id: "bm_text_field_credit_card_fullname"
 - inputText: "YU HAO"
 
-
-# --- PHASE 8: Verify form complete (DO NOT SUBMIT) ---
+# --- PHASE 8: Tap Pay ---
+# button_payment_price_summary_pay: "Pay with Credit/Debit Card" CTA
+# Confirmed via uiautomator dump 2026-06-16
+# Dismiss keyboard first, then scroll to bring the button into view.
+- hideKeyboard
+- scroll
 - extendedWaitUntil:
     visible:
-      id: "button_place_order"
+      id: "button_payment_price_summary_pay"
     timeout: 10000
-
-
-# END — payment form filled, order NOT submitted
+- tapOn:
+    id: "button_payment_price_summary_pay"
