@@ -1548,6 +1548,14 @@ MAESTRO 2.x SYNTAX RULES — STRONG CONSTRAINTS (violations cause immediate runt
 - launchApp / tapOn home tile / tapOn search_tab ← WRONG — FlightSearchFormV2Activity crashes on 2nd+ run.
                             ALWAYS use: stopApp → openLink traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY
 - runFlow: file: "other.yaml"  ← NEVER reference external .yaml files; ALL steps must be inlined in this single file
+- timeout: 30000               ← \`- timeout: N\` as a TOP-LEVEL command does NOT exist in Maestro.
+                                  It causes "Unknown Property: timeout" and crashes the ENTIRE suite
+                                  (ALL cases fail to load, not just this one file). VERIFIED 2026-06-16.
+                                  timeout: is ONLY valid as a NESTED key inside extendedWaitUntil:
+                                    - extendedWaitUntil:
+                                        visible:
+                                          id: "card_result"
+                                        timeout: 30000    ← correct: nested
 
 ■ VERIFIED WORKING PATTERNS (from android-all-scenarios-suite.yaml, 12/12 pass 2026-06-16):
   # CORRECT: Deeplink navigation (ALWAYS use this, NEVER use home screen tile)
@@ -1591,7 +1599,7 @@ MAESTRO 2.x SYNTAX RULES — STRONG CONSTRAINTS (violations cause immediate runt
 
 11. Add comments explaining each step and its source file
 
-Return ONLY the YAML content, no markdown fences, no explanation.${scenario && isPaymentScenario(scenario) ? buildPaymentBlueprintSection() : ''}${prdContent ? `
+Return ONLY the YAML content, no markdown fences, no explanation.${scenario && isPaymentScenario(scenario!) ? buildPaymentBlueprintSection() : ''}${prdContent ? `
 
 ---
 ## PRD CONTEXT (from recent merged PRs — use to guide scenario generation)
@@ -1599,7 +1607,7 @@ Return ONLY the YAML content, no markdown fences, no explanation.${scenario && i
 The following product requirement document(s) describe recent changes merged into android-v3.
 Use this to generate more relevant test scenarios that cover the described behaviors.
 
-${prdContent.length > 6000 ? prdContent.slice(0, 6000) + '\n\n[...truncated...]' : prdContent}` : ''}${memCtx}`;
+${(prdContent as string).length > 6000 ? (prdContent as string).slice(0, 6000) + '\n\n[...truncated...]' : prdContent}` : ''}${memCtx}`;
 }
 
 function buildPaymentBlueprintSection(): string {
@@ -1624,7 +1632,7 @@ RULES:
 
 BLUEPRINT (copy patterns exactly — IDs are uiautomator-confirmed 2026-06-16):
 \`\`\`yaml
-${PAYMENT_BLUEPRINT_YAML}
+${PAYMENT_BLUEPRINT_YAML.length > 3000 ? PAYMENT_BLUEPRINT_YAML.slice(0, 3000) + '\n# [...blueprint truncated to stay within token limit — full file: android-booking-payment.yaml]' : PAYMENT_BLUEPRINT_YAML}
 \`\`\``;
 }
 
@@ -1770,7 +1778,30 @@ function sanitizeYaml(raw: string): string {
   // 4. Fix bare assertVisible: / assertNotVisible: with no value
   s = s.replace(/^(- assert(?:Not)?Visible:)\s*$/gm, '$1\n    id: "card_result"');
 
-  // 5. Collapse 3+ consecutive blank lines into 2
+  // 4b. Remove bare `- tapOn:` with no sub-keys — causes "Incorrect Command Format: tapOn"
+  //     which crashes the ENTIRE suite (all cases fail). Verified 2026-06-16.
+  //     A tapOn with no target is meaningless; replacing with a comment is safer than crashing.
+  s = s.replace(/^- tapOn:\s*$/gm, '# [sanitized: bare tapOn removed — no target specified]');
+
+  // 4c. Fix inline-object tapOn syntax: `tapOn: {id: "x"}` → block form
+  //     Maestro only accepts block-indented sub-keys, not inline YAML objects.
+  s = s.replace(/^- tapOn:\s*\{\s*id:\s*["']([^"']+)["']\s*\}/gm, '- tapOn:\n    id: "$1"');
+
+  // 4d. Fix inline string tapOn: `tapOn: "some text"` → comment (can't safely infer id)
+  //     i18n app — text is not a valid locator. Remove to prevent Incorrect Command Format.
+  s = s.replace(/^- tapOn:\s*"[^"]+"\s*$/gm, '# [sanitized: tapOn with text removed — use id: instead]');
+
+  // 4e. Remove any other bare commands that are just a key with no value and no sub-keys:
+  //     `- extendedWaitUntil:` alone (no visible/notVisible block) crashes Maestro.
+  s = s.replace(/^- extendedWaitUntil:\s*$/gm, '# [sanitized: bare extendedWaitUntil removed — missing visible/notVisible block]');
+
+  // 5. Remove standalone `- timeout: N` top-level commands.
+  //    `timeout:` is ONLY valid as a NESTED key inside extendedWaitUntil (indented with spaces).
+  //    A top-level `- timeout: N` item causes Maestro to throw "Unknown Property: timeout"
+  //    which crashes the ENTIRE suite (all cases fail, not just one). Verified 2026-06-16.
+  s = s.replace(/^- timeout:\s*\d+\s*$/gm, '');
+
+  // 6. Collapse 3+ consecutive blank lines into 2
   s = s.replace(/\n{3,}/g, '\n\n');
 
   return s;
@@ -1810,6 +1841,11 @@ async function generateYaml(
       // 429 quota exhausted — stop immediately, no retry, let main() save remaining scenarios
       if (/429|rate.?limit|quota/i.test(msg)) {
         throw new QuotaExhaustedError(msg);
+      }
+      // 413 prompt too large — retrying with same prompt will never succeed; save for next run
+      if (/413|Request body too large/i.test(msg)) {
+        console.warn(`  [413] Prompt too large — saving scenario for next run (config/remaining-scenarios.json)`);
+        throw new QuotaExhaustedError(`PROMPT_TOO_LARGE: ${msg}`);
       }
       if (attempt < retries) {
         // Parse "Please wait N seconds" from GitHub Models 429 response
@@ -1898,6 +1934,17 @@ function validateYaml(yaml: string, scenario: ScenarioDefinition): string[] {
     [/swipe:\s*\n\s+direction:\s*(UP|DOWN)/,
       'DIALOG_SCROLL_ERROR: swipe: direction: UP/DOWN scrolls the results list, NOT the dialog content. ' +
       'Use scrollUntilVisible for elements inside filter dialog below fold.'],
+    // ── STRONG CONSTRAINT: standalone timeout command ─────────────────────
+    // Verified 2026-06-16: `- timeout: N` as a top-level YAML list item is NOT a valid
+    // Maestro command. Maestro throws "Unknown Property: timeout" and the ENTIRE suite
+    // fails to load (ALL cases fail, not just the one file). timeout: is ONLY valid
+    // as a NESTED key inside extendedWaitUntil. The sanitizer removes this automatically,
+    // but this validator catches it in case the sanitizer is bypassed.
+    [/^- timeout:\s*\d+/m,
+      'SYNTAX_ERROR: `- timeout: N` is NOT a valid top-level Maestro command. ' +
+      'It causes "Unknown Property: timeout" and crashes the ENTIRE suite (all cases fail). ' +
+      'timeout: is ONLY valid as a nested key inside extendedWaitUntil:\n' +
+      '  - extendedWaitUntil:\n      visible:\n        id: "card_result"\n    timeout: 30000'],
   ];
 
   for (const [pattern, message] of forbiddenPatterns) {
@@ -2005,6 +2052,35 @@ async function main() {
         `$1\nname: ${scenario.id}`
       ));
       fs.writeFileSync(individualFile, yamlWithName, 'utf8');
+
+      // ── POST-WRITE SUITE-CRASH GUARD ─────────────────────────────────────
+      // After writing, re-read the file and check for ANY pattern that causes
+      // "Incorrect Command Format" or "Unknown Property" in Maestro — these
+      // crash the ENTIRE suite (all cases fail). Verified 2026-06-16.
+      // If found: delete the file immediately so it can never poison the suite.
+      const SUITE_CRASH_PATTERNS: Array<[RegExp, string]> = [
+        [/^- tapOn:\s*$/m,           'bare tapOn:'],
+        [/^- timeout:\s*\d+/m,       'top-level timeout:'],
+        [/^- extendedWaitUntil:\s*$/m,'bare extendedWaitUntil:'],
+        [/^- tapOn:\s*"[^"]+"\s*$/m, 'tapOn with inline string'],
+        [/^- tapOn:\s*\{/m,          'tapOn with inline object {}'],
+      ];
+      const writtenContent = fs.readFileSync(individualFile, 'utf8');
+      const crashPattern = SUITE_CRASH_PATTERNS.find(([re]) => re.test(writtenContent));
+      if (crashPattern) {
+        fs.unlinkSync(individualFile);
+        console.log(`🚨 QUARANTINED ${scenario.id}.yaml — suite-crash pattern detected after sanitize: "${crashPattern[1]}". File deleted to protect other cases.`);
+        skipped++;
+        manifest.push({
+          id: scenario.id, priority: scenario.priority, category: scenario.category,
+          name: scenario.name, file: `${scenario.id}.yaml`,
+          generatedAt: new Date().toISOString(),
+          warnings: [`QUARANTINED: suite-crash pattern "${crashPattern[1]}" survived sanitizer`],
+        });
+        if (githubToken) await sleep(6000);
+        continue;
+      }
+
       individualFiles.push({ id: scenario.id, file: individualFile });
 
       // Also accumulate for combined suite (for reference only)

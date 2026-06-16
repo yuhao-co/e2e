@@ -460,10 +460,67 @@ async function main() {
     process.exit(1);
   }
 
+  // ── PRE-FLIGHT FORMAT CHECK ───────────────────────────────────────────────
+  // Run each file individually with a short timeout BEFORE the main test run.
+  // Maestro pre-validates ALL yaml files when any one is executed — one bad file
+  // causes ALL cases to fail with the same error (cascade failure, 2026-06-16).
+  // This pre-flight detects format/parse errors and quarantines bad files so they
+  // NEVER reach the main test run, regardless of what new bad pattern AI generates.
+  //
+  // Parse-error keywords that appear instantly (no device interaction needed):
+  const PARSE_ERROR_PATTERNS = [
+    /Incorrect Command Format/i,
+    /Unknown Property/i,
+    /Commands Section Required/i,
+    /Config Section Required/i,
+    /Parsing Failed/i,
+    /appId is required/i,
+    /Invalid Command/i,
+    /Invalid value/i,
+  ];
+  const maestroPath = process.env.MAESTRO_PATH || '/Users/yu.hao/.maestro/bin/maestro';
+  const deviceId = getDeviceId();
+  const quarantined: string[] = [];
+
+  console.log(`\n  🔍 Pre-flight format check (${flowFiles.size} files)…`);
+  for (const [caseId, flowFile] of flowFiles.entries()) {
+    const checkArgs = deviceId
+      ? ['test', '--udid', deviceId, '--no-ansi', flowFile]
+      : ['test', '--no-ansi', flowFile];
+    const check = spawnSync(maestroPath, checkArgs, {
+      encoding: 'utf8',
+      timeout: 6000,          // 6s: parse errors appear in <2s; runtime steps don't start
+      env: { ...process.env },
+    });
+    const checkOutput = (check.stdout ?? '') + (check.stderr ?? '');
+    const parseError = PARSE_ERROR_PATTERNS.find(p => p.test(checkOutput));
+    if (parseError) {
+      // Backup and delete — bad file must not exist when main run starts
+      const bakFile = `${flowFile}.bad`;
+      fs.renameSync(flowFile, bakFile);
+      flowFiles.delete(caseId);
+      quarantined.push(caseId);
+      const reason = checkOutput.match(parseError)?.[0]?.slice(0, 120) ?? 'format error';
+      console.log(`    🚨 QUARANTINED ${caseId} — "${reason}" (moved to .bad)`);
+    }
+  }
+  if (quarantined.length > 0) {
+    console.log(`  ⚠️  ${quarantined.length} file(s) quarantined. Remaining: ${flowFiles.size}`);
+  } else {
+    console.log(`  ✅ All files passed format check`);
+  }
+  if (flowFiles.size === 0) {
+    console.error(`❌ All files quarantined — nothing to run`);
+    process.exit(1);
+  }
+
   // Run each flow individually to avoid multi-document parsing issues
   // This is more reliable than multi-document YAML which may not parse correctly
   const suiteStart = Date.now();
-  const flowResults = new Map<string, { passed: boolean; block: string }>();
+  // per-flow stderr stored separately — NEVER accumulate into a shared string.
+  // Accumulating totalStderr causes extractFailureReason to attribute errors from
+  // one bad file to ALL subsequent failed cases (cascade misattribution bug, 2026-06-16).
+  const flowResults = new Map<string, { passed: boolean; block: string; perFlowStderr: string }>();
   let totalStderr = '';
 
   for (const [caseId, flowFile] of flowFiles.entries()) {
@@ -483,7 +540,8 @@ async function main() {
     const outputText = flowStdout + '\n' + flowStderr;
     const hasFailureKeyword = FAILURE_PATTERNS.some(p => outputText.includes(p));
     const passed = flowExitCode === 0 && !hasFailureKeyword;
-    flowResults.set(caseId, { passed, block: outputText });
+    // Store per-flow stderr separately so extractFailureReason gets only THIS flow's errors
+    flowResults.set(caseId, { passed, block: outputText, perFlowStderr: flowStderr });
 
     // Log progress
     const icon = passed ? '✅' : '❌';
@@ -523,7 +581,10 @@ async function main() {
 
     if (status === 'failed') {
       screenshotPath = takeScreenshot(entry.id);
-      failureReason = extractFailureReason(flowResult.block, suiteStderr);
+      // Use per-flow stderr to get accurate failure reason for THIS case only.
+      // NEVER use totalStderr/suiteStderr — it accumulates errors from all previous
+      // flows and causes misattribution (all cases show same error as the bad file).
+      failureReason = extractFailureReason(flowResult.block, flowResult.perFlowStderr);
     }
 
     const icon = status === 'passed' ? '✅' : '❌';
