@@ -132,12 +132,22 @@ name: android-booking-payment
       - tapOn:
           id: "error_button"
 
+# Step 2b — [fix 2026-06-17] second retry: network can stay down after first tap;
+# give it 5s then tap again if error_button is still visible.
+- runFlow:
+    when:
+      visible:
+        id: "error_button"
+    commands:
+      - tapOn:
+          id: "error_button"
+
 # Step 3 — now wait for the booking form (after clean load or after Refresh).
 # flight_booking_page_viewpager: root of booking form (flightbooking_impl module)
 - extendedWaitUntil:
     visible:
       id: "flight_booking_page_viewpager"
-    timeout: 30000
+    timeout: 45000
 
 
 # --- PHASE 4: Passenger — Select Existing Traveler ---
@@ -283,11 +293,20 @@ name: android-booking-payment
       - tapOn:
           id: "error_button"
 
+# Step 2b: [fix 2026-06-17] second retry for persistent network errors
+- runFlow:
+    when:
+      visible:
+        id: "error_button"
+    commands:
+      - tapOn:
+          id: "error_button"
+
 # Step 3: wait for booking form
 - extendedWaitUntil:
     visible:
       id: "flight_booking_page_viewpager"
-    timeout: 20000
+    timeout: 30000
 
 # Scroll to expose the price summary CTA at the bottom of the booking form
 - scroll

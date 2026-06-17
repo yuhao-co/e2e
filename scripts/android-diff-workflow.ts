@@ -560,7 +560,12 @@ function elapsed(ms: number) {
  */
 function ensureEmulatorRunning(): void {
   const adbOut = shSafe('adb devices');
-  if (adbOut.split('\n').some(l => /\tdevice$/.test(l.trim()))) return; // already online
+  if (adbOut.split('\n').some(l => /\tdevice$/.test(l.trim()))) {
+    // Already online — wake screen unconditionally (it may have slept between scheduled runs)
+    shSafe('adb shell input keyevent 224'); // KEYCODE_WAKEUP
+    shSafe('adb shell input keyevent 82');  // KEYCODE_MENU (dismiss lock screen)
+    return;
+  }
 
   console.log('  ⚠️  No device found — auto-starting Pixel7_API37 emulator (~60s)…');
   const androidHome = process.env.ANDROID_HOME
