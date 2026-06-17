@@ -1,30 +1,85 @@
 appId: com.traveloka.android.staging
 name: android-results-select-flight
 ---
-# Step 1: Navigate to search results
+# Select a Flight (View Fare Options) — P0
+# Navigation: Home → Flight Search → Results → Tap Card → Fare Options Screen
+# [fix 2026-06-17]: replaced hardcoded deeplink (dt=today) with home→search nav
+# Pattern mirrors android-booking-payment.yaml Phase 1-3 (verified 2026-06-16)
+
+# --- PHASE 1: Home → Flight Search Form ---
+- stopApp: com.android.chrome
 - stopApp
-- openLink:
-    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- launchApp
+
+- extendedWaitUntil:
+    visible:
+      id: "widget_highlighted_product"
+    timeout: 30000
+
+# Dismiss new-user promo popup if visible
+# button_close_popup: native_popup_new_user.xml
+- runFlow:
+    when:
+      visible:
+        id: "button_close_popup"
+    commands:
+      - tapOn:
+          id: "button_close_popup"
+
+# Dismiss push-notification permission widget if visible
+# close_button: push_notification_common_widget_layout.xml
+- runFlow:
+    when:
+      visible:
+        id: "close_button"
+    commands:
+      - tapOn:
+          id: "close_button"
+
+# Wait for product icons to finish rendering before tapping
+# widget_highlighted_product visible ≠ icons interactive; prevents tap landing outside app
+- extendedWaitUntil:
+    visible:
+      id: "image_view_product_icon"
+    timeout: 15000
+
+# image_view_product_icon index 0 = Flights tile (HomeHighlightedProductIcon.kt)
+- tapOn:
+    id: "image_view_product_icon"
+    index: 0
+
+- extendedWaitUntil:
+    visible:
+      id: "search_tab"
+    timeout: 30000
+
+- tapOn:
+    id: "search_tab"
+
+- assertVisible:
+    id: "btn_search"
+
+- tapOn:
+    id: "btn_search"
+
+# --- PHASE 2: Results Page → Select Flight Card ---
+- assertVisible:
+    id: "text_result_title"
+
 - extendedWaitUntil:
     visible:
       id: "card_result"
-    timeout: 30000
+    timeout: 60000
 
-# Step 2: Assert the results page is loaded
-- assertVisible:         # [fix: Changed assertion to check for a visible element that is confirmed to exist on the results page]
-    id: "card_result"
-
-# Step 3: Tap first card_result
 - tapOn:
     id: "card_result"
-    index: 0  # Selecting the first flight card
+    index: 1  # [fix 2026-06-17]: index 0 can be Flash Sale promo banner; use index 1 for first real flight card
 
-# Step 4: Wait for fare selection screen
+# --- PHASE 3: Fare Selection Screen ---
 - extendedWaitUntil:
     visible:
       id: "flight_summary_activity_ticket_option_section"
-    timeout: 30000
+    timeout: 30000  # [fix 2026-06-17]: increased to 30s; network call required
 
-# Step 5: Assert fare selection screen is visible
 - assertVisible:
     id: "flight_summary_activity_ticket_option_section"

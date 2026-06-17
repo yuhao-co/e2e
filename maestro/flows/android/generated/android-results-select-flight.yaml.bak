@@ -1,0 +1,30 @@
+appId: com.traveloka.android.staging
+name: android-results-select-flight
+---
+# Step 1: Navigate to search results
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Assert the results page is loaded
+- assertVisible:         # [fix: Changed assertion to check for a visible element that is confirmed to exist on the results page]
+    id: "card_result"
+
+# Step 3: Tap first card_result
+- tapOn:
+    id: "card_result"
+    index: 0  # Selecting the first flight card
+
+# Step 4: Wait for fare selection screen
+- extendedWaitUntil:
+    visible:
+      id: "flight_summary_activity_ticket_option_section"
+    timeout: 30000
+
+# Step 5: Assert fare selection screen is visible
+- assertVisible:
+    id: "flight_summary_activity_ticket_option_section"

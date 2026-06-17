@@ -1,5 +1,137 @@
 [
   {
+    "id": "android-results-departure-morning",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter: Morning Departure",
+    "description": "Test applying Morning Departure filter on results page. Source: android-v3 time_departure layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_departure_morning (Morning Departure)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Morning Departure)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Morning Departure filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Morning Departure"
+    ]
+  },
+  {
+    "id": "android-results-departure-afternoon",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter: Afternoon Departure",
+    "description": "Test applying Afternoon Departure filter on results page. Source: android-v3 time_departure layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_departure_afternoon (Afternoon Departure)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Afternoon Departure)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Afternoon Departure filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Afternoon Departure"
+    ]
+  },
+  {
+    "id": "android-results-departure-evening",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter: Evening Departure",
+    "description": "Test applying Evening Departure filter on results page. Source: android-v3 time_departure layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_departure_evening (Evening Departure)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Evening Departure)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Evening Departure filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Evening Departure"
+    ]
+  },
+  {
+    "id": "android-results-arrival-morning",
+    "priority": "p2",
+    "category": "filter",
+    "name": "Filter: Morning Arrival",
+    "description": "Test applying Morning Arrival filter on results page. Source: android-v3 time_arrival layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_arrival_morning (Morning Arrival)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Morning Arrival)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Morning Arrival filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Morning Arrival"
+    ]
+  },
+  {
+    "id": "android-results-filter-baggage",
+    "priority": "p2",
+    "category": "filter",
+    "name": "Filter: Baggage Included",
+    "description": "Test applying Baggage Included filter on results page. Source: android-v3 facility layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_baggage_included (Baggage Included)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Baggage Included)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Baggage Included filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Baggage Included"
+    ]
+  },
+  {
+    "id": "android-results-filter-meals",
+    "priority": "p2",
+    "category": "filter",
+    "name": "Filter: In-Flight Meals",
+    "description": "Test applying In-Flight Meals filter on results page. Source: android-v3 facility layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_in_flight_meals (In-Flight Meals)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by In-Flight Meals)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "In-Flight Meals filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying In-Flight Meals"
+    ]
+  },
+  {
     "id": "android-ssrv4-filter-empty-state",
     "priority": "p1",
     "category": "filter",
