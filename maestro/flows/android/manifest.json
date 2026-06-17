@@ -5,7 +5,7 @@
     "category": "smoke",
     "name": "Search Results Page Loads",
     "file": "android-results-smoke.yaml",
-    "generatedAt": "2026-06-17T05:01:01.668Z",
+    "generatedAt": "2026-06-17T07:00:34.094Z",
     "warnings": []
   },
   {
@@ -14,7 +14,7 @@
     "category": "filter",
     "name": "Direct Flight Filter",
     "file": "android-results-filter-direct.yaml",
-    "generatedAt": "2026-06-17T05:01:01.669Z",
+    "generatedAt": "2026-06-17T07:00:34.095Z",
     "warnings": []
   },
   {
@@ -23,7 +23,7 @@
     "category": "sort",
     "name": "Sort by Cheapest",
     "file": "android-results-sort-cheapest.yaml",
-    "generatedAt": "2026-06-17T05:01:01.669Z",
+    "generatedAt": "2026-06-17T07:00:34.095Z",
     "warnings": []
   },
   {
@@ -32,7 +32,7 @@
     "category": "interaction",
     "name": "Select a Flight (View Fare Options)",
     "file": "android-results-select-flight.yaml",
-    "generatedAt": "2026-06-17T05:01:01.670Z",
+    "generatedAt": "2026-06-17T07:00:34.096Z",
     "warnings": []
   },
   {
@@ -41,7 +41,7 @@
     "category": "navigation",
     "name": "Back to Search Form",
     "file": "android-results-back-to-search.yaml",
-    "generatedAt": "2026-06-17T05:01:01.670Z",
+    "generatedAt": "2026-06-17T07:00:34.096Z",
     "warnings": []
   },
   {
@@ -50,7 +50,7 @@
     "category": "filter",
     "name": "1-Stop Filter",
     "file": "android-results-filter-one-stop.yaml",
-    "generatedAt": "2026-06-17T05:01:01.670Z",
+    "generatedAt": "2026-06-17T07:00:34.096Z",
     "warnings": []
   },
   {
@@ -59,7 +59,7 @@
     "category": "sort",
     "name": "Sort by Fastest (Shortest Duration)",
     "file": "android-results-sort-fastest.yaml",
-    "generatedAt": "2026-06-17T05:01:01.670Z",
+    "generatedAt": "2026-06-17T07:00:34.097Z",
     "warnings": []
   },
   {
@@ -68,7 +68,7 @@
     "category": "filter",
     "name": "Airline Filter via Filter Dialog",
     "file": "android-results-airline-filter.yaml",
-    "generatedAt": "2026-06-17T05:01:01.670Z",
+    "generatedAt": "2026-06-17T07:00:34.097Z",
     "warnings": []
   },
   {
@@ -77,7 +77,7 @@
     "category": "filter",
     "name": "Departure Morning Filter",
     "file": "android-results-departure-time-filter.yaml",
-    "generatedAt": "2026-06-17T05:01:01.670Z",
+    "generatedAt": "2026-06-17T07:00:34.097Z",
     "warnings": []
   },
   {
@@ -86,7 +86,7 @@
     "category": "filter",
     "name": "Reset All Filters",
     "file": "android-results-reset-filters.yaml",
-    "generatedAt": "2026-06-17T05:01:01.670Z",
+    "generatedAt": "2026-06-17T07:00:34.097Z",
     "warnings": []
   },
   {
@@ -95,7 +95,7 @@
     "category": "interaction",
     "name": "Scroll Through Results",
     "file": "android-results-scroll.yaml",
-    "generatedAt": "2026-06-17T05:01:01.671Z",
+    "generatedAt": "2026-06-17T07:00:34.097Z",
     "warnings": []
   },
   {
@@ -104,7 +104,7 @@
     "category": "interaction",
     "name": "View Price Calendar",
     "file": "android-results-price-calendar.yaml",
-    "generatedAt": "2026-06-17T05:01:01.671Z",
+    "generatedAt": "2026-06-17T07:00:34.098Z",
     "warnings": []
   },
   {
@@ -113,7 +113,7 @@
     "category": "booking",
     "name": "Full Booking E2E: Home → Search → Results → Fare → Booking Form → Payment CC",
     "file": "android-booking-payment.yaml",
-    "generatedAt": "2026-06-17T05:01:01.671Z",
+    "generatedAt": "2026-06-17T07:00:34.098Z",
     "warnings": []
   },
   {
@@ -122,7 +122,7 @@
     "category": "filter",
     "name": "2+ Stops Filter",
     "file": "android-results-filter-multi-stop.yaml",
-    "generatedAt": "2026-06-17T05:01:01.671Z",
+    "generatedAt": "2026-06-17T07:00:34.098Z",
     "warnings": []
   },
   {
@@ -131,7 +131,7 @@
     "category": "sort",
     "name": "Sort: Direct Flight First",
     "file": "android-results-sort-best.yaml",
-    "generatedAt": "2026-06-17T05:01:01.671Z",
+    "generatedAt": "2026-06-17T07:00:34.098Z",
     "warnings": []
   },
   {
@@ -140,7 +140,142 @@
     "category": "interaction",
     "name": "View Flight Fare Options (Card Tap)",
     "file": "android-results-view-detail.yaml",
-    "generatedAt": "2026-06-17T05:01:01.672Z",
+    "generatedAt": "2026-06-17T07:00:34.098Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-filter-tab-transit",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Transit Tab",
+    "file": "android-ssrv4-filter-tab-transit.yaml",
+    "generatedAt": "2026-06-17T07:00:34.099Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-filter-tab-time",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Departure Time Tab",
+    "file": "android-ssrv4-filter-tab-time.yaml",
+    "generatedAt": "2026-06-17T07:00:34.099Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-filter-tab-airlines",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Airlines Tab",
+    "file": "android-ssrv4-filter-tab-airlines.yaml",
+    "generatedAt": "2026-06-17T07:00:34.099Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-filter-tab-price",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Price Tab",
+    "file": "android-ssrv4-filter-tab-price.yaml",
+    "generatedAt": "2026-06-17T07:00:34.100Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-filter-tab-duration",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Duration Tab",
+    "file": "android-ssrv4-filter-tab-duration.yaml",
+    "generatedAt": "2026-06-17T07:00:34.100Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-filter-tab-airports",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Airports Tab",
+    "file": "android-ssrv4-filter-tab-airports.yaml",
+    "generatedAt": "2026-06-17T07:00:34.100Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-filter-tab-facilities",
+    "priority": "p2",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Facilities Tab",
+    "file": "android-ssrv4-filter-tab-facilities.yaml",
+    "generatedAt": "2026-06-17T07:00:34.101Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-mini-filter-tray-open",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Mini-Filter Tray Opens",
+    "file": "android-ssrv4-mini-filter-tray-open.yaml",
+    "generatedAt": "2026-06-17T07:00:34.102Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-mini-filter-tray-apply",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Mini-Filter Tray Apply",
+    "file": "android-ssrv4-mini-filter-tray-apply.yaml",
+    "generatedAt": "2026-06-17T07:00:34.102Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-mini-filter-tray-dismiss",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Mini-Filter Tray Dismiss",
+    "file": "android-ssrv4-mini-filter-tray-dismiss.yaml",
+    "generatedAt": "2026-06-17T07:00:34.103Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-sort-duration",
+    "priority": "p0",
+    "category": "sort",
+    "name": "SSR V4 Sort by Duration (Shortest)",
+    "file": "android-ssrv4-sort-duration.yaml",
+    "generatedAt": "2026-06-17T07:00:34.103Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-sort-arrival-earliest",
+    "priority": "p1",
+    "category": "sort",
+    "name": "SSR V4 Sort by Earliest Arrival",
+    "file": "android-ssrv4-sort-arrival-earliest.yaml",
+    "generatedAt": "2026-06-17T07:00:34.104Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-sort-latest-departure",
+    "priority": "p1",
+    "category": "sort",
+    "name": "SSR V4 Sort by Latest Departure",
+    "file": "android-ssrv4-sort-latest-departure.yaml",
+    "generatedAt": "2026-06-17T07:00:34.104Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-sort-direct-first",
+    "priority": "p1",
+    "category": "sort",
+    "name": "SSR V4 Sort: Direct Flight First",
+    "file": "android-ssrv4-sort-direct-first.yaml",
+    "generatedAt": "2026-06-17T07:00:34.105Z",
+    "warnings": []
+  },
+  {
+    "id": "android-ssrv4-nonstop-chip",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Nonstop Chip Quick Filter",
+    "file": "android-ssrv4-nonstop-chip.yaml",
+    "generatedAt": "2026-06-17T07:00:34.105Z",
     "warnings": []
   }
 ]

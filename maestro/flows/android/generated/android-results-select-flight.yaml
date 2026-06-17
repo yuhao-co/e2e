@@ -43,6 +43,9 @@ name: android-results-select-flight
       id: "image_view_product_icon"
     timeout: 15000
 
+# [fix 2026-06-17] Second chrome kill: prevents pending 3DS redirect from re-launching Chrome after launchApp
+- stopApp: com.android.chrome
+
 # image_view_product_icon index 0 = Flights tile (HomeHighlightedProductIcon.kt)
 - tapOn:
     id: "image_view_product_icon"

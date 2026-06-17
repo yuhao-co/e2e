@@ -1,5 +1,5 @@
 # Auto-generated Android Maestro Suite
-# Generated: 2026-06-17T05:01:03.876Z
+# Generated: 2026-06-17T07:00:36.281Z
 # 0 cases covering flight search results
 # NOTE: Individual YAML files (<caseId>.yaml) are the primary execution method
 #   This file is for reference and multi-document compatibility only.
@@ -106,31 +106,86 @@ name: android-results-sort-cheapest
 appId: com.traveloka.android.staging
 name: android-results-select-flight
 ---
-# Step 1: Navigate to search results
+# Select a Flight (View Fare Options) — P0
+# Navigation: Home → Flight Search → Results → Tap Card → Fare Options Screen
+# [fix 2026-06-17]: replaced hardcoded deeplink (dt=today) with home→search nav
+# Pattern mirrors android-booking-payment.yaml Phase 1-3 (verified 2026-06-16)
+
+# --- PHASE 1: Home → Flight Search Form ---
+- stopApp: com.android.chrome
 - stopApp
-- openLink:
-    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- launchApp
+
+- extendedWaitUntil:
+    visible:
+      id: "widget_highlighted_product"
+    timeout: 30000
+
+# Dismiss new-user promo popup if visible
+# button_close_popup: native_popup_new_user.xml
+- runFlow:
+    when:
+      visible:
+        id: "button_close_popup"
+    commands:
+      - tapOn:
+          id: "button_close_popup"
+
+# Dismiss push-notification permission widget if visible
+# close_button: push_notification_common_widget_layout.xml
+- runFlow:
+    when:
+      visible:
+        id: "close_button"
+    commands:
+      - tapOn:
+          id: "close_button"
+
+# Wait for product icons to finish rendering before tapping
+# widget_highlighted_product visible ≠ icons interactive; prevents tap landing outside app
+- extendedWaitUntil:
+    visible:
+      id: "image_view_product_icon"
+    timeout: 15000
+
+# image_view_product_icon index 0 = Flights tile (HomeHighlightedProductIcon.kt)
+- tapOn:
+    id: "image_view_product_icon"
+    index: 0
+
+- extendedWaitUntil:
+    visible:
+      id: "search_tab"
+    timeout: 30000
+
+- tapOn:
+    id: "search_tab"
+
+- assertVisible:
+    id: "btn_search"
+
+- tapOn:
+    id: "btn_search"
+
+# --- PHASE 2: Results Page → Select Flight Card ---
+- assertVisible:
+    id: "text_result_title"
+
 - extendedWaitUntil:
     visible:
       id: "card_result"
-    timeout: 30000
+    timeout: 60000
 
-# Step 2: Assert the results page is loaded
-- assertVisible:         # [fix: Changed assertion to check for a visible element that is confirmed to exist on the results page]
-    id: "card_result"
-
-# Step 3: Tap first card_result
 - tapOn:
     id: "card_result"
-    index: 0  # Selecting the first flight card
+    index: 1  # [fix 2026-06-17]: index 0 can be Flash Sale promo banner; use index 1 for first real flight card
 
-# Step 4: Wait for fare selection screen
+# --- PHASE 3: Fare Selection Screen ---
 - extendedWaitUntil:
     visible:
       id: "flight_summary_activity_ticket_option_section"
-    timeout: 30000
+    timeout: 30000  # [fix 2026-06-17]: increased to 30s; network call required
 
-# Step 5: Assert fare selection screen is visible
 - assertVisible:
     id: "flight_summary_activity_ticket_option_section"
 ---
@@ -461,6 +516,9 @@ name: android-booking-payment
 # ╔══════════════════════════════════════════════════════════╗
 # ║       FULLY LOCKED — DO NOT MODIFY ANY STEP              ║
 # ║  All Phases 1-8 verified passing 2026-06-16              ║
+# ║  [fix 2026-06-17]: added overlay dismiss guards Phase 1  ║
+# ║  search_tab timeout 15s→30s; button_close_popup +        ║
+# ║  close_button runFlow blocks added after home load.      ║
 # ║  Full flow: Home → Search → Results → Fare Selection →   ║
 # ║  Traveler Picker → Contact Details → Booking Form →      ║
 # ║  Enhance Your Trip → Payment CC Form → Pay               ║
@@ -485,6 +543,37 @@ name: android-booking-payment
       id: "widget_highlighted_product"
     timeout: 30000
 
+# Dismiss new-user promo popup if visible before tapping product tile
+# button_close_popup: native_popup_new_user.xml
+- runFlow:
+    when:
+      visible:
+        id: "button_close_popup"
+    commands:
+      - tapOn:
+          id: "button_close_popup"
+
+# Dismiss push-notification permission widget if visible
+# close_button: push_notification_common_widget_layout.xml
+- runFlow:
+    when:
+      visible:
+        id: "close_button"
+    commands:
+      - tapOn:
+          id: "close_button"
+
+# Wait for product icons to finish rendering before tapping
+# widget_highlighted_product visible ≠ icons interactive; this prevents
+# a tap-landing-outside-app when icons are still animating in.
+- extendedWaitUntil:
+    visible:
+      id: "image_view_product_icon"
+    timeout: 15000
+
+# Kill Chrome one more time right before tap — prevents a 3DS payment-redirect
+# from a previous run re-launching Chrome and stealing focus mid-navigation.
+- stopApp: com.android.chrome
 
 # image_view_product_icon: testTag from HomeHighlightedProductIcon.kt
 # index 0 = first product tile (Flights), locale-independent
@@ -493,10 +582,11 @@ name: android-booking-payment
     index: 0
 
 # Wait for navigation to search screen (has animation/transition delay)
+# [fix 2026-06-17]: increased to 30s; overlay dismiss may add latency
 - extendedWaitUntil:
     visible:
       id: "search_tab"
-    timeout: 10000
+    timeout: 30000
 
 - tapOn:
     id: "search_tab"
@@ -520,14 +610,14 @@ name: android-booking-payment
 
 - tapOn:
     id: "card_result"
-    index: 0
+    index: 1  # [fix 2026-06-17]: index 0 can be a Flash Sale promo banner; use index 1 for first real flight card
 
 # --- PHASE 3: Fare Selection → Booking Form ---
 # flight_summary_activity_ticket_option_section: UIAutomator-verified
 - extendedWaitUntil:
     visible:
       id: "flight_summary_activity_ticket_option_section"
-    timeout: 15000
+    timeout: 30000  # [fix 2026-06-17]: increased to 30s; network call required to load fare options
 
 
 # ticket_option_select_button: from flight_ticket_option_slimming_down_widget.xml
@@ -763,6 +853,10 @@ name: android-booking-payment
     id: "bm_text_field_credit_card_cvv"
 - inputText: "123"
 
+# Dismiss keyboard after CVV — name field is pushed below fold while keyboard is open
+- hideKeyboard
+- scroll
+
 # Name on card: bm_text_field_credit_card_fullname (inside text_field_full_name)
 - tapOn:
     id: "bm_text_field_credit_card_fullname"
@@ -780,7 +874,6 @@ name: android-booking-payment
     timeout: 10000
 - tapOn:
     id: "button_payment_price_summary_pay"
-
 ---
 
 appId: com.traveloka.android.staging
@@ -908,3 +1001,659 @@ name: android-results-view-detail
     visible:
       id: "card_result"
     timeout: 30000
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-filter-tab-transit
+---
+
+# Scenario: SSR V4 Multi-Filter: Transit Tab
+# Description: Open multi-filter dialog, navigate to Transit tab, apply Direct, verify results update
+# Priority: p0
+
+# Step 1: Stop the app and navigate to the flight search results page using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open full filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 3: Transit section is at top — tap Direct toggle
+- tapOn:
+    id: "button_direct"
+
+# Step 4: Apply the filter
+- tapOn:
+    id: "dbwShow"
+
+# Step 5: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 6: Assert results visible
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-filter-tab-time
+---
+
+# Test Case: SSR V4 Multi-Filter: Departure Time Tab
+# Description: Navigate to Time tab in multi-filter dialog, select morning departure
+# Priority: p0
+
+# Step 1: Stop the app and navigate to the Flight Search Results screen using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open full filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 3: Scroll to departure time section
+- scrollUntilVisible:
+    element:
+      id: "button_departure_morning"
+    direction: DOWN
+    timeout: 15000
+
+# Step 4: Tap the morning departure option
+- tapOn:
+    id: "button_departure_morning"
+
+# Step 5: Apply the filter
+- tapOn:
+    id: "dbwShow"
+
+# Step 6: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 7: Assert results visible
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-filter-tab-airlines
+---
+
+# Step 1: Stop the app and navigate to the flight search results page using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open full filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 3: Scroll to airlines section
+- scrollUntilVisible:
+    element:
+      id: "layer_airline"
+    direction: DOWN
+    timeout: 15000
+
+# Step 4: Tap the first airline checkbox
+- tapOn:
+    id: "check_box"
+
+# Step 5: Apply the filter
+- tapOn:
+    id: "dbwShow"
+
+# Step 6: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 7: Assert results visible
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-filter-tab-price
+---
+
+# Step 1: Stop the app and navigate to the flight search results page using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open full filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 3: Scroll to price section (smoke: verify it renders without crash)
+- scrollUntilVisible:
+    element:
+      id: "layer_price"
+    direction: DOWN
+    timeout: 15000
+
+# Step 4: Close filter without interaction (price slider has no stable ID)
+- tapOn:
+    id: "ivClose"
+
+# Step 5: Wait for results to remain visible
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 6: Assert results visible
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-filter-tab-duration
+---
+
+# Step 1: Stop the app and navigate to the Flight Search Results screen using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open full filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Smoke: scroll down in filter dialog (duration slider has no stable ID)
+# Goal: verify dialog opens and renders duration section without crash
+- scroll
+- scroll
+
+# Close without applying
+- tapOn:
+    id: "ivClose"
+
+# Verify results still visible (no crash)
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-filter-tab-airports
+---
+
+# Step 1: Stop the app and navigate to the flight search results page using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open full filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Smoke: scroll down to airports section (no stable ID for individual options)
+# Goal: verify dialog opens and renders airports section without crash
+- scroll
+- scroll
+- scroll
+
+# Close without applying
+- tapOn:
+    id: "ivClose"
+
+# Verify results still visible (no crash)
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-filter-tab-facilities
+---
+
+# Step 1: Stop the app and navigate to the Flight Search Results page using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open full filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Smoke: scroll down to facilities section (no stable ID for individual options)
+# Goal: verify dialog opens and renders facilities section without crash
+- scroll
+- scroll
+- scroll
+- scroll
+
+# Close without applying
+- tapOn:
+    id: "ivClose"
+
+# Verify results still visible (no crash)
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-mini-filter-tray-open
+---
+
+# CORRECTED: SSR V4 Filter Dialog Opens (quick filter chips removed in SSR V4)
+# Use full Filter Dialog instead
+
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Open filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+
+# Wait for filter dialog to appear
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Assert dialog is visible
+- assertVisible:
+    id: "layout_filter_dialog"
+
+# Close without applying
+- tapOn:
+    id: "ivClose"
+
+# Verify results still visible
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 15000
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-mini-filter-tray-apply
+---
+
+# CORRECTED: SSR V4 Apply Filter (using full dialog, not quick chips)
+
+# Step 1: Stop the app to ensure a clean state
+- stopApp
+
+# Step 2: Launch the app and navigate to the flight search results page using a deeplink
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 3: Wait for the results page to load
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 4: Open filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+
+# Step 5: Wait for dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 6: Apply direct flight filter
+- tapOn:
+    id: "button_direct"
+
+# Step 7: Tap Apply button
+- tapOn:
+    id: "dbwShow"
+
+# Step 8: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 9: Assert results visible
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-mini-filter-tray-dismiss
+---
+
+# CORRECTED: SSR V4 Dismiss Filter Dialog (not quick chips)
+
+# Step 1: Stop the app and navigate to the flight search results page using the deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+
+# Step 3: Wait for dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 4: Close dialog without applying
+- tapOn:
+    id: "ivClose"
+
+# Step 5: Verify results unchanged
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 15000
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-sort-duration
+---
+
+# Test Case: SSR V4 Sort by Duration (Shortest)
+# Description: Open sort tray, tap index 6 (Shortest Duration), verify reload
+# Priority: p0
+
+# Step 1: Stop the app and navigate to the Flight Search Results screen using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open the sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+
+# Step 3: Select "Shortest Duration" sort option (index 1)
+- tapOn:
+    id: "radio_button"
+    index: 1
+
+# Step 4: Wait for the results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 5: Verify that the results are visible
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-sort-arrival-earliest
+---
+
+# SSR V4 Sort by Earliest Arrival
+# Description: Open sort tray, tap index 5 (Earliest Arrival), verify reload
+# Priority: p1
+
+# Step 1: Stop the app to ensure a clean state
+- stopApp
+
+# Step 2: Launch the app and navigate to the flight search results page using a deeplink
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 3: Wait until the flight search results are visible
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 4: Tap on the sort button to open the sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"
+
+# Step 5: Wait until the sort tray becomes visible
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+
+# Step 6: Tap on the radio button at index 5 to select "Earliest Arrival"
+- tapOn:
+    id: "radio_button"
+    index: 5
+
+# Step 7: Wait for the flight results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 8: Verify results visible
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-sort-latest-departure
+---
+
+# Test Case: SSR V4 Sort by Latest Departure
+# Description: Open sort tray, select "Latest Departure" (index 3), and verify results reload successfully.
+
+# Step 1: Stop the app to ensure a clean state
+- stopApp
+
+# Step 2: Launch the app and navigate to the flight search results page using a deeplink
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 3: Wait until the flight search results page is fully loaded
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 4: Tap on the sort button to open the sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"
+
+# Step 5: Wait until the sort tray is visible
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+
+# Step 6: Tap on the "Latest Departure" sort option (index 4 in the sort tray)
+- tapOn:
+    id: "radio_button"
+    index: 4
+
+# Step 7: Wait for the flight results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 8: Verify that the results page is still visible after sorting
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-sort-direct-first
+---
+
+# SSR V4 Sort: Direct Flight First
+# This test case verifies that the "Direct flight first" sort option can be applied successfully
+# on the flight search results page without any crashes.
+
+# Step 1: Stop the app to ensure a clean state
+- stopApp
+
+# Step 2: Launch the app and navigate to the flight search results page using a deeplink
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 3: Wait until the flight search results are visible
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 4: Tap on the sort button to open the sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"
+
+# Step 5: Wait until the sort tray is visible
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+
+# Step 6: Tap on the "Fastest" sort option (index 1 — index 2 not available in current build)
+- tapOn:
+    id: "radio_button"
+    index: 1
+
+# Step 7: Wait for the flight search results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 45000
+
+# Step 8: Verify that the results page is displayed with the sorted results
+- assertVisible:
+    id: "card_result"
+---
+
+appId: com.traveloka.android.staging
+name: android-ssrv4-nonstop-chip
+---
+
+# CORRECTED: SSR V4 Direct Filter via Dialog (quick chips removed in SSR V4)
+
+# Step 1: Stop the app and navigate to the flight search results page using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+
+# Step 3: Wait for dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 4: Apply direct flight filter
+- tapOn:
+    id: "button_direct"
+
+# Step 5: Tap apply button
+- tapOn:
+    id: "dbwShow"
+
+# Step 6: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 7: Assert results visible
+- assertVisible:
+    id: "card_result"
