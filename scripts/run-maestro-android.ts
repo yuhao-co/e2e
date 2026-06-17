@@ -448,7 +448,10 @@ async function main() {
 
   const flowFiles = new Map<string, string>();
   for (const c of cases) {
-    const flowFile = c.file || path.join(GENERATED_DIR, `${c.id}.yaml`);
+    // Always resolve relative to GENERATED_DIR — manifest stores bare filenames
+    const flowFile = path.isAbsolute(c.file ?? '')
+      ? c.file
+      : path.join(GENERATED_DIR, c.file ?? `${c.id}.yaml`);
     if (fs.existsSync(flowFile)) {
       flowFiles.set(c.id, flowFile);
     } else {

@@ -266,8 +266,8 @@ const openai = (() => {
 })();
 
 const MODEL = CLI_MODEL ?? (() => {
-  // gpt-4o-mini: higher GitHub Models rate limits (vs gpt-4o which caps at ~150 req/day)
-  if (githubToken)  return process.env.GITHUB_MODEL ?? 'gpt-4o-mini';
+  // gpt-4o: better quality; ~150 req/day limit on GitHub Models
+  if (githubToken)  return process.env.GITHUB_MODEL ?? 'gpt-4o';
   if (openaiKey)    return process.env.OPENAI_MODEL ?? 'gpt-4o';
   return process.env.MIDSCENE_MODEL_NAME ?? 'mlx-community/Qwen2.5-VL-7B-Instruct-4bit';
 })();
@@ -1332,12 +1332,13 @@ This app supports multiple languages (EN, ID, TH, etc.).
 ${'━'.repeat(67)}
 STRONG CONSTRAINT — MANDATORY ID-ONLY LOCATORS + SOURCE LOOKUP
 ${'━'.repeat(67)}
-EVERY tapOn / longPressOn / scrollUntilVisible MUST use id: sourced from android-v3.
-This rule has ZERO exceptions. "I couldn't find the ID" is NOT an acceptable reason to
-use text:. Follow this exact lookup procedure:
+EVERY tapOn / longPressOn / scrollUntilVisible MUST use id: sourced from real evidence.
+This rule has ZERO exceptions. Follow this exact lookup procedure IN ORDER:
 
-  STEP 1 — Check the VERIFIED IDs table in this prompt first.
-  STEP 2 — If not listed, grep android-v3 source:
+  STEP 1 — Check REFERENCE EXAMPLES in the user prompt (IDs from existing passing cases).
+            These are the HIGHEST PRIORITY source. Copy IDs exactly as they appear.
+  STEP 2 — Check the VERIFIED IDs table in this prompt.
+  STEP 3 — If still not found, grep android-v3 source:
              git -C .cache/weekly-diff-repos/github.com_traveloka_android-v3 \\
                grep -r '@+id/' <module>/src/main/res/layout/ | grep <keyword>
              Or for Compose testTag:
@@ -1695,6 +1696,26 @@ function buildUserPrompt(context: AndroidSourceContext, scenario: ScenarioDefini
     .map(([name, id]) => `  ${name}: "${id}"`)
     .join('\n');
 
+  // ── INJECT EXISTING CASES AS REFERENCE EXAMPLES ──────────────────────────
+  // Read up to 5 existing generated cases as ground-truth ID references.
+  // The AI MUST learn IDs from these files first before using any other source.
+  const existingCasesCtx = (() => {
+    if (!fs.existsSync(OUTPUT_DIR)) return '';
+    const files = fs.readdirSync(OUTPUT_DIR)
+      .filter(f => f.endsWith('.yaml') && f !== 'android-suite.yaml')
+      .slice(0, 5);
+    if (files.length === 0) return '';
+    const examples = files.map(f => {
+      const content = fs.readFileSync(path.join(OUTPUT_DIR, f), 'utf8');
+      // Extract only the IDs used — keep file small in prompt
+      const ids = [...content.matchAll(/id:\s*["']?([\w_]+)["']?/g)]
+        .map(m => m[1])
+        .filter((v, i, a) => a.indexOf(v) === i);
+      return `### ${f}\nIDs used: ${ids.join(', ')}`;
+    }).join('\n\n');
+    return `\n\n${'━'.repeat(67)}\nREFERENCE — IDs EXTRACTED FROM EXISTING VERIFIED CASES\n${'━'.repeat(67)}\nThese IDs are PROVEN WORKING in our test suite. When your scenario needs\nan ID that overlaps with these screens, copy the EXACT same ID strings.\nDo NOT invent variants or alternatives.\n\n${examples}\n${'━'.repeat(67)}`;
+  })();
+
   return `Generate a Maestro YAML test case for this scenario.
 
 ## App Context
@@ -1712,9 +1733,17 @@ NEVER invent an id that is not listed here.
 ${accessibilityIdsList}
 \`\`\`
 
+## ID LOOKUP PRIORITY — FOLLOW THIS ORDER STRICTLY
+Rule: NEVER invent or guess an ID. Only use IDs from these sources in priority order:
+  1. REFERENCE EXAMPLES section above (IDs from existing passing cases) ← HIGHEST PRIORITY
+  2. VERIFIED ACCESSIBILITY IDs table below (UIAutomator-confirmed)
+  3. Source Query section below (android-v3 XML/Compose source)
+  4. If ID truly not found in 1–3: use point: coordinates + comment # NO ID IN SOURCE
+  ❌ FORBIDDEN: using any id: value NOT found in sources 1–3 above
+
 ## Source Query — IDs found in android-v3 source for this scenario
 (These are android:id values from the relevant XML layout files. Use these for filter/tray/dialog interactions.)
-${sourceQueryIds || '(no additional source IDs found)'}
+${sourceQueryIds || '(no additional source IDs found)'}${existingCasesCtx}
 
 ## Known Interaction Patterns
 ${context.interactions.map((i) => `- ${i.name}: trigger="${i.trigger}" → "${i.outcome}"`).join('\n')}
@@ -1769,14 +1798,15 @@ function sanitizeYaml(raw: string): string {
   }
 
   // 3. Fix bare extendedWaitUntil visible: with no child id:
-  //    visible:\n    timeout: → visible:\n      id: "card_result"\n    timeout:
+  //    Inject an error marker instead of silently guessing card_result —
+  //    the correct id depends on which screen this wait is for.
   s = s.replace(
     /(\s+visible:)\s*\n(\s+timeout:)/g,
-    '$1\n      id: "card_result"\n$2'
+    '$1\n      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]\n$2'
   );
 
   // 4. Fix bare assertVisible: / assertNotVisible: with no value
-  s = s.replace(/^(- assert(?:Not)?Visible:)\s*$/gm, '$1\n    id: "card_result"');
+  s = s.replace(/^(- assert(?:Not)?Visible:)\s*$/gm, '$1\n    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]');
 
   // 4b. Remove bare `- tapOn:` with no sub-keys — causes "Incorrect Command Format: tapOn"
   //     which crashes the ENTIRE suite (all cases fail). Verified 2026-06-16.
@@ -2035,14 +2065,28 @@ async function main() {
       continue;
     }
 
+    // ── REUSE EXISTING CASE — do NOT overwrite trained/verified files ────────
+    const individualFile = path.join(OUTPUT_DIR, `${scenario.id}.yaml`);
+    if (fs.existsSync(individualFile)) {
+      const existingContent = fs.readFileSync(individualFile, 'utf8');
+      suiteChunks.push(existingContent);
+      individualFiles.push({ id: scenario.id, file: individualFile });
+      manifest.push({
+        id: scenario.id, priority: scenario.priority, category: scenario.category,
+        name: scenario.name, file: `${scenario.id}.yaml`,
+        generatedAt: new Date().toISOString(),
+        warnings: [],
+      });
+      console.log('♻️  (reused existing)');
+      skipped++;
+      continue;
+    }
+
     try {
       const scenarioStart = Date.now();
       const yaml = await generateYaml(context, scenario, prdContent);
       const elapsed = ((Date.now() - scenarioStart) / 1000).toFixed(1);
       const warnings = validateYaml(yaml, scenario);
-
-      // Write individual YAML file for this scenario
-      const individualFile = path.join(OUTPUT_DIR, `${scenario.id}.yaml`);
       const yamlWithName = sanitizeYaml(yaml.replace(
         /^(appId:[^\n]+)/m,
         `$1\nname: ${scenario.id}`
