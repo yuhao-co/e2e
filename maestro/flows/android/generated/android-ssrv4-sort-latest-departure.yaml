@@ -1,0 +1,44 @@
+appId: com.traveloka.android.staging
+name: android-ssrv4-sort-latest-departure
+---
+
+# Test Case: SSR V4 Sort by Latest Departure
+# Description: Open sort tray, select "Latest Departure" (index 3), and verify results reload successfully.
+
+# Step 1: Stop the app to ensure a clean state
+- stopApp
+
+# Step 2: Launch the app and navigate to the flight search results page using a deeplink
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 3: Wait until the flight search results page is fully loaded
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 4: Tap on the sort button to open the sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"
+
+# Step 5: Wait until the sort tray is visible
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+
+# Step 6: Tap on the "Latest Departure" sort option (index 4 in the sort tray)
+- tapOn:
+    id: "radio_button"
+    index: 4
+
+# Step 7: Wait for the flight results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 8: Verify that the results page is still visible after sorting
+- assertVisible:
+    id: "card_result"

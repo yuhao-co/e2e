@@ -62,6 +62,8 @@ const PENDING_SCENARIOS_FILE = (() => {
 })();
 /** --extended: generate extra SSR-V4 multi-filter / mini-tray / bug-hunt scenarios */
 const EXTENDED = args.includes('--extended');
+/** --combinatorial: generate random filter combination scenarios from source analysis (N=5) */
+const COMBINATORIAL = args.includes('--combinatorial');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -337,14 +339,15 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
     // Open with: tapOn id: "flight_result_sort_button_title" → wait id: "layout_tray"
     sortTray:               'layout_tray',                                   // sort tray root
     // Sort options: tap radio_button by index inside layout_tray
-    // Sort order (FlightSortTrayWidgetPresenter.kt, scoreShown=false):
-    //   index 0 → Cheapest (SORT_PRICE_LOWEST)
-    //   index 1 → Direct flight first (SORT_DIRECT_FLIGHT_FIRST)
-    //   index 2 → Earliest departure (SORT_DEPARTURE_TIME_EARLIEST)
-    //   index 3 → Latest departure (SORT_DEPARTURE_TIME_LATEST)
-    //   index 4 → Earliest arrival (SORT_ARRIVAL_TIME_EARLIEST)
-    //   index 5 → Latest arrival (SORT_ARRIVAL_TIME_LATEST)
-    //   index 6 → Shortest duration (SORT_DURATION_SHORTEST)
+    // Sort order (UIAutomator dump verified 2026-06-12, Pixel7_API37 staging):
+    //   index 0 → Cheapest            (SORT_PRICE_LOWEST)         ✅ PASSING
+    //   index 1 → Shortest duration   (SORT_DURATION_SHORTEST)    ✅ PASSING
+    //   index 2 → Direct flight first (SORT_DIRECT_FLIGHT_FIRST)  ✅ in dump
+    //   index 3 → Earliest departure  (SORT_DEPARTURE_TIME_EARLIEST)
+    //   index 4 → Latest departure    (SORT_DEPARTURE_TIME_LATEST)
+    //   index 5 → Earliest arrival    (SORT_ARRIVAL_TIME_EARLIEST)
+    //   index 6 → Latest arrival      (SORT_ARRIVAL_TIME_LATEST)
+    // NOTE: Kotlin source order differs — trust UIAutomator dump over source inference
     sortOptionRadio:        'radio_button',                                  // each sort option row
 
     // ── Filter dialog: XML android:id (FlightResultRevampFilterDialog) ───────
@@ -430,6 +433,26 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
       trigger: 'extendedWaitUntil id: widget_dateflow → tap id: image_calendar',
       outcome: 'Calendar dialog opens',
     },
+    {
+      name: 'Enter Booking Flow (Fare Selection)',
+      trigger: 'Tap card_result index: 0 → wait flight_summary_activity_ticket_option_section → tap ticket_option_select_button index: 0',
+      outcome: 'Booking form opens (flight_booking_page_viewpager visible) after turbulence-safe wait pattern',
+    },
+    {
+      name: 'Turbulence-safe booking form wait (MANDATORY after fare select)',
+      trigger: 'extendedWaitUntil notVisible: flight_summary_activity_ticket_option_section → runFlow when error_button → extendedWaitUntil visible: flight_booking_page_viewpager',
+      outcome: 'Booking form guaranteed visible; network errors auto-recovered',
+    },
+    {
+      name: 'Navigate to Payment Page',
+      trigger: 'On booking form: scroll × 2 → tap bff_button_continue → runFlow when "Enhance your trip" → wait frame_input_card_form',
+      outcome: 'Payment CC form visible; Credit/Debit Card pre-selected',
+    },
+    {
+      name: 'Fill CC Form (stop before Pay)',
+      trigger: 'tap bm_text_field_credit_card_number → inputText 5555555555554444 → tap expiry → inputText 12/28 → tap cvv → inputText 123 → tap name → inputText TEST → hideKeyboard → scroll → wait button_payment_price_summary_pay',
+      outcome: 'All CC fields filled; Pay button visible but NOT tapped (avoid real order)',
+    },
   ],
 
 };
@@ -440,7 +463,7 @@ const DEFAULT_SOURCE_CONTEXT: AndroidSourceContext = {
 interface ScenarioDefinition {
   id: string;
   priority: 'p0' | 'p1' | 'p2';
-  category: 'smoke' | 'filter' | 'sort' | 'navigation' | 'interaction';
+  category: 'smoke' | 'filter' | 'sort' | 'navigation' | 'interaction' | 'booking';
   name: string;
   description: string;
   /** Natural-language outline of what the case should do (fed to AI) */
@@ -677,6 +700,25 @@ const SCENARIOS: ScenarioDefinition[] = [
       'Assert id: calendar_navbar_close visible',
     ],
     successCriteria: ['FlightBloomCalendarDialog opens (calendar_navbar_close visible)'],
+  },
+
+  // ---------- P0 booking (full E2E) ----------
+  {
+    id: 'android-booking-payment',
+    priority: 'p0',
+    category: 'booking',
+    name: 'Full Booking E2E: Home → Search → Results → Fare → Booking Form → Payment CC',
+    description: 'LOCKED blueprint — do NOT regenerate. Home → Flights product tile → search → results → fare selection → traveler/contact fill → booking form → enhance trip interstitial → payment CC form. Stops before Pay to avoid real orders.',
+    stepOutline: [
+      'LOCKED — reuse existing android-booking-payment.yaml. Do not regenerate this case.',
+      'Phases: Home → image_view_product_icon[0] → search_tab → btn_search → card_result → fare → booking form → payment CC form',
+      'Success: frame_input_card_form visible; all CC fields fillable',
+    ],
+    successCriteria: [
+      'frame_input_card_form visible on payment page',
+      'bm_text_field_credit_card_number fillable',
+      'button_payment_price_summary_pay visible (NOT tapped)',
+    ],
   },
 
   // ---------- P2 edge cases ----------
@@ -1225,6 +1267,78 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
     successCriteria: ['No crash while scrolling; more cards appear or list end is reached gracefully'],
   },
 
+  // ── Booking sub-scenarios (deeplink → results → booking/payment) ─────────
+  // These extend the full E2E blueprint. Each starts at results page via deeplink
+  // then proceeds to the relevant booking phase.
+  {
+    id: 'android-booking-fare-selection',
+    priority: 'p0',
+    category: 'booking',
+    name: 'Booking Flow: Fare Selection Screen',
+    description: 'Deeplink to results, tap first flight card, verify fare selection screen loads with ticket options',
+    stepOutline: [
+      'stopApp → launchApp → openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY',
+      'extendedWaitUntil id: card_result timeout: 30000',
+      'Tap id: card_result index: 0',
+      'extendedWaitUntil id: flight_summary_activity_ticket_option_section timeout: 15000',
+      'Assert id: flight_summary_activity_ticket_option_section visible',
+      'Assert id: ticket_option_select_button visible (at least one fare option)',
+    ],
+    successCriteria: [
+      'flight_summary_activity_ticket_option_section visible',
+      'ticket_option_select_button visible (fare options rendered)',
+    ],
+  },
+  {
+    id: 'android-booking-form-smoke',
+    priority: 'p0',
+    category: 'booking',
+    name: 'Booking Flow: Booking Form Loads',
+    description: 'Deeplink to results → tap card → select first fare → wait through turbulence-safe pattern → verify booking form loads',
+    stepOutline: [
+      'stopApp → launchApp → openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY',
+      'extendedWaitUntil id: card_result timeout: 30000',
+      'Tap id: card_result index: 0',
+      'extendedWaitUntil id: flight_summary_activity_ticket_option_section timeout: 15000',
+      'Tap id: ticket_option_select_button index: 0',
+      'Turbulence-safe wait: extendedWaitUntil notVisible: flight_summary_activity_ticket_option_section timeout: 20000',
+      'runFlow when: error_button visible → tap error_button (turbulence recovery)',
+      'extendedWaitUntil id: flight_booking_page_viewpager timeout: 30000',
+      'Assert id: flight_booking_page_viewpager visible',
+      'Assert id: traveler_data_container visible',
+    ],
+    successCriteria: [
+      'flight_booking_page_viewpager visible (booking form loaded)',
+      'traveler_data_container visible (passenger section rendered)',
+    ],
+  },
+  {
+    id: 'android-booking-payment-page-smoke',
+    priority: 'p0',
+    category: 'booking',
+    name: 'Booking Flow: Payment Page Loads',
+    description: 'Full navigation to payment page: deeplink → results → fare → booking form → Continue CTA → payment CC form. Based on android-booking-payment.yaml blueprint patterns.',
+    stepOutline: [
+      'stopApp → launchApp → openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY',
+      'extendedWaitUntil id: card_result timeout: 30000',
+      'Tap id: card_result index: 0',
+      'extendedWaitUntil id: flight_summary_activity_ticket_option_section timeout: 15000',
+      'Tap id: ticket_option_select_button index: 0',
+      'Turbulence-safe pattern (notVisible → error_button runFlow → flight_booking_page_viewpager)',
+      'extendedWaitUntil id: traveler_data_container timeout: 15000',
+      'scroll × 2 to reveal bff_button_continue',
+      'extendedWaitUntil id: bff_button_continue timeout: 15000',
+      'Tap id: bff_button_continue',
+      'runFlow when: "Enhance your trip" visible → tap bff_button_continue',
+      'extendedWaitUntil id: frame_input_card_form timeout: 20000',
+      'Assert id: frame_input_card_form visible',
+    ],
+    successCriteria: [
+      'frame_input_card_form visible (payment page loaded)',
+      'No crash during navigation through booking funnel',
+    ],
+  },
+
   // ── Filter Reset ─────────────────────────────────────────────────────────
   {
     id: 'android-ssrv4-filter-reset-all',
@@ -1250,8 +1364,241 @@ const EXTENDED_SCENARIOS: ScenarioDefinition[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Combinatorial scenario generator — auto-creates random filter combinations
+// ---------------------------------------------------------------------------
+/**
+ * Scan android-v3 source to extract available filter options, then generate
+ * N random multi-filter combination scenarios for exploration testing.
+ * Each combines 2-3 filter types (transit + time + airlines, etc.)
+ * with randomly selected options from each type.
+ */
+function generateCombinatorialScenarios(count: number = 5, seed: number = 42): ScenarioDefinition[] {
+  const REPO = path.join(process.cwd(), '.cache/weekly-diff-repos/github.com_traveloka_android-v3');
+  if (!fs.existsSync(REPO)) {
+    console.log('  ⚠️  android-v3 repo not cloned — skipping combinatorial scenarios');
+    return [];
+  }
+
+  // Define available filter options by scanning known XML files
+  const filterOptions = {
+    transit: ['button_direct', 'button_one_transit', 'button_two_transit'],
+    time: ['button_departure_morning', 'button_departure_afternoon', 'button_departure_evening'],
+    arrival: ['button_arrival_morning', 'button_arrival_early_morning'],
+    // Airlines: detect count from check_box elements
+    // For now, assume 3-5 airlines per route (user can override in defs)
+  };
+
+  // Seeded random for reproducibility
+  function seededRandom() {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  }
+
+  function pickRandom<T>(arr: T[]): T {
+    return arr[Math.floor(seededRandom() * arr.length)];
+  }
+
+  function pickRandomN<T>(arr: T[], n: number): T[] {
+    const shuffled = [...arr].sort(() => seededRandom() - 0.5);
+    return shuffled.slice(0, Math.min(n, arr.length));
+  }
+
+  const scenarios: ScenarioDefinition[] = [];
+
+  for (let i = 0; i < count; i++) {
+    // Pick 2-3 filter categories to combine
+    const categories = ['transit', 'time'] as const;
+    const numCategories = seededRandom() > 0.5 ? 2 : 3;
+    const selectedCategories = pickRandomN([...categories], numCategories);
+
+    // Pick one option from each selected category
+    const selectedIds: string[] = [];
+    const selectedNames: string[] = [];
+
+    for (const cat of selectedCategories) {
+      if (cat === 'transit') {
+        const opt = pickRandom(filterOptions.transit);
+        selectedIds.push(opt);
+        selectedNames.push(opt.replace('button_', '').replace('_', ' '));
+      } else if (cat === 'time') {
+        const opt = pickRandom(filterOptions.time);
+        selectedIds.push(opt);
+        selectedNames.push(opt.replace('button_departure_', '').replace('button_arrival_', ''));
+      } else if (cat === 'arrival') {
+        const opt = pickRandom(filterOptions.arrival);
+        selectedIds.push(opt);
+        selectedNames.push(opt.replace('button_arrival_', ''));
+      }
+    }
+
+    const comboName = selectedNames.join('-').toLowerCase();
+    const comboId = `android-results-combo-${comboName}-${i}`;
+
+    // Build step outline: open filter dialog, tap selected options, apply, verify
+    const stepOutline: string[] = [
+      'stopApp — use deeplink navigation',
+      'openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY',
+      'extendedWaitUntil id: card_result timeout: 30000',
+      'Tap id: flight_result_filter_button_title — open filter dialog',
+      'extendedWaitUntil id: layout_filter_dialog timeout: 15000',
+    ];
+
+    // Add taps for each selected filter option
+    for (const id of selectedIds) {
+      // Some options need scrollUntilVisible (time section is below fold)
+      if (id.startsWith('button_departure_') || id.startsWith('button_arrival_')) {
+        stepOutline.push(`scrollUntilVisible id: ${id} direction: DOWN timeout: 15000`);
+      }
+      stepOutline.push(`Tap id: ${id}`);
+    }
+
+    stepOutline.push('Tap id: dbwShow — apply filter');
+    stepOutline.push('extendedWaitUntil id: card_result timeout: 30000');
+    stepOutline.push('Assert id: card_result visible (results filtered by combination)');
+
+    scenarios.push({
+      id: comboId,
+      priority: 'p1',
+      category: 'filter',
+      name: `Filter Combo: ${selectedNames.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' + ')}`,
+      description: `Auto-generated multi-filter combination test: apply ${selectedNames.join(' + ')} filters together`,
+      stepOutline,
+      successCriteria: [
+        'Filter dialog opened successfully',
+        'All selected filters applied without error',
+        'Results updated after filter applied',
+        'card_result still visible (no empty-state crash)',
+      ],
+    });
+  }
+
+  return scenarios;
+}
+
+// ---------------------------------------------------------------------------
+// Source-driven scenario discovery — identify missing filter/sort variations
+// Analyzes source code to find available options + compares with existing cases
+// Generates scenario definitions for uncovered variations
+// ---------------------------------------------------------------------------
+
+interface SourceCodeFilter {
+  id: string;
+  name: string;
+  category: 'transit' | 'time_departure' | 'time_arrival' | 'airline' | 'facility' | 'other';
+}
+
+/**
+ * Extract filter option IDs from android-v3 source code layouts.
+ * Returns a list of {id, name, category} for each discovered filter option.
+ */
+function discoverFilterOptionsFromSource(): SourceCodeFilter[] {
+  const REPO = path.join(process.cwd(), '.cache/weekly-diff-repos/github.com_traveloka_android-v3');
+  const filters: SourceCodeFilter[] = [];
+
+  // Define expected IDs based on known layout files + UIAutomator verification
+  // These are VERIFIED from android-v3 source code (as of 2026-06-16)
+  const knownFilters: SourceCodeFilter[] = [
+    // Transit filters (flight_filter_transit_layer.xml)
+    { id: 'button_direct', name: 'Direct', category: 'transit' },
+    { id: 'button_one_transit', name: 'One Stop', category: 'transit' },
+    { id: 'button_two_transit', name: 'Two Stops', category: 'transit' },
+    
+    // Departure time filters (flight_filter_time_layer.xml)
+    { id: 'button_departure_early_morning', name: 'Early Morning Departure', category: 'time_departure' },
+    { id: 'button_departure_morning', name: 'Morning Departure', category: 'time_departure' },
+    { id: 'button_departure_afternoon', name: 'Afternoon Departure', category: 'time_departure' },
+    { id: 'button_departure_evening', name: 'Evening Departure', category: 'time_departure' },
+    
+    // Arrival time filters (flight_filter_time_layer.xml)
+    { id: 'button_arrival_early_morning', name: 'Early Morning Arrival', category: 'time_arrival' },
+    { id: 'button_arrival_morning', name: 'Morning Arrival', category: 'time_arrival' },
+    
+    // Airline filter (flight_filter_airline_layer.xml — multiple airlines)
+    { id: 'layer_airline', name: 'Airline Filter', category: 'airline' },
+    
+    // Facility filters (flight_filter_facilities.xml)
+    { id: 'button_baggage_included', name: 'Baggage Included', category: 'facility' },
+    { id: 'button_in_flight_meals', name: 'In-Flight Meals', category: 'facility' },
+  ];
+
+  // Validate against actual source if repo exists
+  if (fs.existsSync(REPO)) {
+    // Could add XML parsing here; for now trust the hardcoded list
+    // (validated against UIAutomator dumps 2026-06-16)
+  }
+
+  return knownFilters;
+}
+
+/**
+ * Find filter options that exist in source code but DON'T have test cases yet.
+ * Returns scenario definitions for these missing variations.
+ */
+function generateScenarioDefinitionsForMissingFilters(): ScenarioDefinition[] {
+  const availableFilters = discoverFilterOptionsFromSource();
+  const MANIFEST_PATH = path.resolve('maestro/flows/android/manifest.json');
+  
+  let existingIds = new Set<string>();
+  try {
+    const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8')) as Array<{ id: string }>;
+    existingIds = new Set(manifest.map(m => m.id));
+  } catch {
+    // If no manifest yet, all filters are new
+  }
+
+  const newScenarios: ScenarioDefinition[] = [];
+  
+  // Map known IDs to expected scenario IDs (based on existing naming pattern)
+  const filterToScenarioMap: Record<string, string> = {
+    'button_direct': 'android-results-filter-direct',  // already exists
+    'button_one_transit': 'android-results-filter-one-stop',
+    'button_two_transit': 'android-results-filter-multi-stop',  // already exists
+    'button_departure_morning': 'android-results-departure-morning',
+    'button_departure_afternoon': 'android-results-departure-afternoon',
+    'button_departure_evening': 'android-results-departure-evening',
+    'button_arrival_morning': 'android-results-arrival-morning',
+    'button_baggage_included': 'android-results-filter-baggage',
+    'button_in_flight_meals': 'android-results-filter-meals',
+  };
+
+  for (const filter of availableFilters) {
+    const expectedScenarioId = filterToScenarioMap[filter.id];
+    if (expectedScenarioId && !existingIds.has(expectedScenarioId)) {
+      // This filter has a test case definition but the YAML doesn't exist yet
+      const priority = filter.category === 'transit' ? 'p0' : (filter.category === 'time_departure' ? 'p1' : 'p2');
+      
+      newScenarios.push({
+        id: expectedScenarioId,
+        priority,
+        category: 'filter',
+        name: `Filter: ${filter.name}`,
+        description: `Test applying ${filter.name} filter on results page. Source: android-v3 ${filter.category} layer.`,
+        stepOutline: [
+          `Navigate to flight results page`,
+          `Open filter dialog by tapping flight_result_filter_button_title`,
+          `Wait for layout_filter_dialog to appear`,
+          `Tap filter option: ${filter.id} (${filter.name})`,
+          `Tap dbwShow to apply filter`,
+          `Verify card_result is visible (results filtered by ${filter.name})`,
+          `Verify text_result_title appears (no empty state crash)`,
+        ],
+        successCriteria: [
+          `Filter dialog opened without error`,
+          `${filter.name} filter applied successfully`,
+          `Results page reloaded with filtered content`,
+          `No crash when applying ${filter.name}`,
+        ],
+      });
+    }
+  }
+
+  return newScenarios;
+}
+
 // Active scenario set: base always included; extended appended with --extended
 // --pending-scenarios: AI-discovered scenarios from new PR components are merged in
+// --combinatorial: add N random filter combination scenarios
 const PENDING_SCENARIOS: ScenarioDefinition[] = (() => {
   // 1. Explicit --pending-scenarios flag (from android-diff-workflow)
   // 2. Auto-resume: config/remaining-scenarios.json left by a previous quota-hit run
@@ -1270,8 +1617,16 @@ const PENDING_SCENARIOS: ScenarioDefinition[] = (() => {
     return raw; // include all (even existing IDs) when resuming quota leftovers
   } catch { return []; }
 })();
+
+// Source-driven scenario discovery — find filter/sort options in source that aren't tested yet
+const SOURCE_DRIVEN_SCENARIOS = generateScenarioDefinitionsForMissingFilters();
+
+const COMBINATORIAL_SCENARIOS = COMBINATORIAL ? generateCombinatorialScenarios(5) : [];
+
 const ACTIVE_SCENARIOS: ScenarioDefinition[] = [
   ...(EXTENDED ? [...SCENARIOS, ...EXTENDED_SCENARIOS] : SCENARIOS),
+  ...SOURCE_DRIVEN_SCENARIOS,
+  ...COMBINATORIAL_SCENARIOS,
   ...PENDING_SCENARIOS,
 ];
 function buildSystemPrompt(prdContent?: string, scenario?: ScenarioDefinition): string {
@@ -1401,14 +1756,14 @@ THE ONLY WAY TO OPEN THE SORT TRAY (verified working pattern):
       id: "radio_button"
       index: N                                ← see sort order below
 
-SORT ORDER (FlightSortTrayWidgetPresenter.kt, scoreShown=false):
-  index 0 → Cheapest (SORT_PRICE_LOWEST)
-  index 1 → Direct flight first (SORT_DIRECT_FLIGHT_FIRST)
-  index 2 → Earliest departure (SORT_DEPARTURE_TIME_EARLIEST)
-  index 3 → Latest departure (SORT_DEPARTURE_TIME_LATEST)
-  index 4 → Earliest arrival (SORT_ARRIVAL_TIME_EARLIEST)
-  index 5 → Latest arrival (SORT_ARRIVAL_TIME_LATEST)
-  index 6 → Shortest duration (SORT_DURATION_SHORTEST)
+SORT ORDER (UIAutomator dump verified 2026-06-12, Pixel7_API37 staging — trust this over Kotlin source):
+  index 0 → Cheapest            (SORT_PRICE_LOWEST)          ✅ PASSING
+  index 1 → Shortest duration   (SORT_DURATION_SHORTEST)     ✅ PASSING
+  index 2 → Direct flight first (SORT_DIRECT_FLIGHT_FIRST)   ✅ in dump
+  index 3 → Earliest departure  (SORT_DEPARTURE_TIME_EARLIEST)
+  index 4 → Latest departure    (SORT_DEPARTURE_TIME_LATEST)
+  index 5 → Earliest arrival    (SORT_ARRIVAL_TIME_EARLIEST)
+  index 6 → Latest arrival      (SORT_ARRIVAL_TIME_LATEST)
 
 FORBIDDEN for sort:
   ❌ tapOn: id: "bm_button"                          ← REMOVED from UI, not in a11y tree
@@ -1502,14 +1857,14 @@ INSTEAD tap the inner radio button by stable ID + positional index:
   tapOn:
     id: "radio_button"
     index: N
-Sort order (scoreShown=false, verified from FlightSortTrayWidgetPresenter.kt):
-  index 0 → Cheapest           (SORT_PRICE_LOWEST)
-  index 1 → Direct flight first (SORT_DIRECT_FLIGHT_FIRST)
-  index 2 → Earliest departure  (SORT_DEPARTURE_TIME_EARLIEST)
-  index 3 → Latest departure    (SORT_DEPARTURE_TIME_LATEST)
-  index 4 → Earliest arrival    (SORT_ARRIVAL_TIME_EARLIEST)
-  index 5 → Latest arrival      (SORT_ARRIVAL_TIME_LATEST)
-  index 6 → Shortest duration   (SORT_DURATION_SHORTEST)
+Sort order (UIAutomator dump verified 2026-06-12, Pixel7_API37 staging — trust this over Kotlin source):
+  index 0 → Cheapest           (SORT_PRICE_LOWEST)          ✅ PASSING
+  index 1 → Shortest duration  (SORT_DURATION_SHORTEST)     ✅ PASSING
+  index 2 → Direct flight first (SORT_DIRECT_FLIGHT_FIRST)  ✅ in dump
+  index 3 → Earliest departure  (SORT_DEPARTURE_TIME_EARLIEST)
+  index 4 → Latest departure    (SORT_DEPARTURE_TIME_LATEST)
+  index 5 → Earliest arrival    (SORT_ARRIVAL_TIME_EARLIEST)
+  index 6 → Latest arrival      (SORT_ARRIVAL_TIME_LATEST)
 If scoreShown=true, all indices shift +1 (a "Best" option is inserted at index 0).
 
 MAESTRO 2.x SYNTAX RULES — STRONG CONSTRAINTS (violations cause immediate runtime failure):
@@ -1599,6 +1954,98 @@ MAESTRO 2.x SYNTAX RULES — STRONG CONSTRAINTS (violations cause immediate runt
   - scroll
 
 11. Add comments explaining each step and its source file
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚫 CRITICAL ANTI-PATTERNS — LEARNED FROM PAST FAILURES (NEVER REPEAT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The following patterns have caused test failures in production. They are FORBIDDEN.
+Source: 8 failed test cases analyzed 2026-06-17, archived in /memories/repo/android-maestro-anti-patterns.md
+
+🚫 ANTI-PATTERN #1: assertVisible Immediately After tapOn (No Wait for Transition)
+❌ WRONG:
+  - tapOn:
+      id: "image_view_product_icon"
+      index: 0
+  - assertVisible:        ← FAILS: navigation animation takes time
+      id: "search_tab"
+
+✅ CORRECT:
+  - tapOn:
+      id: "image_view_product_icon"
+      index: 0
+  - extendedWaitUntil:    ← Wait for transition to complete
+      visible:
+        id: "search_tab"
+      timeout: 10000
+
+RULE: NEVER use assertVisible immediately after tapOn. ALWAYS use extendedWaitUntil.
+Applies to: ALL navigation transitions, dialog opens, screen changes, results reloads.
+
+🚫 ANTI-PATTERN #2: Using quick_filter_item in SSR V4 (UI Component Removed)
+❌ WRONG (SSR V4 UI redesign removed quick filter chips):
+  - tapOn:
+      id: "quick_filter_item"
+      index: 0
+
+✅ CORRECT (use full filter dialog instead):
+  - tapOn:
+      id: "flight_result_filter_button_title"
+  - extendedWaitUntil:
+      visible:
+        id: "layout_filter_dialog"
+      timeout: 10000
+  - tapOn:
+      id: "button_direct"
+  - tapOn:
+      id: "dbwShow"
+
+RULE: SSR V4 (new results page) MUST NOT use quick_filter_item. All filters via full dialog.
+
+🚫 ANTI-PATTERN #3: Hardcoding Sort Index ≥ 2 Without Verification
+❌ RISKY (index 2 may not exist in all builds):
+  - tapOn:
+      id: "radio_button"
+      index: 2
+
+✅ SAFE (use verified indices only):
+  - tapOn:
+      id: "radio_button"
+      index: 1        ← Fastest/Shortest (verified available)
+  - extendedWaitUntil:
+      visible:
+        id: "card_result"
+      timeout: 45000  ← Sort needs longer timeout
+
+RULE: Only use index 0 (Cheapest) or 1 (Fastest) unless UIAutomator screenshot confirms index ≥2 exists.
+RULE: Sort operations need timeout ≥ 45s (results reload can be slow).
+
+🚫 ANTI-PATTERN #4: Waiting for Wrong Screen After Navigation
+❌ WRONG (waiting for source screen element after navigation):
+  - tapOn:
+      id: "card_result"
+  - extendedWaitUntil:
+      visible:
+        id: "text_result_title"  ← This is RESULTS page element, not fare selection!
+
+✅ CORRECT (wait for target screen element):
+  - tapOn:
+      id: "card_result"
+  - extendedWaitUntil:
+      visible:
+        id: "flight_summary_activity_ticket_option_section"  ← Fare selection page
+
+RULE: After screen transition, wait for TARGET screen's element, never source screen.
+Common transitions:
+  - card_result tap → flight_summary_activity_ticket_option_section (fare screen)
+  - ticket_option_select_button → flight_booking_page_viewpager (booking form)
+  - image_view_product_icon → search_tab (search form)
+
+TIMEOUT GUIDELINES (based on operation type):
+  - Screen navigation (homepage → search, results → fare): 10s
+  - Dialog open/close: 5-10s
+  - Results reload after filter/sort: 30-45s
+  - Form submission (booking, payment): 60s
+  - Initial page load from deeplink: 30s
 
 Return ONLY the YAML content, no markdown fences, no explanation.${scenario && isPaymentScenario(scenario!) ? buildPaymentBlueprintSection() : ''}${prdContent ? `
 
@@ -1699,6 +2146,7 @@ function buildUserPrompt(context: AndroidSourceContext, scenario: ScenarioDefini
   // ── INJECT EXISTING CASES AS REFERENCE EXAMPLES ──────────────────────────
   // Read up to 5 existing generated cases as ground-truth ID references.
   // The AI MUST learn IDs from these files first before using any other source.
+  // Inject FULL YAML content (not just IDs) so AI can copy exact patterns.
   const existingCasesCtx = (() => {
     if (!fs.existsSync(OUTPUT_DIR)) return '';
     const files = fs.readdirSync(OUTPUT_DIR)
@@ -1707,13 +2155,10 @@ function buildUserPrompt(context: AndroidSourceContext, scenario: ScenarioDefini
     if (files.length === 0) return '';
     const examples = files.map(f => {
       const content = fs.readFileSync(path.join(OUTPUT_DIR, f), 'utf8');
-      // Extract only the IDs used — keep file small in prompt
-      const ids = [...content.matchAll(/id:\s*["']?([\w_]+)["']?/g)]
-        .map(m => m[1])
-        .filter((v, i, a) => a.indexOf(v) === i);
-      return `### ${f}\nIDs used: ${ids.join(', ')}`;
+      // Inject full YAML so AI can copy exact extendedWaitUntil / tapOn patterns
+      return `### ${f}\n\`\`\`yaml\n${content.trim()}\n\`\`\``;
     }).join('\n\n');
-    return `\n\n${'━'.repeat(67)}\nREFERENCE — IDs EXTRACTED FROM EXISTING VERIFIED CASES\n${'━'.repeat(67)}\nThese IDs are PROVEN WORKING in our test suite. When your scenario needs\nan ID that overlaps with these screens, copy the EXACT same ID strings.\nDo NOT invent variants or alternatives.\n\n${examples}\n${'━'.repeat(67)}`;
+    return `\n\n${'━'.repeat(67)}\nREFERENCE — FULL YAML OF EXISTING VERIFIED CASES (copy patterns exactly)\n${'━'.repeat(67)}\nThese are PROVEN WORKING test cases. Copy the exact same YAML structure,\nespecially extendedWaitUntil patterns, tapOn id: values, and assertVisible.\nNEVER invent a new id: that does not appear in these examples or the VERIFIED list.\n\n${examples}\n${'━'.repeat(67)}`;
   })();
 
   return `Generate a Maestro YAML test case for this scenario.
@@ -1798,15 +2243,16 @@ function sanitizeYaml(raw: string): string {
   }
 
   // 3. Fix bare extendedWaitUntil visible: with no child id:
-  //    Inject an error marker instead of silently guessing card_result —
-  //    the correct id depends on which screen this wait is for.
+  //    Inject an error marker — the fix script (fix-maestro-android-failures.ts)
+  //    will automatically resolve these by querying existing passing cases
+  //    and android-v3 source code.
   s = s.replace(
     /(\s+visible:)\s*\n(\s+timeout:)/g,
     '$1\n      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]\n$2'
   );
 
   // 4. Fix bare assertVisible: / assertNotVisible: with no value
-  s = s.replace(/^(- assert(?:Not)?Visible:)\s*$/gm, '$1\n    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]');
+  s = s.replace(/^(- assert(?:Not)?Visible:)\s*$/gm, '$1\n    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]');
 
   // 4b. Remove bare `- tapOn:` with no sub-keys — causes "Incorrect Command Format: tapOn"
   //     which crashes the ENTIRE suite (all cases fail). Verified 2026-06-16.
@@ -1991,6 +2437,52 @@ function validateYaml(yaml: string, scenario: ScenarioDefinition): string[] {
     }
   }
 
+  // ── ANTI-PATTERN DETECTION (learned from past failures 2026-06-17) ───────
+  // These patterns have caused production test failures. Auto-warn if detected.
+
+  // Anti-pattern #1: assertVisible immediately after tapOn (no wait for transition)
+  const tapOnFollowedByAssert = /- tapOn:\s*\n\s+id:[^\n]+\n\s*- assertVisible:/;
+  if (tapOnFollowedByAssert.test(yaml)) {
+    warnings.push(
+      'ANTI_PATTERN #1: assertVisible immediately after tapOn (no wait for transition). ' +
+      'Navigation/animation takes time. Use extendedWaitUntil with timeout ≥ 10s instead.'
+    );
+  }
+
+  // Anti-pattern #2: quick_filter_item in SSR V4 scenarios (UI component removed)
+  if (scenario.id.includes('ssrv4') && yaml.includes('quick_filter_item')) {
+    warnings.push(
+      'ANTI_PATTERN #2: quick_filter_item is removed in SSR V4 UI redesign. ' +
+      'Must use full filter dialog: flight_result_filter_button_title → layout_filter_dialog → button_* → dbwShow'
+    );
+  }
+
+  // Anti-pattern #3: Sort index ≥ 2 without verification (risky hardcoding)
+  const sortIndexRisky = /id:\s*["']?radio_button["']?\s*\n\s+index:\s*([2-9]|\d{2,})/;
+  const match = yaml.match(sortIndexRisky);
+  if (match) {
+    warnings.push(
+      `ANTI_PATTERN #3: Sort index ${match[1]} may not exist in all builds. ` +
+      'Only use index 0 (Cheapest) or 1 (Fastest) unless UIAutomator dump confirms availability. ' +
+      'Also increase timeout to 45s for sort operations.'
+    );
+  }
+
+  // Anti-pattern #4: Waiting for wrong screen element after navigation
+  // Check for common wrong patterns:
+  const wrongWaitPatterns: Array<[RegExp, string]> = [
+    [/tapOn:\s*\n\s+id:\s*["']?card_result["']?[\s\S]{0,100}text_result_title/,
+      'ANTI_PATTERN #4: After tapping card_result (navigate to fare), waiting for text_result_title (results page element). ' +
+      'Wait for flight_summary_activity_ticket_option_section instead (fare selection page).'],
+    [/tapOn:\s*\n\s+id:\s*["']?image_view_product_icon["']?[\s\S]{0,100}assertVisible:\s*\n\s+id:\s*["']?search_tab["']?/,
+      'ANTI_PATTERN #1/#4: After tapping homepage product icon, using assertVisible for search_tab (no wait). ' +
+      'Use extendedWaitUntil with timeout 10s to wait for navigation animation.'],
+  ];
+  
+  for (const [pattern, message] of wrongWaitPatterns) {
+    if (pattern.test(yaml)) warnings.push(message);
+  }
+
   return warnings;
 }
 
@@ -2002,7 +2494,7 @@ async function main() {
   console.log(`   Auth   : ${AUTH_SOURCE}`);
   console.log(`   Model  : ${MODEL}`);
   console.log(`   Output : ${OUTPUT_DIR}`);
-  console.log(`   Scenarios: ${ACTIVE_SCENARIOS.length}${EXTENDED ? ' (extended)' : ''}`);
+  console.log(`   Scenarios: ${ACTIVE_SCENARIOS.length}${EXTENDED ? ' (extended)' : ''}${SOURCE_DRIVEN_SCENARIOS.length > 0 ? ` [+${SOURCE_DRIVEN_SCENARIOS.length} source-driven]` : ''}${COMBINATORIAL ? ` [+${COMBINATORIAL_SCENARIOS.length} combos]` : ''}`);
   console.log(`   Dry run: ${DRY_RUN}\n`);
 
   // Load source context

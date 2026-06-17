@@ -1,0 +1,36 @@
+appId: com.traveloka.android.staging
+name: android-ssrv4-mini-filter-tray-dismiss
+---
+
+# CORRECTED: SSR V4 Dismiss Filter Dialog (not quick chips)
+
+# Step 1: Stop the app and navigate to the flight search results page using the deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+
+# Step 3: Wait for dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 4: Close dialog without applying
+- tapOn:
+    id: "ivClose"
+
+# Step 5: Verify results unchanged
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 15000
+- assertVisible:
+    id: "card_result"

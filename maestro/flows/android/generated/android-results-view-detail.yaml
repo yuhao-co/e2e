@@ -1,39 +1,39 @@
 appId: com.traveloka.android.staging
 name: android-results-view-detail
 ---
+# Test case: Tap a flight card to view fare options
+
 # Step 1: Navigate to search results
 - stopApp
 - openLink:
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 2: Wait for results to load
 - extendedWaitUntil:
     visible:
       id: "card_result"
     timeout: 30000
 
-# Step 2: Wait for card_result (Compose id)
-- extendedWaitUntil:
-    visible:
-      id: "card_result"
-    timeout: 30000
-
-# Step 3: Tap card_result (Compose id)
+# Step 3: Tap first flight card to open fare selection
 - tapOn:
     id: "card_result"
-    index: 0  # Assuming we want to tap the first flight card
+    index: 0
 
-# Step 4: Wait for detail overlay or new screen
+# Step 4: Wait for fare selection screen (not text_result_title which is on results page)
 - extendedWaitUntil:
     visible:
-      id: "text_result_title"  # Assuming this ID is present in the detail view
+      id: "flight_summary_activity_ticket_option_section"
     timeout: 30000
 
-# Step 5: Take screenshot
-- screenshot:
-    path: "test-results/android/android-results-view-detail.png"
+# Step 5: Verify fare selection screen visible
+- assertVisible:
+    id: "flight_summary_activity_ticket_option_section"
 
-# Step 6: Tap back to return to results (system back)
+# Step 6: Return to results page
 - back
 
-# Step 7: Assert text_result_title visible again (Compose id)
-- assertVisible:
-    id: "text_result_title"
+# Step 7: Verify results page restored
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000

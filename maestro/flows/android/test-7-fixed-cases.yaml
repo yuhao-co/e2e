@@ -1,0 +1,25 @@
+appId: com.traveloka.android.staging
+---
+# Temporary test suite for the 7 fixed cases
+# Run: maestro test maestro/flows/android/test-7-fixed-cases.yaml
+
+# 1. Fixed: android-results-sort-best
+- runFlow: generated/android-results-sort-best.yaml
+
+# 2. Fixed: android-ssrv4-mini-filter-tray-open
+- runFlow: generated/android-ssrv4-mini-filter-tray-open.yaml
+
+# 3. Fixed: android-ssrv4-mini-filter-tray-apply
+- runFlow: generated/android-ssrv4-mini-filter-tray-apply.yaml
+
+# 4. Fixed: android-ssrv4-mini-filter-tray-dismiss
+- runFlow: generated/android-ssrv4-mini-filter-tray-dismiss.yaml
+
+# 5. Fixed: android-ssrv4-nonstop-chip
+- runFlow: generated/android-ssrv4-nonstop-chip.yaml
+
+# 6. Fixed: android-results-view-detail
+- runFlow: generated/android-results-view-detail.yaml
+
+# 7. Fixed: android-ssrv4-sort-direct-first
+- runFlow: generated/android-ssrv4-sort-direct-first.yaml

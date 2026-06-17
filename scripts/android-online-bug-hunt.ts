@@ -35,11 +35,12 @@ import OpenAI from 'openai';
 // CLI args
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
-const DRY_RUN    = args.includes('--dry-run');
-const NO_GENERATE = args.includes('--no-generate');
-const DISCOVER   = args.includes('--discover');   // NEW: AI auto-discovers uncovered paths
-const CLI_MODEL  = (() => { const i = args.indexOf('--model'); return i !== -1 ? args[i + 1] : null; })();
-const PRD_FILE   = (() => { const i = args.indexOf('--prd-file'); return i !== -1 ? args[i + 1] : null; })();
+const DRY_RUN       = args.includes('--dry-run');
+const NO_GENERATE   = args.includes('--no-generate');
+const FORCE_GENERATE = args.includes('--force-generate'); // bypass fast-path reuse check
+const DISCOVER      = args.includes('--discover');   // NEW: AI auto-discovers uncovered paths
+const CLI_MODEL     = (() => { const i = args.indexOf('--model'); return i !== -1 ? args[i + 1] : null; })();
+const PRD_FILE      = (() => { const i = args.indexOf('--prd-file'); return i !== -1 ? args[i + 1] : null; })();
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -213,6 +214,7 @@ async function stageDiscover(): Promise<void> {
 
   const systemPrompt = `You are an Android test coverage analyst for the Traveloka flight search results page.
 Your job: identify Android UI interaction paths NOT yet covered by the existing test cases.
+HINT: This includes FILTER COMBINATIONS that haven't been tested yet.
 
 STRICT RULES — violations cause the output to be rejected entirely:
 1. Output ONLY valid JSON array. No markdown, no explanation, no code fences.
@@ -220,31 +222,69 @@ STRICT RULES — violations cause the output to be rejected entirely:
 3. NEVER use text: or label: as interaction locators. Only id: is allowed.
 4. Each new scenario must test a DIFFERENT interaction path from the existing cases.
 5. Maximum 5 new scenarios. Quality over quantity.
-6. scenario id format: "android-results-<short-kebab-name>" (lowercase, hyphens only)
+6. scenario id format: "android-results-<short-kebab-name>" or "android-results-combo-<filters>" (lowercase, hyphens only)
 
-VERIFIED IDs available on this page (UIAutomator-confirmed):
-  card_result, text_result_title, widget_dateflow, image_calendar,
-  flight_result_filter_button_title, flight_result_sort_button_title,
-  layout_tray, radio_button, layout_filter_dialog, layer_transit,
-  button_direct, button_one_transit, button_two_transit, dbwShow, tvReset,
-  layer_airline, check_box, layer_time, button_departure_morning,
-  button_departure_afternoon, button_departure_evening, button_departure_early_morning,
-  button_arrival_morning, button_arrival_early_morning,
-  flight_summary_activity_ticket_option_section, calendar_navbar_close
+FILTER OPTION COMBINATIONS (can be freely mixed):
+  Transit filters:           button_direct, button_one_transit, button_two_transit
+  Time filters:              button_departure_morning, button_departure_afternoon, button_departure_evening
+  Arrival time filters:      button_arrival_morning, button_arrival_early_morning
+  Airline filters:           check_box (inside layer_airline, multiple choices possible)
+  Reset button:              tvReset (clears all filters)
+
+FILTER COMBINATION IDEAS (pick any 2-3 to test together):
+  ✓ Direct flights + Morning departure
+  ✓ 1-Stop + Afternoon departure + Specific airline
+  ✓ 2+ stops + Late evening
+  ✓ Direct + Early morning + Reset then apply again
+  ✓ Mix 3+ filters together (e.g., Direct + Morning + Airline X + Early arrival)
+
+VERIFIED IDs available (UIAutomator-confirmed):
+  RESULTS PAGE:
+    card_result, text_result_title, widget_dateflow, image_calendar,
+    flight_result_filter_button_title, flight_result_sort_button_title,
+    layout_tray, radio_button, layout_filter_dialog, layer_transit,
+    button_direct, button_one_transit, button_two_transit, dbwShow, tvReset,
+    layer_airline, check_box, layer_time, button_departure_morning,
+    button_departure_afternoon, button_departure_evening, button_departure_early_morning,
+    button_arrival_morning, button_arrival_early_morning,
+    calendar_navbar_close
+
+  FARE SELECTION PAGE (after tapping card_result):
+    flight_summary_activity_ticket_option_section,
+    ticket_option_select_button
+
+  BOOKING FORM (after ticket_option_select_button → turbulence-safe wait):
+    flight_booking_page_viewpager, traveler_data_container, search_box,
+    label, primary_submit_button, bff_button_continue, icon_fill_in_details,
+    error_button
+
+  PAYMENT PAGE (after bff_button_continue → Enhance Your Trip interstitial):
+    frame_input_card_form, bm_text_field_credit_card_number,
+    bm_text_field_credit_card_expiry, bm_text_field_credit_card_cvv,
+    bm_text_field_credit_card_fullname, button_payment_price_summary_pay
+
+BOOKING FLOW ENTRY (mandatory pattern — deeplink only):
+  - stopApp → launchApp → openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY
+  - extendedWaitUntil id: card_result timeout: 30000
+  - tap card_result index: 0 → wait flight_summary_activity_ticket_option_section
+  - tap ticket_option_select_button index: 0
+  - turbulence-safe: notVisible flight_summary_activity_ticket_option_section → runFlow error_button → flight_booking_page_viewpager
+  - scroll × 2 → bff_button_continue → runFlow when "Enhance your trip" → frame_input_card_form
 
 OUTPUT FORMAT (JSON array of ScenarioDefinition objects):
 [
   {
-    "id": "android-results-<name>",
-    "priority": "p1",
-    "category": "filter|sort|navigation|interaction",
+    "id": "android-<results|booking|payment>-<name>",
+    "priority": "p0|p1|p2",
+    "category": "filter|sort|navigation|interaction|booking",
     "name": "Human readable name",
     "description": "What this tests and why it's valuable",
     "stepOutline": [
       "stopApp — deeplink navigation only",
+      "launchApp",
       "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
       "extendedWaitUntil id: card_result timeout: 30000",
-      "... concrete steps with specific IDs ..."
+      "... concrete steps with specific IDs from the VERIFIED IDs list ..."
     ],
     "successCriteria": ["specific assertion with id: xxx visible"]
   }
@@ -333,14 +373,44 @@ Return JSON only.`;
 // ---------------------------------------------------------------------------
 // Stage 2: Generate extended test cases
 // ---------------------------------------------------------------------------
+/**
+ * Returns true if all generated cases appear ready:
+ *   - manifest.json exists and has no GENERATION_FAILED entries
+ *   - config/remaining-scenarios.json does NOT exist (no partial run)
+ *   - every manifest entry has a corresponding .yaml file on disk
+ */
+function allCasesReady(): boolean {
+  if (!fs.existsSync(MANIFEST_PATH)) return false;
+  if (fs.existsSync(path.resolve('config/remaining-scenarios.json'))) return false;
+  let manifest: Array<{ id: string; warnings: string[] }> = [];
+  try { manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8')); } catch { return false; }
+  if (manifest.length === 0) return false;
+  for (const entry of manifest) {
+    if (entry.warnings?.some(w => w.startsWith('GENERATION_FAILED'))) return false;
+    const yamlFile = path.join(GENERATED_DIR, `${entry.id}.yaml`);
+    if (!fs.existsSync(yamlFile)) return false;
+  }
+  return true;
+}
+
 async function stageGenerate(): Promise<void> {
   if (NO_GENERATE) { console.log('\n[2/5] Skipping generation (--no-generate)'); return; }
-  console.log('\n[2/5] Generating extended test cases (42 scenarios)…');
+  console.log('\n[2/5] Generating extended test cases…');
   const t = Date.now();
+
+  // ── Fast path: all cases already exist — skip AI generation entirely ──────
+  if (!FORCE_GENERATE && !DRY_RUN && allCasesReady()) {
+    let manifest: Array<{ id: string }> = [];
+    try { manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8')); } catch { /* ignore */ }
+    console.log(`  ♻️  All ${manifest.length} cases already exist — skipping AI generation.`);
+    console.log(`     (Use --force-generate to regenerate all cases.`);
+    return;
+  }
 
   const genArgs: string[] = [
     'npx', 'tsx', 'scripts/generate-maestro-android.ts',
     '--extended',
+    '--combinatorial',  // Auto-generate 5 random filter combo scenarios for exploration
     ...(DRY_RUN ? ['--dry-run'] : []),
     ...(CLI_MODEL ? ['--model', CLI_MODEL] : []),
     ...(PRD_FILE ? ['--prd-file', PRD_FILE] : []),
@@ -359,7 +429,7 @@ async function stageGenerate(): Promise<void> {
   const result = spawnSync(genArgs[0], genArgs.slice(1), {
     encoding: 'utf8',
     stdio: 'inherit',
-    timeout: 600_000,  // 10 min for ~42 scenarios × ~7s each
+    timeout: 600_000,  // 10 min for ~150 scenarios × ~7s each (quota-safe; remaining-scenarios.json handles resume)
   });
 
   if (result.status !== 0) {

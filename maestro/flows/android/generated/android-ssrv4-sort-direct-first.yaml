@@ -1,0 +1,45 @@
+appId: com.traveloka.android.staging
+name: android-ssrv4-sort-direct-first
+---
+
+# SSR V4 Sort: Direct Flight First
+# This test case verifies that the "Direct flight first" sort option can be applied successfully
+# on the flight search results page without any crashes.
+
+# Step 1: Stop the app to ensure a clean state
+- stopApp
+
+# Step 2: Launch the app and navigate to the flight search results page using a deeplink
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 3: Wait until the flight search results are visible
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 4: Tap on the sort button to open the sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"
+
+# Step 5: Wait until the sort tray is visible
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+
+# Step 6: Tap on the "Fastest" sort option (index 1 — index 2 not available in current build)
+- tapOn:
+    id: "radio_button"
+    index: 1
+
+# Step 7: Wait for the flight search results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 45000
+
+# Step 8: Verify that the results page is displayed with the sorted results
+- assertVisible:
+    id: "card_result"

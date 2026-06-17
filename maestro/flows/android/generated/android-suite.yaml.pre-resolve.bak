@@ -1,6 +1,6 @@
 # Auto-generated Android Maestro Suite
-# Generated: 2026-06-17T03:54:30.172Z
-# 0 cases covering flight search results
+# Generated: 2026-06-17T02:47:12.084Z
+# 15 cases covering flight search results
 # NOTE: Individual YAML files (<caseId>.yaml) are the primary execution method
 #   This file is for reference and multi-document compatibility only.
 
@@ -455,332 +455,6 @@ name: android-results-price-calendar
 ---
 
 appId: com.traveloka.android.staging
-name: android-booking-payment
-
----
-# ╔══════════════════════════════════════════════════════════╗
-# ║       FULLY LOCKED — DO NOT MODIFY ANY STEP              ║
-# ║  All Phases 1-8 verified passing 2026-06-16              ║
-# ║  Full flow: Home → Search → Results → Fare Selection →   ║
-# ║  Traveler Picker → Contact Details → Booking Form →      ║
-# ║  Enhance Your Trip → Payment CC Form → Pay               ║
-# ║                                                          ║
-# ║  Any change MUST be reviewed, re-run end-to-end, and     ║
-# ║  confirmed passing before committing.                    ║
-# ╚══════════════════════════════════════════════════════════╝
-#
-# All selectors sourced from android:id / Compose testTag.
-# Exceptions (point-based coordinates) documented inline.
-
-# --- PHASE 1: Home → Flight Search Form ---
-# stopApp before launchApp ensures clean state (no leftover dialogs from prev run)
-# Also kill Chrome — previous payment-related runs can leave Chrome open in the background,
-# causing the next run's product-tile tap to navigate to Chrome instead of native search.
-- stopApp: com.android.chrome
-- stopApp
-- launchApp
-
-- extendedWaitUntil:
-    visible:
-      id: "widget_highlighted_product"
-    timeout: 30000
-
-
-# image_view_product_icon: testTag from HomeHighlightedProductIcon.kt
-# index 0 = first product tile (Flights), locale-independent
-- tapOn:
-    id: "image_view_product_icon"
-    index: 0
-
-- assertVisible:
-    id: "search_tab"
-
-- tapOn:
-    id: "search_tab"
-
-- assertVisible:
-    id: "btn_search"
-
-- tapOn:
-    id: "btn_search"
-
-# --- PHASE 2: Results Page → Select Flight Card ---
-# text_result_title: XML id in results activity
-- assertVisible:
-    id: "text_result_title"
-
-- extendedWaitUntil:
-    visible:
-      id: "card_result"
-    timeout: 60000
-
-
-- tapOn:
-    id: "card_result"
-    index: 0
-
-# --- PHASE 3: Fare Selection → Booking Form ---
-# flight_summary_activity_ticket_option_section: UIAutomator-verified
-- extendedWaitUntil:
-    visible:
-      id: "flight_summary_activity_ticket_option_section"
-    timeout: 15000
-
-
-# ticket_option_select_button: from flight_ticket_option_slimming_down_widget.xml
-- tapOn:
-    id: "ticket_option_select_button"
-    index: 0
-
-# TURBULENCE-SAFE WAIT PATTERN:
-# Step 1 — wait for the fare screen to DISMISS (works regardless of what comes next).
-# flight_summary_activity_ticket_option_section disappears once the BFF call is made.
-- extendedWaitUntil:
-    notVisible:
-      id: "flight_summary_activity_ticket_option_section"
-    timeout: 20000
-
-# Step 2 — if turbulence appeared instead of the booking form, tap Refresh.
-# Source: flight_booking_activity.xml → error_button
-- runFlow:
-    when:
-      visible:
-        id: "error_button"
-    commands:
-      - tapOn:
-          id: "error_button"
-
-# Step 3 — now wait for the booking form (after clean load or after Refresh).
-# flight_booking_page_viewpager: root of booking form (flightbooking_impl module)
-- extendedWaitUntil:
-    visible:
-      id: "flight_booking_page_viewpager"
-    timeout: 30000
-
-
-# --- PHASE 4: Passenger — Select Existing Traveler ---
-# traveler_data_container: clickable row in flight_booking_traveler_detail_item_layout.xml
-# Wait explicitly — after turbulence recovery the RecyclerView items may not render immediately.
-- extendedWaitUntil:
-    visible:
-      id: "traveler_data_container"
-    timeout: 15000
-
-- tapOn:
-    id: "traveler_data_container"
-
-# search_box: unique to flight_booking_traveler_picker_widget.xml (confirms picker opened)
-- extendedWaitUntil:
-    visible:
-      id: "search_box"
-    timeout: 10000
-
-
-# label: name field in flight_booking_traveler_picker_item_layout.xml
-# index 1 = first real traveler (index 0 = "Add A New Name" header row)
-- tapOn:
-    id: "label"
-    index: 1
-
-# Scroll to reveal Save button (button is below fold)
-- scroll
-
-# primary_submit_button: Save/保留 CTA in flight_booking_form_widget.xml
-- extendedWaitUntil:
-    visible:
-      id: "primary_submit_button"
-    timeout: 10000
-
-
-- scroll
-
-- tapOn:
-    id: "primary_submit_button"
-
-# Handle "There's repetition in this name" dialog (appears for Andini Andini etc.)
-# Buttons inside widget_button have no resource-id (confirmed via uiautomator dump)
-- runFlow:
-    when:
-      visible:
-        id: "text_title"
-    commands:
-      - tapOn:
-          text: "Yes, continue"
-
-
-# --- PHASE 4.5: Contact Details — Fill Phone Number ---
-# The Contact section shows "Fill In Contact Details *" if phone is missing.
-# icon_fill_in_details: the "+" CTA in flight_booking_contact_detail_widget.xml
-# Only tap if the contact section needs filling.
-- runFlow:
-    when:
-      visible:
-        id: "icon_fill_in_details"
-    commands:
-      - tapOn:
-          id: "icon_fill_in_details"
-      # primary_submit_button: Save CTA in contact dialog (confirmed via uiautomator dump)
-      # tray_title "Contact Details" also confirms the dialog opened.
-      - extendedWaitUntil:
-          visible:
-            id: "primary_submit_button"
-          timeout: 10000
-      # --- Country Code picker ---
-      # Country Code EditText has no ID and no content-desc.
-      # Bounds [74,1197][336,1359] → center = (205,1278) in device pixels (Pixel7 1080×2400).
-      # Source: CountryPhoneSelector.kt → BMTextField (readOnly) wrapping the country field.
-      - tapOn:
-          point: "205,1278"
-      # Wait for the country picker to open — "Close" button is the unique identifier.
-      # NOTE: actual UI uses pickerHost path (full list view), NOT the BMModal with Cancel/Confirm.
-      - extendedWaitUntil:
-          visible:
-            text: "Close"
-          timeout: 10000
-      # Search for China — pickerHost uses classic View picker (NOT Compose BMModal).
-      # edit_text_search_constraint: confirmed via live uiautomator dump of the open picker.
-      - tapOn:
-          id: "edit_text_search_constraint"
-      - inputText: "China"
-      # text_view_country_name shows "China (CN)" — tapping selects and closes directly.
-      - tapOn:
-          text: "China (CN)"
-      # --- Phone number ---
-      # Use point coordinates directly to the Phone Number EditText [346,1197][1006,1359].
-      # Center = (676,1278) — avoids ambiguity with the Country Code EditText on the left.
-      # tapOn: label: "phoneNumber" hits the parent container center which is unreliable
-      # after country code is set (layout may shift).
-      - tapOn:
-          point: "676,1278"
-      # Erase any pre-filled phone number before typing (avoids appending to existing content).
-      - eraseText
-      - inputText: "13756321982"
-      # Dismiss keyboard BEFORE tapping email — ensures clean focus transition.
-      - hideKeyboard
-      # --- Email ---
-      # Email EditText: bounds [74,1401][1006,1563] → center (540,1482).
-      # Use point coordinates — tapOn: label: "emailAddress" does not reliably shift focus
-      # away from the phone field (focus stays on phone → eraseText deletes phone digits).
-      - tapOn:
-          point: "540,1482"
-      - eraseText
-      - inputText: "yu.hao@traveloka.com"
-      - tapOn:
-          id: "primary_submit_button"
-      # "There's repetition in this name" dialog may appear inside contact save too
-      - runFlow:
-          when:
-            visible:
-              text: "There's repetition in this name"
-          commands:
-            - tapOn:
-                text: "Yes, continue"
-      # Back on booking form after saving contact
-      - extendedWaitUntil:
-          visible:
-            id: "flight_booking_page_viewpager"
-          timeout: 15000
-
-
-# --- PHASE 5: Booking form ready — scroll to price summary CTA ---
-# After contact save, booking form is active. Apply same turbulence-safe pattern.
-# Source: flight_booking_price_breakdown_summary_widget.xml
-
-# Step 1: search_box (traveler picker) must be gone before we proceed
-- extendedWaitUntil:
-    notVisible:
-      id: "search_box"
-    timeout: 10000
-
-# Step 2: handle turbulence if it appeared during transition back to booking form
-- runFlow:
-    when:
-      visible:
-        id: "error_button"
-    commands:
-      - tapOn:
-          id: "error_button"
-
-# Step 3: wait for booking form
-- extendedWaitUntil:
-    visible:
-      id: "flight_booking_page_viewpager"
-    timeout: 20000
-
-# Scroll to expose the price summary CTA at the bottom of the booking form
-- scroll
-- scroll
-
-# --- PHASE 6: Tap "Continue" → proceeds to Payment activity ---
-# bff_button_continue: the "Continue to Payment" sticky CTA
-# Source: FlightBookingPriceBreakdownSummaryWidget.kt → binding.bffButtonContinue
-- extendedWaitUntil:
-    visible:
-      id: "bff_button_continue"
-    timeout: 15000
-
-- tapOn:
-    id: "bff_button_continue"
-
-# "Enhance your trip" add-on interstitial may appear between booking form and payment.
-# bff_button_continue ("Go to payment") is the same ID on that page — tap it again to skip.
-- runFlow:
-    when:
-      visible:
-        text: "Enhance your trip"
-    commands:
-      - extendedWaitUntil:
-          visible:
-            id: "bff_button_continue"
-          timeout: 10000
-      - tapOn:
-          id: "bff_button_continue"
-
-# Payment page anchor: frame_input_card_form (confirmed via uiautomator dump 2026-06-16)
-# Credit/Debit Card is already selected by default — no method tap needed.
-- extendedWaitUntil:
-    visible:
-      id: "frame_input_card_form"
-    timeout: 20000
-
-# --- PHASE 7: Fill Credit/Debit Card form ---
-# All IDs confirmed via uiautomator dump of payment page 2026-06-16
-# Card number: bm_text_field_credit_card_number (inside text_field_card_number)
-- tapOn:
-    id: "bm_text_field_credit_card_number"
-- inputText: "5555555555554444"
-
-# Valid until: bm_text_field_credit_card_expiry (inside text_field_expiry)
-- tapOn:
-    id: "bm_text_field_credit_card_expiry"
-- inputText: "12/28"
-
-# CVV/CVN: bm_text_field_credit_card_cvv (inside text_field_cvv)
-- tapOn:
-    id: "bm_text_field_credit_card_cvv"
-- inputText: "123"
-
-# Name on card: bm_text_field_credit_card_fullname (inside text_field_full_name)
-- tapOn:
-    id: "bm_text_field_credit_card_fullname"
-- inputText: "YU HAO"
-
-# --- PHASE 8: Tap Pay ---
-# button_payment_price_summary_pay: "Pay with Credit/Debit Card" CTA
-# Confirmed via uiautomator dump 2026-06-16
-# Dismiss keyboard first, then scroll to bring the button into view.
-- hideKeyboard
-- scroll
-- extendedWaitUntil:
-    visible:
-      id: "button_payment_price_summary_pay"
-    timeout: 10000
-- tapOn:
-    id: "button_payment_price_summary_pay"
-
----
-
-appId: com.traveloka.android.staging
 name: android-results-filter-multi-stop
 ---
 # Step 1: Launch the app and navigate to the search results
@@ -820,9 +494,9 @@ name: android-results-filter-multi-stop
 appId: com.traveloka.android.staging
 name: android-results-sort-best
 ---
-# Test case for sorting flights - verify multiple sort options work
+# Test case for sorting flights by Best option
 # Scenario ID: android-results-sort-best
-# Description: Test sort by trying index 0 again (Cheapest) — since index 2 may not be available in this build
+# Description: Tap sort index 2 (Best) in sort tray
 # Priority: p2
 
 # Precondition: Navigate to search results
@@ -834,79 +508,74 @@ name: android-results-sort-best
       id: "card_result"
     timeout: 30000
 
-# Step 1: Wait for page load
+# Step 1: Wait for the results page header to ensure the page is loaded
 - extendedWaitUntil:
     visible:
       id: "text_result_title"
     timeout: 30000
 
-# Step 2: Open sort tray
+# Step 2: Open the sort tray
 - tapOn:
-    id: "flight_result_sort_button_title"
-
-# Step 3: Wait for sort tray
+    id: "flight_result_sort_button_title"          # Floating sort suggestion pill at bottom of results page
 - extendedWaitUntil:
     visible:
-      id: "layout_tray"
+      id: "layout_tray"         # Wait for Sort tray container to appear
     timeout: 10000
 
-# Step 4: Tap sort index 1 (Shortest duration / Fastest)
+# Step 3: Tap the radio button at index 2 (Direct flights first)
 - tapOn:
     id: "radio_button"
-    index: 1
+    index: 2                 # Sort by Direct flights first
 
-# Step 5: Wait for results to reload
+# Step 4: Wait for the results page header to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
-    timeout: 45000
-
-# Step 6: Verify results visible
-- assertVisible:
-    id: "card_result"
+      id: "text_result_title"
+    timeout: 30000
 ---
 
 appId: com.traveloka.android.staging
 name: android-results-view-detail
 ---
-# Test case: Tap a flight card to view fare options
-
 # Step 1: Navigate to search results
 - stopApp
 - openLink:
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
-
-# Step 2: Wait for results to load
 - extendedWaitUntil:
     visible:
       id: "card_result"
     timeout: 30000
 
-# Step 3: Tap first flight card to open fare selection
+# Step 2: Wait for card_result (Compose id)
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 3: Tap card_result (Compose id)
 - tapOn:
     id: "card_result"
-    index: 0
+    index: 0  # Assuming we want to tap the first flight card
 
-# Step 4: Wait for fare selection screen (not text_result_title which is on results page)
+# Step 4: Wait for detail overlay or new screen
 - extendedWaitUntil:
     visible:
-      id: "flight_summary_activity_ticket_option_section"
+      id: "text_result_title"  # Assuming this ID is present in the detail view
     timeout: 30000
 
-# Step 5: Verify fare selection screen visible
-- assertVisible:
-    id: "flight_summary_activity_ticket_option_section"
+# Step 5: Take screenshot
+- screenshot:
+    path: "test-results/android/android-results-view-detail.png"
 
-# Step 6: Return to results page
+# Step 6: Tap back to return to results (system back)
 - back
 
-# Step 7: Verify results page restored
-- extendedWaitUntil:
-    visible:
-      id: "card_result"
-    timeout: 30000
+# Step 7: Assert text_result_title visible again (Compose id)
+- assertVisible:
+    id: "text_result_title"
 ---
 
+# === P0: SSR V4 Multi-Filter: Transit Tab ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-filter-tab-transit
 ---
@@ -921,36 +590,45 @@ name: android-ssrv4-filter-tab-transit
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open full filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
+# Step 2: Wait for the filter button to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
+
+# Step 3: Tap the filter button to open the multi-filter dialog
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 4: Wait for the filter dialog to appear
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 15000
 
-# Step 3: Transit section is at top — tap Direct toggle
-- tapOn:
-    id: "button_direct"
+# Step 5: Tap the Transit tab inside the filter dialog
+# [sanitized: bare tapOn removed — no target specified]
 
-# Step 4: Apply the filter
-- tapOn:
-    id: "dbwShow"
+# Step 6: Tap the Direct/Nonstop option inside the Transit tab content
+# [sanitized: bare tapOn removed — no target specified]
 
-# Step 5: Wait for results to reload
+# Step 7: Tap the Apply/Done button to submit the filter
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 8: Wait for the results to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 6: Assert results visible
+# Step 9: Assert that the results are visible
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P0: SSR V4 Multi-Filter: Departure Time Tab ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-filter-tab-time
 ---
@@ -965,43 +643,48 @@ name: android-ssrv4-filter-tab-time
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open full filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
+# Step 2: Wait for the Filter button to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 15000
 
-# Step 3: Scroll to departure time section
+# Step 3: Tap on the Filter button to open the filter dialog
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 4: Wait for the filter dialog to be visible
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 15000
+
+# Step 5: Scroll to the Time tab in the filter dialog
 - scrollUntilVisible:
     element:
-      id: "button_departure_morning"
     direction: DOWN
     timeout: 15000
 
-# Step 4: Tap the morning departure option
-- tapOn:
-    id: "button_departure_morning"
+# Step 6: Tap on the Morning departure option
+# [sanitized: bare tapOn removed — no target specified]
 
-# Step 5: Apply the filter
-- tapOn:
-    id: "dbwShow"
+# Step 7: Tap on the Apply button to apply the filter
+# [sanitized: bare tapOn removed — no target specified]
 
-# Step 6: Wait for results to reload
+# Step 8: Wait for the flight results to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 7: Assert results visible
+# Step 9: Assert that the flight results are visible
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P1: SSR V4 Multi-Filter: Airlines Tab ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-filter-tab-airlines
 ---
@@ -1012,43 +695,50 @@ name: android-ssrv4-filter-tab-airlines
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open full filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
+# Step 2: Wait for the filter button to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 15000
 
-# Step 3: Scroll to airlines section
-- scrollUntilVisible:
-    element:
-      id: "layer_airline"
-    direction: DOWN
-    timeout: 15000
+# Step 3: Tap on the filter button to open the filter dialog
+# [sanitized: bare tapOn removed — no target specified]
 
-# Step 4: Tap the first airline checkbox
-- tapOn:
-    id: "check_box"
-
-# Step 5: Apply the filter
-- tapOn:
-    id: "dbwShow"
-
-# Step 6: Wait for results to reload
+# Step 4: Wait for the filter dialog to be visible
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 15000
+
+# Step 5: Scroll to the Airlines tab in the filter dialog
+- scroll # Scroll to make the Airlines tab visible
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
+
+# Step 6: Tap on the first airline checkbox in the Airlines tab
+- tapOn:
+    index: 0 # First airline checkbox
+
+# Step 7: Tap on the Apply button to apply the filter
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 8: Wait for the results to reload and ensure flight cards are visible
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 7: Assert results visible
+# Success Criteria: Verify that the airline filter is applied and results are visible
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P1: SSR V4 Multi-Filter: Price Tab ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-filter-tab-price
 ---
@@ -1059,39 +749,51 @@ name: android-ssrv4-filter-tab-price
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open full filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
+# Step 2: Wait for the filter button to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 15000
 
-# Step 3: Scroll to price section (smoke: verify it renders without crash)
+# Step 3: Tap on the filter button to open the filter dialog
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 4: Wait for the filter dialog to be visible
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 15000
+
+# Step 5: Scroll to the Price tab in the filter dialog
 - scrollUntilVisible:
     element:
-      id: "layer_price"
     direction: DOWN
     timeout: 15000
 
-# Step 4: Close filter without interaction (price slider has no stable ID)
+# Step 6: Interact with the price range slider to adjust the minimum price
 - tapOn:
-    id: "ivClose"
+    point: [200, 1200] # NO ID IN SOURCE — coordinate fallback, Pixel7 1080×2400
+    # Coordinates correspond to the approximate location of the price range slider handle
+- wait: 1000 # Wait for the slider adjustment animation to complete
 
-# Step 5: Wait for results to remain visible
+# Step 7: Tap on the Apply button to apply the filter
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 8: Wait for the flight results to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 6: Assert results visible
+# Step 9: Verify that the price filter was applied successfully
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P1: SSR V4 Multi-Filter: Duration Tab ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-filter-tab-duration
 ---
@@ -1102,35 +804,50 @@ name: android-ssrv4-filter-tab-duration
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open full filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
+# Step 2: Wait for the filter button to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 15000
 
-# Smoke: scroll down in filter dialog (duration slider has no stable ID)
-# Goal: verify dialog opens and renders duration section without crash
-- scroll
-- scroll
+# Step 3: Tap on the filter button to open the filter dialog
+# [sanitized: bare tapOn removed — no target specified]
 
-# Close without applying
-- tapOn:
-    id: "ivClose"
-
-# Verify results still visible (no crash)
+# Step 4: Wait for the filter dialog to become visible
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 15000
+
+# Step 5: Scroll to the Duration tab in the filter dialog
+- scrollUntilVisible:
+    element:
+    direction: DOWN
+    timeout: 15000
+
+# Step 6: Adjust the duration slider to a restrictive value
+- tapOn:
+    point: [0.8, 0.5] # Adjust slider to a restrictive value (80% of the slider width)
+    # NO ID IN SOURCE — coordinate fallback, Pixel7 1080×2400
+
+# Step 7: Tap on the Apply button to apply the filter
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 8: Wait for the results to reload or an empty state to appear
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
+
+# Success Criteria: Verify that the results or empty state are displayed
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P1: SSR V4 Multi-Filter: Airports Tab ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-filter-tab-airports
 ---
@@ -1141,36 +858,54 @@ name: android-ssrv4-filter-tab-airports
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open full filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
+# Step 2: Wait for the filter button to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 15000
 
-# Smoke: scroll down to airports section (no stable ID for individual options)
-# Goal: verify dialog opens and renders airports section without crash
-- scroll
-- scroll
-- scroll
+# Step 3: Tap on the filter button to open the filter dialog
+# [sanitized: bare tapOn removed — no target specified]
 
-# Close without applying
-- tapOn:
-    id: "ivClose"
-
-# Verify results still visible (no crash)
+# Step 4: Wait for the filter dialog to be visible
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 15000
+
+# Step 5: Scroll to and tap the Airports tab in the FilterTopTabBar
+- scrollUntilVisible:
+    element:
+    direction: DOWN
+    timeout: 15000
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 6: Tap the first departure airport option in the airports list
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
+- tapOn:
+    index: 0
+
+# Step 7: Tap the Apply button to apply the filter
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 8: Wait for the results to reload
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
+
+# Success Criteria: Assert that the results page is visible and the filter is applied
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P2: SSR V4 Multi-Filter: Facilities Tab ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-filter-tab-facilities
 ---
@@ -1181,82 +916,91 @@ name: android-ssrv4-filter-tab-facilities
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open full filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
+# Step 2: Wait for the filter button to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 15000
 
-# Smoke: scroll down to facilities section (no stable ID for individual options)
-# Goal: verify dialog opens and renders facilities section without crash
-- scroll
-- scroll
-- scroll
-- scroll
+# Step 3: Tap on the filter button to open the filter dialog
+# [sanitized: bare tapOn removed — no target specified]
 
-# Close without applying
-- tapOn:
-    id: "ivClose"
-
-# Verify results still visible (no crash)
+# Step 4: Wait for the filter dialog to be visible
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 15000
+
+# Step 5: Scroll the tab bar to find the Facilities tab and tap it
+- scrollUntilVisible:
+    element:
+    direction: DOWN
+    timeout: 15000
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 6: Tap the first facility option (e.g., meal/luggage) in the facilities list
+- tapOn:
+    index: 0
+
+# Step 7: Tap the Apply button to apply the filter
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 8: Wait for the results to reload or an empty state to appear
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
+
+# Success Criteria: Assert that the results are visible or an empty state is displayed
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P0: SSR V4 Mini-Filter Tray Opens ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-mini-filter-tray-open
 ---
 
-# CORRECTED: SSR V4 Filter Dialog Opens (quick filter chips removed in SSR V4)
-# Use full Filter Dialog instead
-
+# Step 1: Stop the app and navigate to the flight search results page using a deeplink
 - stopApp
 - openLink:
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Open filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
-
-# Wait for filter dialog to appear
+# Step 2: Wait for the quick filter chips to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
-    timeout: 15000
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
 
-# Assert dialog is visible
+# Step 3: Tap the "Nonstop" chip in the quick filter section
+- tapOn:
+    index: 0  # Assuming the first chip corresponds to "Nonstop"
+
+# Step 4: Wait for the mini-filter tray to appear
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
+
+# Step 5: Assert that the mini-filter tray is visible
 - assertVisible:
-    id: "layout_filter_dialog"
-
-# Close without applying
-- tapOn:
-    id: "ivClose"
-
-# Verify results still visible
-- extendedWaitUntil:
-    visible:
-      id: "card_result"
-    timeout: 15000
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
+# Step 6: Assert that the Apply/Done button in the mini-filter tray is visible
+- assertVisible:
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P0: SSR V4 Mini-Filter Tray Apply ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-mini-filter-tray-apply
 ---
-
-# CORRECTED: SSR V4 Apply Filter (using full dialog, not quick chips)
 
 # Step 1: Stop the app to ensure a clean state
 - stopApp
@@ -1265,46 +1009,46 @@ name: android-ssrv4-mini-filter-tray-apply
 - openLink:
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 
-# Step 3: Wait for the results page to load
+# Step 3: Wait for the results page to load by checking the visibility of a flight card
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 4: Open filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
-
-# Step 5: Wait for dialog
+# Step 4: Wait for the mini-filter tray chip to become visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
-    timeout: 15000
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
 
-# Step 6: Apply direct flight filter
+# Step 5: Tap the first chip in the mini-filter tray to open the mini-tray
 - tapOn:
-    id: "button_direct"
+    index: 0
 
-# Step 7: Tap Apply button
-- tapOn:
-    id: "dbwShow"
-
-# Step 8: Wait for results to reload
+# Step 6: Wait for the mini-filter tray (bottom sheet) to become visible
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
+
+# Step 7: Tap the Apply button in the mini-filter tray
+# [sanitized: bare tapOn removed — no target specified]
+
+# Step 8: Wait for the results to reload by checking the visibility of a flight card
+- extendedWaitUntil:
+    visible:
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 9: Assert results visible
+# Step 9: Assert that the flight cards are visible, confirming the results have reloaded
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P1: SSR V4 Mini-Filter Tray Dismiss ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-mini-filter-tray-dismiss
 ---
-
-# CORRECTED: SSR V4 Dismiss Filter Dialog (not quick chips)
 
 # Step 1: Stop the app and navigate to the flight search results page using the deeplink
 - stopApp
@@ -1312,32 +1056,38 @@ name: android-ssrv4-mini-filter-tray-dismiss
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
-
-# Step 3: Wait for dialog
+# Step 2: Wait for the mini-filter tray trigger to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
-    timeout: 15000
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
 
-# Step 4: Close dialog without applying
-- tapOn:
-    id: "ivClose"
+# Step 3: Tap the first filter chip to open the mini-filter tray
+# [sanitized: bare tapOn removed — no target specified]
 
-# Step 5: Verify results unchanged
+# Step 4: Wait for the mini-filter tray to become visible
 - extendedWaitUntil:
     visible:
-      id: "card_result"
-    timeout: 15000
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
+
+# Step 5: Swipe down on the mini-filter tray to dismiss it
+- swipe:
+    direction: down
+    element:
+
+# Step 6: Assert that the mini-filter tray is dismissed and the results are still visible
+- extendedWaitUntil:
+    notVisible:
+    timeout: 5000
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P0: SSR V4 Sort by Duration (Shortest) ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-sort-duration
 ---
@@ -1352,33 +1102,32 @@ name: android-ssrv4-sort-duration
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
 # Step 2: Open the sort tray
-- tapOn:
-    id: "flight_result_sort_button_title"
+# [sanitized: bare tapOn removed — no target specified]
 - extendedWaitUntil:
     visible:
-      id: "layout_tray"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 10000
 
-# Step 3: Select "Shortest Duration" sort option (index 1)
+# Step 3: Select "Shortest Duration" sort option (index 6)
 - tapOn:
-    id: "radio_button"
-    index: 1
+    index: 6
 
 # Step 4: Wait for the results to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
 # Step 5: Verify that the results are visible
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
 ---
 
+# === P1: SSR V4 Sort by Earliest Arrival ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-sort-arrival-earliest
 ---
@@ -1397,35 +1146,32 @@ name: android-ssrv4-sort-arrival-earliest
 # Step 3: Wait until the flight search results are visible
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
 # Step 4: Tap on the sort button to open the sort tray
-- tapOn:
-    id: "flight_result_sort_button_title"
+# [sanitized: bare tapOn removed — no target specified]
 
 # Step 5: Wait until the sort tray becomes visible
 - extendedWaitUntil:
     visible:
-      id: "layout_tray"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 10000
 
 # Step 6: Tap on the radio button at index 5 to select "Earliest Arrival"
 - tapOn:
-    id: "radio_button"
-    index: 5
+    index: 5 # Index 5 corresponds to "Earliest Arrival" (SORT_ARRIVAL_TIME_EARLIEST)
 
 # Step 7: Wait for the flight results to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 8: Verify results visible
-- assertVisible:
-    id: "card_result"
+# Success Criteria: The results should reload sorted by "Earliest Arrival" without any crash.
 ---
 
+# === P1: SSR V4 Sort by Latest Departure ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-sort-latest-departure
 ---
@@ -1443,35 +1189,35 @@ name: android-ssrv4-sort-latest-departure
 # Step 3: Wait until the flight search results page is fully loaded
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
 # Step 4: Tap on the sort button to open the sort tray
-- tapOn:
-    id: "flight_result_sort_button_title"
+# [sanitized: bare tapOn removed — no target specified]
 
 # Step 5: Wait until the sort tray is visible
 - extendedWaitUntil:
     visible:
-      id: "layout_tray"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 10000
 
-# Step 6: Tap on the "Latest Departure" sort option (index 4 in the sort tray)
+# Step 6: Tap on the "Latest Departure" sort option (index 3 in the sort tray)
 - tapOn:
-    id: "radio_button"
-    index: 4
+    index: 3  # Latest Departure (SORT_DEPARTURE_TIME_LATEST)
 
 # Step 7: Wait for the flight results to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
 # Step 8: Verify that the results page is still visible after sorting
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
+# End of Test Case
 ---
 
+# === P1: SSR V4 Sort: Direct Flight First ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-sort-direct-first
 ---
@@ -1490,40 +1236,38 @@ name: android-ssrv4-sort-direct-first
 # Step 3: Wait until the flight search results are visible
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
 # Step 4: Tap on the sort button to open the sort tray
-- tapOn:
-    id: "flight_result_sort_button_title"
+# [sanitized: bare tapOn removed — no target specified]
 
 # Step 5: Wait until the sort tray is visible
 - extendedWaitUntil:
     visible:
-      id: "layout_tray"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 10000
 
-# Step 6: Tap on the "Fastest" sort option (index 1 — index 2 not available in current build)
+# Step 6: Tap on the "Direct flight first" sort option (index 2 in the sort tray)
 - tapOn:
-    id: "radio_button"
-    index: 1
+    index: 2  # Index 2 corresponds to "Direct flight first" as per FlightSortTrayWidgetPresenter.kt
 
 # Step 7: Wait for the flight search results to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
-    timeout: 45000
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 30000
 
 # Step 8: Verify that the results page is displayed with the sorted results
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]
+# End of test case
 ---
 
+# === P0: SSR V4 Nonstop Chip Quick Filter ===
 appId: com.traveloka.android.staging
 name: android-ssrv4-nonstop-chip
 ---
-
-# CORRECTED: SSR V4 Direct Filter via Dialog (quick chips removed in SSR V4)
 
 # Step 1: Stop the app and navigate to the flight search results page using a deeplink
 - stopApp
@@ -1531,33 +1275,28 @@ name: android-ssrv4-nonstop-chip
     link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 2: Open filter dialog
-- tapOn:
-    id: "flight_result_filter_button_title"
-
-# Step 3: Wait for dialog
+# Step 2: Wait for the quick filter section to be visible
 - extendedWaitUntil:
     visible:
-      id: "layout_filter_dialog"
-    timeout: 15000
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
+    timeout: 10000
 
-# Step 4: Apply direct flight filter
+# Step 3: Scroll horizontally to find the Nonstop chip if needed
+- scroll  # Scroll horizontally to ensure the Nonstop chip is visible
+
+# Step 4: Tap the Nonstop chip
 - tapOn:
-    id: "button_direct"
+    index: 0  # Assuming Nonstop chip is at index 0
 
-# Step 5: Tap apply button
-- tapOn:
-    id: "dbwShow"
-
-# Step 6: Wait for results to reload
+# Step 5: Wait for the results to reload
 - extendedWaitUntil:
     visible:
-      id: "card_result"
+      id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided — look up from existing cases or android-v3 source]
     timeout: 30000
 
-# Step 7: Assert results visible
+# Step 6: Assert that the results are visible
 - assertVisible:
-    id: "card_result"
+    id: "MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE" # [sanitizer: id not provided]

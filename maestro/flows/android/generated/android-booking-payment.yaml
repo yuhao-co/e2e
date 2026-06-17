@@ -36,8 +36,11 @@ name: android-booking-payment
     id: "image_view_product_icon"
     index: 0
 
-- assertVisible:
-    id: "search_tab"
+# Wait for navigation to search screen (has animation/transition delay)
+- extendedWaitUntil:
+    visible:
+      id: "search_tab"
+    timeout: 10000
 
 - tapOn:
     id: "search_tab"

@@ -56,10 +56,10 @@
     "android:workflow:full": "tsx scripts/android-diff-workflow.ts --full",
     "android:workflow:dry": "tsx scripts/android-diff-workflow.ts --dry-run",
     "android:workflow:p0": "tsx scripts/android-diff-workflow.ts --priority p0",
-    "android:online:bug-hunt": "tsx scripts/android-online-bug-hunt.ts",
-    "android:online:bug-hunt:dry": "tsx scripts/android-online-bug-hunt.ts --dry-run",
-    "android:online:generate": "tsx scripts/generate-maestro-android.ts --extended",
-    "android:online:run": "tsx scripts/android-online-bug-hunt.ts --no-generate"
+    "android:online:bug-hunt": "JAVA_HOME=/opt/homebrew/opt/openjdk@17 tsx scripts/android-online-bug-hunt.ts",
+    "android:online:bug-hunt:dry": "JAVA_HOME=/opt/homebrew/opt/openjdk@17 tsx scripts/android-online-bug-hunt.ts --dry-run",
+    "android:online:generate": "JAVA_HOME=/opt/homebrew/opt/openjdk@17 tsx scripts/generate-maestro-android.ts --extended",
+    "android:online:run": "JAVA_HOME=/opt/homebrew/opt/openjdk@17 tsx scripts/android-online-bug-hunt.ts --no-generate"
   },
   "devDependencies": {
     "@midscene/android": "^1.7.7",

@@ -1,0 +1,28 @@
+appId: com.traveloka.android.staging
+name: debug-home-navigation
+---
+# Debug: Test home screen to search navigation only
+
+- stopApp: com.android.chrome
+- stopApp
+- launchApp
+
+# Wait for homepage to fully load
+- extendedWaitUntil:
+    visible:
+      id: "widget_highlighted_product"
+    timeout: 30000
+
+# Try tapping with a longer wait
+- tapOn:
+    id: "image_view_product_icon"
+    index: 0
+
+# Add longer wait to see what happens
+- extendedWaitUntil:
+    timeout: 10000
+    visible:
+      id: "search_tab"
+
+- assertVisible:
+    id: "search_tab"

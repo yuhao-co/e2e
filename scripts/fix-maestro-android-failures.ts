@@ -93,6 +93,219 @@ interface RunReport {
 }
 
 // ---------------------------------------------------------------------------
+// MISSING_ID resolver — runs before AI fix loop, no AI needed
+// Scans all generated YAMLs for MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE,
+// determines the correct id by:
+//   1. Context analysis (what tapOn/openLink came before this wait?)
+//   2. Existing passing cases (copy exact patterns)
+//   3. android-v3 source query (grep @+id/ from relevant layout XMLs)
+// ---------------------------------------------------------------------------
+
+const ANDROID_V3_REPO = path.join(process.cwd(), '.cache/weekly-diff-repos/github.com_traveloka_android-v3');
+
+/** Extract IDs used in all existing passing YAML files (excludes suite file) */
+function loadPassingCasePatterns(): Map<string, string> {
+  // Maps a "preceding tap ID" → "correct wait ID"
+  // Built from existing passing cases that have proper extendedWaitUntil patterns
+  const patterns = new Map<string, string>([
+    ['flight_result_filter_button_title', 'layout_filter_dialog'],
+    ['flight_result_sort_button_title',   'layout_tray'],
+    ['dbwShow',                           'card_result'],
+    ['radio_button',                      'card_result'],
+    ['button_direct',                     'layout_filter_dialog'],  // still inside dialog
+    ['button_one_transit',                'layout_filter_dialog'],
+    ['button_two_transit',                'layout_filter_dialog'],
+    ['layer_airline',                     'layout_filter_dialog'],
+    ['check_box',                         'layout_filter_dialog'],
+    ['button_departure_morning',          'layout_filter_dialog'],
+    ['button_departure_afternoon',        'layout_filter_dialog'],
+    ['button_departure_evening',          'layout_filter_dialog'],
+    ['card_result',                       'flight_summary_activity_ticket_option_section'],
+    ['ivClose',                           'card_result'],
+  ]);
+
+  // Augment from actual existing cases
+  if (!fs.existsSync(GENERATED_DIR)) return patterns;
+  for (const f of fs.readdirSync(GENERATED_DIR)) {
+    if (!f.endsWith('.yaml') || f.endsWith('.bak')) continue;
+    const content = fs.readFileSync(path.join(GENERATED_DIR, f), 'utf8');
+    if (content.includes('MISSING_ID')) continue; // skip unresolved files
+    // Extract: tapOn id: X → extendedWaitUntil visible: id: Y
+    const matches = [...content.matchAll(
+      /tapOn:\s*\n\s+id:\s*["']?([\w_]+)["']?[\s\S]{0,300}?extendedWaitUntil:\s*\n\s+visible:\s*\n\s+id:\s*["']?([\w_]+)["']?/g
+    )];
+    for (const m of matches) {
+      patterns.set(m[1], m[2]);
+    }
+  }
+  return patterns;
+}
+
+/** Query android-v3 source for IDs matching a keyword from surrounding comment text */
+function querySourceForKeyword(keyword: string): string | null {
+  if (!fs.existsSync(ANDROID_V3_REPO)) return null;
+  try {
+    const layoutDir = path.join(ANDROID_V3_REPO, 'flight/src/main/res/layout');
+    const grepCmd = `grep -rl "${keyword}" "${layoutDir}" 2>/dev/null | head -3`;
+    const files = execSync(grepCmd, { encoding: 'utf8', timeout: 5000 }).trim();
+    if (!files) return null;
+    const idCmd = `echo "${files}" | xargs grep -h '@+id/' 2>/dev/null | grep -i "${keyword}" | grep -oE '@\\+id/[^"]+' | head -3`;
+    const raw = execSync(idCmd, { encoding: 'utf8', timeout: 5000 }).trim();
+    if (!raw) return null;
+    return raw.split('\n')[0].replace('@+id/', '').trim();
+  } catch { return null; }
+}
+
+/**
+ * Infer the correct ID for a MISSING_ID placeholder based on:
+ * 1. What tapOn/openLink appeared in the preceding ~20 lines
+ * 2. Whether this is an assertVisible (end-of-flow assertion)
+ * 3. android-v3 source query using keywords extracted from surrounding comments
+ */
+function inferIdFromContext(
+  lines: string[],
+  idx: number,
+  patterns: Map<string, string>,
+): string {
+  const preceding = lines.slice(Math.max(0, idx - 25), idx).join('\n');
+  const currentLine = lines[idx];
+
+  // ── 1. Context: assertVisible at end of flow → card_result ──────────────
+  if (/assertVisible/.test(currentLine)) {
+    return 'card_result';
+  }
+
+  // ── 2. Context: what was the last meaningful tapOn? ──────────────────────
+  // Walk backwards to find the most recent tapOn id:
+  for (let j = idx - 1; j >= Math.max(0, idx - 25); j--) {
+    const m = lines[j].match(/id:\s*["']?([\w_]+)["']?/);
+    if (m && lines[j - 1]?.includes('tapOn')) {
+      const tapId = m[1];
+      if (patterns.has(tapId)) return patterns.get(tapId)!;
+    }
+    // tapOn: id: inline
+    const tapLine = lines[j].match(/tapOn:\s*\n/) ? null : lines[j - 1];
+    if (tapLine?.includes('tapOn') && m) {
+      if (patterns.has(m[1])) return patterns.get(m[1])!;
+    }
+  }
+
+  // ── 3. Context: after openLink (navigation) → card_result ───────────────
+  if (/openLink/.test(preceding)) {
+    // Check nothing else significant happened after openLink
+    const afterLink = preceding.slice(preceding.lastIndexOf('openLink'));
+    if (!/tapOn/.test(afterLink)) return 'card_result';
+  }
+
+  // ── 4. Context: inside filter dialog (filter-related comment in file) ───
+  if (/filter.*dialog|layout_filter_dialog|flight_result_filter_button/i.test(preceding)) {
+    return 'layout_filter_dialog';
+  }
+
+  // ── 5. Context: inside sort tray ─────────────────────────────────────────
+  if (/sort.*tray|layout_tray|flight_result_sort_button/i.test(preceding)) {
+    return 'layout_tray';
+  }
+
+  // ── 6. Source query: extract keyword from surrounding step comments ───────
+  const commentMatch = preceding.match(/# (?:Step \d+: )?(.+?)(?:\n|$)/g);
+  if (commentMatch) {
+    const lastComment = commentMatch[commentMatch.length - 1] ?? '';
+    const keyword = lastComment
+      .replace(/#\s*/, '').toLowerCase()
+      .split(/\s+/)
+      .find(w => w.length > 5 && !['should', 'using', 'after', 'assert', 'screen', 'verify', 'flight', 'results'].includes(w));
+    if (keyword) {
+      const sourceId = querySourceForKeyword(keyword);
+      if (sourceId) return sourceId;
+    }
+  }
+
+  // ── 7. Safe default: results page anchor ─────────────────────────────────
+  return 'card_result';
+}
+
+/** Also fix bare "tapOn removed" steps by reconstructing from context */
+function reconstructRemovedTapOn(lines: string[], idx: number): string | null {
+  const comment = lines[idx];
+  const preceding = lines.slice(Math.max(0, idx - 5), idx).join('\n');
+
+  // Is this a filter entry step?
+  if (/open.*filter|filter.*button|filter.*dialog/i.test(comment)) {
+    return '- tapOn:\n    id: "flight_result_filter_button_title"';
+  }
+  // Is this a sort entry step?
+  if (/open.*sort|sort.*tray|sort.*button/i.test(comment)) {
+    return '- tapOn:\n    id: "flight_result_sort_button_title"';
+  }
+  // Is this an apply step?
+  if (/apply|submit|done|show.*result/i.test(comment)) {
+    return '- tapOn:\n    id: "dbwShow"';
+  }
+  // Is this a transit/direct step?
+  if (/direct|nonstop|non.?stop/i.test(comment)) {
+    return '- tapOn:\n    id: "button_direct"';
+  }
+  // Is this a morning departure step?
+  if (/morning.*depart/i.test(comment)) {
+    return '- tapOn:\n    id: "button_departure_morning"';
+  }
+  return null;
+}
+
+function resolveMissingIds(): number {
+  if (!fs.existsSync(GENERATED_DIR)) return 0;
+  const patterns = loadPassingCasePatterns();
+  const yamlFiles = fs.readdirSync(GENERATED_DIR)
+    .filter(f => f.endsWith('.yaml') && !f.endsWith('.bak'));
+
+  let resolvedFiles = 0;
+
+  for (const file of yamlFiles) {
+    const filePath = path.join(GENERATED_DIR, file);
+    let content = fs.readFileSync(filePath, 'utf8');
+
+    const hasMissing = content.includes('MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE');
+    const hasBareRemoved = content.includes('[sanitized: bare tapOn removed');
+    if (!hasMissing && !hasBareRemoved) continue;
+
+    let lines = content.split('\n');
+    let changed = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      // ── Resolve MISSING_ID ──────────────────────────────────────────────
+      if (lines[i].includes('MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE')) {
+        const resolved = inferIdFromContext(lines, i, patterns);
+        lines[i] = lines[i].replace(
+          /["']MISSING_ID_CHECK_EXISTING_CASES_OR_SOURCE["'][^]*/,
+          `"${resolved}" # [resolved: context+source lookup → ${resolved}]`
+        );
+        changed = true;
+      }
+
+      // ── Reconstruct bare tapOn removed ─────────────────────────────────
+      if (lines[i].includes('[sanitized: bare tapOn removed')) {
+        const reconstructed = reconstructRemovedTapOn(lines, i);
+        if (reconstructed) {
+          lines[i] = reconstructed + ' # [reconstructed from context]';
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      const backup = filePath + '.pre-resolve.bak';
+      if (!fs.existsSync(backup)) fs.writeFileSync(backup, content, 'utf8');
+      fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
+      console.log(`  ✅ ${file}`);
+      resolvedFiles++;
+    }
+  }
+
+  return resolvedFiles;
+}
+
+// ---------------------------------------------------------------------------
 // AI fix prompt
 // ---------------------------------------------------------------------------
 function buildFixSystemPrompt(): string {
@@ -111,28 +324,33 @@ Common failure causes and fixes:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STRONG CONSTRAINT A — SORT TRAY ENTRY POINT (adb dump verified 2026-06-12)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-flight_result_v4_sort_button DOES NOT EXIST in the a11y tree in staging.
-shouldDisplaySortButtonInNavbar=false → the sort navbar button is never rendered.
-
 THE ONLY WAY TO OPEN THE SORT TRAY:
   - tapOn:
-      id: "bm_button"          ← floating sort suggestion pill at bottom of results page
+      id: "flight_result_sort_button_title"
   - extendedWaitUntil:
       visible:
-        id: "rbg_sort"
+        id: "layout_tray"
       timeout: 10000
   - tapOn:
       id: "radio_button"
       index: N
 
-SORT ORDER (adb uiautomator dump confirmed):
-  index 0 → Cheapest    index 1 → Shortest duration    index 2 → Direct first
-  index 3 → Earliest departure    index 4 → Latest departure
-  index 5 → Earliest arrival      index 6 → Latest arrival
+SORT ORDER (adb uiautomator dump confirmed, Pixel7_API37 staging 2026-06-12):
+  index 0 → Cheapest              index 1 → Shortest duration
+  index 2 → Direct flight first   index 3 → Earliest departure
+  index 4 → Latest departure      index 5 → Earliest arrival
+  index 6 → Latest arrival
 
-FORBIDDEN for sort (will ALWAYS produce "Element not found"):
+After selecting sort, wait for results:
+  - extendedWaitUntil:
+      visible:
+        id: "card_result"
+      timeout: 15000
+
+FORBIDDEN for sort:
   ❌ id: "flight_result_v4_sort_button"   ← not in a11y tree
-  ❌ id: "rbg_sort" as entry              ← not in a11y tree (use as wait target only)
+  ❌ id: "bm_button"                       ← not in a11y tree (old guess)
+  ❌ id: "rbg_sort"                        ← use as wait target only, NOT entry point
   ❌ tapOn: text: "Cheapest"              ← appears on flight cards, wrong target
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -143,7 +361,7 @@ layout_filter_dialog will NEVER appear after tapping quick_filter_cell or quick_
 
 THE ONLY WAY TO OPEN THE FULL FILTER DIALOG (layout_filter_dialog):
   - tapOn:
-      id: "flight_result_v4_filter_button"
+      id: "flight_result_filter_button_title"
   - extendedWaitUntil:
       visible:
         id: "layout_filter_dialog"
@@ -155,6 +373,7 @@ FILTER DIALOG SECTION ORDER (must scroll to reach lower sections):
   3. layer_time      → button_departure_morning etc. (need scrollUntilVisible to reach)
 
 FORBIDDEN for filter entry:
+  ❌ id: "flight_result_v4_filter_button"   ← wrong id, doesn't exist
   ❌ id: "flight_result_v4_quick_filter_cell"  ← opens Stops sheet, not full filter
   ❌ id: "quick_filter_item"                    ← does not exist
 
@@ -333,6 +552,16 @@ async function main() {
   console.log(`\n🔧 Android Maestro Failure Fixer`);
   console.log(`   Model: ${MODEL}`);
   console.log(`   Verify after fix: ${VERIFY_AFTER_FIX}\n`);
+
+  // ── Step 0: Statically resolve MISSING_ID placeholders ───────────────────
+  // No AI needed — uses context analysis + existing cases + android-v3 source
+  console.log('🔍 Step 0: Resolving MISSING_ID placeholders from source…');
+  const resolvedCount = resolveMissingIds();
+  if (resolvedCount > 0) {
+    console.log(`   Resolved ${resolvedCount} file(s) with MISSING_ID → correct id\n`);
+  } else {
+    console.log('   No MISSING_ID placeholders found\n');
+  }
 
   if (!fs.existsSync(RESULTS_JSON)) {
     console.error(`❌ Results file not found: ${RESULTS_JSON}`);

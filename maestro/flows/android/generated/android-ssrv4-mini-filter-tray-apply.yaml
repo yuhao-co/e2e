@@ -1,0 +1,46 @@
+appId: com.traveloka.android.staging
+name: android-ssrv4-mini-filter-tray-apply
+---
+
+# CORRECTED: SSR V4 Apply Filter (using full dialog, not quick chips)
+
+# Step 1: Stop the app to ensure a clean state
+- stopApp
+
+# Step 2: Launch the app and navigate to the flight search results page using a deeplink
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 3: Wait for the results page to load
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 4: Open filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+
+# Step 5: Wait for dialog
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 6: Apply direct flight filter
+- tapOn:
+    id: "button_direct"
+
+# Step 7: Tap Apply button
+- tapOn:
+    id: "dbwShow"
+
+# Step 8: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 9: Assert results visible
+- assertVisible:
+    id: "card_result"

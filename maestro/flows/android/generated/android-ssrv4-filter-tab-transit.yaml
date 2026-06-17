@@ -1,0 +1,42 @@
+appId: com.traveloka.android.staging
+name: android-ssrv4-filter-tab-transit
+---
+
+# Scenario: SSR V4 Multi-Filter: Transit Tab
+# Description: Open multi-filter dialog, navigate to Transit tab, apply Direct, verify results update
+# Priority: p0
+
+# Step 1: Stop the app and navigate to the flight search results page using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open full filter dialog
+- tapOn:
+    id: "flight_result_filter_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_filter_dialog"
+    timeout: 15000
+
+# Step 3: Transit section is at top — tap Direct toggle
+- tapOn:
+    id: "button_direct"
+
+# Step 4: Apply the filter
+- tapOn:
+    id: "dbwShow"
+
+# Step 5: Wait for results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 6: Assert results visible
+- assertVisible:
+    id: "card_result"

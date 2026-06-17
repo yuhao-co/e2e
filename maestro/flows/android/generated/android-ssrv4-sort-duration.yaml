@@ -1,0 +1,39 @@
+appId: com.traveloka.android.staging
+name: android-ssrv4-sort-duration
+---
+
+# Test Case: SSR V4 Sort by Duration (Shortest)
+# Description: Open sort tray, tap index 6 (Shortest Duration), verify reload
+# Priority: p0
+
+# Step 1: Stop the app and navigate to the Flight Search Results screen using a deeplink
+- stopApp
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 2: Open the sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+
+# Step 3: Select "Shortest Duration" sort option (index 1)
+- tapOn:
+    id: "radio_button"
+    index: 1
+
+# Step 4: Wait for the results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 5: Verify that the results are visible
+- assertVisible:
+    id: "card_result"

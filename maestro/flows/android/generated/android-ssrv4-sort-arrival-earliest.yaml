@@ -1,0 +1,45 @@
+appId: com.traveloka.android.staging
+name: android-ssrv4-sort-arrival-earliest
+---
+
+# SSR V4 Sort by Earliest Arrival
+# Description: Open sort tray, tap index 5 (Earliest Arrival), verify reload
+# Priority: p1
+
+# Step 1: Stop the app to ensure a clean state
+- stopApp
+
+# Step 2: Launch the app and navigate to the flight search results page using a deeplink
+- openLink:
+    link: "traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY"
+
+# Step 3: Wait until the flight search results are visible
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 4: Tap on the sort button to open the sort tray
+- tapOn:
+    id: "flight_result_sort_button_title"
+
+# Step 5: Wait until the sort tray becomes visible
+- extendedWaitUntil:
+    visible:
+      id: "layout_tray"
+    timeout: 10000
+
+# Step 6: Tap on the radio button at index 5 to select "Earliest Arrival"
+- tapOn:
+    id: "radio_button"
+    index: 5
+
+# Step 7: Wait for the flight results to reload
+- extendedWaitUntil:
+    visible:
+      id: "card_result"
+    timeout: 30000
+
+# Step 8: Verify results visible
+- assertVisible:
+    id: "card_result"
