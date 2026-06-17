@@ -29,6 +29,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execSync, spawn, spawnSync } from 'node:child_process';
 import { notifyCustom } from './lib/lark-notifier';
+import OpenAI from 'openai';
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -36,6 +37,7 @@ import { notifyCustom } from './lib/lark-notifier';
 const args = process.argv.slice(2);
 const DRY_RUN    = args.includes('--dry-run');
 const NO_GENERATE = args.includes('--no-generate');
+const DISCOVER   = args.includes('--discover');   // NEW: AI auto-discovers uncovered paths
 const CLI_MODEL  = (() => { const i = args.indexOf('--model'); return i !== -1 ? args[i + 1] : null; })();
 const PRD_FILE   = (() => { const i = args.indexOf('--prd-file'); return i !== -1 ? args[i + 1] : null; })();
 
@@ -49,6 +51,21 @@ const SCREENSHOTS_DIR = path.resolve('test-results/android/screenshots');
 const RUN_ALL_YAML = path.resolve('maestro/flows/android/run-all-android.yaml');
 const LOGS_DIR    = path.resolve('logs');
 const MANIFEST_PATH = path.resolve('maestro/flows/android/manifest.json');
+const GENERATED_DIR = path.resolve('maestro/flows/android/generated');
+const DISCOVERED_SCENARIOS_PATH = path.resolve('config/discovered-scenarios.json');
+
+// ---------------------------------------------------------------------------
+// OpenAI client (reuse same auth logic as generator)
+// ---------------------------------------------------------------------------
+const githubToken = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? shSafe('gh auth token');
+const openaiKey   = process.env.OPENAI_API_KEY;
+const DISCOVER_MODEL = CLI_MODEL ?? (githubToken ? 'gpt-4o' : openaiKey ? 'gpt-4o' : 'gpt-4o');
+
+function buildOpenAIClient(): OpenAI {
+  if (githubToken) return new OpenAI({ apiKey: githubToken, baseURL: 'https://models.inference.ai.azure.com', maxRetries: 1 });
+  if (openaiKey)   return new OpenAI({ apiKey: openaiKey });
+  throw new Error('No AI auth: set GITHUB_TOKEN, GH_TOKEN, or OPENAI_API_KEY');
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -147,6 +164,173 @@ async function stageValidate(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Stage 1.5: AI-driven scenario discovery (--discover flag)
+// Reads existing cases → finds coverage gaps → asks AI for NEW ScenarioDefinitions
+// These are written to config/discovered-scenarios.json and picked up by the
+// generator (--pending-scenarios) which applies the SAME quality gates:
+//   same ID constraints, same blueprint injection, same sanitize/validate pipeline.
+// ---------------------------------------------------------------------------
+async function stageDiscover(): Promise<void> {
+  if (!DISCOVER) return;
+  console.log('\n[1.5/5] Discovering uncovered UI paths…');
+  const t = Date.now();
+
+  // ── 1. Read existing case files and extract covered interactions ──────────
+  const existingFiles = fs.existsSync(GENERATED_DIR)
+    ? fs.readdirSync(GENERATED_DIR).filter(f => f.endsWith('.yaml') && f !== 'android-suite.yaml')
+    : [];
+
+  if (existingFiles.length === 0) {
+    console.log('  ⚠️  No existing cases found — skipping discovery (run generate first)');
+    return;
+  }
+
+  // Extract: case IDs + every `id: "xxx"` value used across all cases
+  const coveredCaseIds = new Set(existingFiles.map(f => f.replace('.yaml', '')));
+  const usedIds = new Set<string>();
+  const caseSummaries: string[] = [];
+
+  for (const file of existingFiles) {
+    const content = fs.readFileSync(path.join(GENERATED_DIR, file), 'utf8');
+    const ids = [...content.matchAll(/id:\s*["']?([\w_]+)["']?/g)].map(m => m[1]);
+    ids.forEach(id => usedIds.add(id));
+    // One-line summary: case name + unique IDs
+    const name = file.replace('.yaml', '').replace('android-results-', '');
+    caseSummaries.push(`${name}: [${[...new Set(ids)].join(', ')}]`);
+  }
+
+  // ── 2. Load existing manifest to get scenario names ───────────────────────
+  let manifestIds: string[] = [];
+  if (fs.existsSync(MANIFEST_PATH)) {
+    try {
+      const m = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
+      manifestIds = m.map((e: { id: string }) => e.id);
+    } catch { /* ignore */ }
+  }
+
+  // ── 3. Ask AI for uncovered scenario definitions ──────────────────────────
+  const openai = buildOpenAIClient();
+
+  const systemPrompt = `You are an Android test coverage analyst for the Traveloka flight search results page.
+Your job: identify Android UI interaction paths NOT yet covered by the existing test cases.
+
+STRICT RULES — violations cause the output to be rejected entirely:
+1. Output ONLY valid JSON array. No markdown, no explanation, no code fences.
+2. Every "stepOutline" item MUST reference a specific element ID from the VERIFIED_IDS list.
+3. NEVER use text: or label: as interaction locators. Only id: is allowed.
+4. Each new scenario must test a DIFFERENT interaction path from the existing cases.
+5. Maximum 5 new scenarios. Quality over quantity.
+6. scenario id format: "android-results-<short-kebab-name>" (lowercase, hyphens only)
+
+VERIFIED IDs available on this page (UIAutomator-confirmed):
+  card_result, text_result_title, widget_dateflow, image_calendar,
+  flight_result_filter_button_title, flight_result_sort_button_title,
+  layout_tray, radio_button, layout_filter_dialog, layer_transit,
+  button_direct, button_one_transit, button_two_transit, dbwShow, tvReset,
+  layer_airline, check_box, layer_time, button_departure_morning,
+  button_departure_afternoon, button_departure_evening, button_departure_early_morning,
+  button_arrival_morning, button_arrival_early_morning,
+  flight_summary_activity_ticket_option_section, calendar_navbar_close
+
+OUTPUT FORMAT (JSON array of ScenarioDefinition objects):
+[
+  {
+    "id": "android-results-<name>",
+    "priority": "p1",
+    "category": "filter|sort|navigation|interaction",
+    "name": "Human readable name",
+    "description": "What this tests and why it's valuable",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "... concrete steps with specific IDs ..."
+    ],
+    "successCriteria": ["specific assertion with id: xxx visible"]
+  }
+]`;
+
+  const userPrompt = `EXISTING CASES (already covered — do NOT duplicate these):
+${caseSummaries.join('\n')}
+
+EXISTING CASE IDs: ${[...coveredCaseIds].join(', ')}
+
+IDs already used across all cases: ${[...usedIds].join(', ')}
+
+Based on the VERIFIED_IDS list, what interaction paths have NOT been tested yet?
+Consider: filter combinations, sort + filter together, edge cases, alternative navigation flows.
+Return JSON only.`;
+
+  if (DRY_RUN) {
+    console.log('  [dry-run] Would call AI for scenario discovery');
+    console.log(`  Existing cases: ${existingFiles.length} | Covered IDs: ${usedIds.size}`);
+    return;
+  }
+
+  let discovered: Array<{
+    id: string; priority: string; category: string;
+    name: string; description: string;
+    stepOutline: string[]; successCriteria: string[];
+  }> = [];
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: DISCOVER_MODEL,
+      temperature: 0,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt },
+      ],
+    });
+
+    const raw = (response.choices[0]?.message?.content ?? '')
+      .replace(/^```json\n?/m, '').replace(/\n?```$/m, '').trim();
+
+    discovered = JSON.parse(raw);
+
+    if (!Array.isArray(discovered)) throw new Error('Response is not a JSON array');
+
+    // Filter out duplicates and validate structure
+    discovered = discovered.filter(s => {
+      if (!s.id || !s.stepOutline || !Array.isArray(s.stepOutline)) return false;
+      if (coveredCaseIds.has(s.id)) {
+        console.log(`  ⚠️  Skipping duplicate: ${s.id}`);
+        return false;
+      }
+      // Reject any scenario that uses text: as interaction locator
+      const hasTextLocator = s.stepOutline.some(step =>
+        /tapOn.*text:|text:.*tapOn/i.test(step)
+      );
+      if (hasTextLocator) {
+        console.log(`  ⚠️  Rejected (text: locator): ${s.id}`);
+        return false;
+      }
+      return true;
+    }).slice(0, 5); // max 5
+
+  } catch (err) {
+    console.error(`  ❌ Discovery failed: ${err instanceof Error ? err.message : String(err)}`);
+    console.log('  Continuing without discovered scenarios.');
+    return;
+  }
+
+  if (discovered.length === 0) {
+    console.log('  ✅ No new paths found — existing cases already provide good coverage.');
+    return;
+  }
+
+  // ── 4. Write to discovered-scenarios.json (generator picks this up) ───────
+  fs.writeFileSync(DISCOVERED_SCENARIOS_PATH, JSON.stringify(discovered, null, 2), 'utf8');
+
+  console.log(`  ✅ Discovered ${discovered.length} new scenario(s):`);
+  for (const s of discovered) {
+    console.log(`     • [${s.priority}] ${s.id} — ${s.name}`);
+  }
+  console.log(`  Written to: ${DISCOVERED_SCENARIOS_PATH}`);
+  console.log(`  Generator will pick these up via --pending-scenarios. (${elapsed(Date.now() - t)})`);
+}
+
+// ---------------------------------------------------------------------------
 // Stage 2: Generate extended test cases
 // ---------------------------------------------------------------------------
 async function stageGenerate(): Promise<void> {
@@ -160,6 +344,11 @@ async function stageGenerate(): Promise<void> {
     ...(DRY_RUN ? ['--dry-run'] : []),
     ...(CLI_MODEL ? ['--model', CLI_MODEL] : []),
     ...(PRD_FILE ? ['--prd-file', PRD_FILE] : []),
+    // If discover ran and produced new scenarios, pass them to the generator.
+    // Generator applies the same ID constraints + blueprint injection + sanitize/validate.
+    ...(DISCOVER && fs.existsSync(DISCOVERED_SCENARIOS_PATH)
+      ? ['--pending-scenarios', DISCOVERED_SCENARIOS_PATH]
+      : []),
   ];
 
   if (DRY_RUN) {
@@ -222,7 +411,7 @@ async function stageRun(): Promise<BugHuntResult> {
     // Filter to only non-failed entries; resolve absolute paths
     yamlFiles = manifest
       .filter(m => !m.warnings?.some(w => w.startsWith('GENERATION_FAILED')))
-      .map(m => path.resolve(m.file))
+      .map(m => path.join(GENERATED_DIR, `${m.id}.yaml`))
       .filter(f => fs.existsSync(f))
       .map(f => path.basename(f));
   } else {
@@ -390,7 +579,11 @@ async function stageNotify(result: BugHuntResult): Promise<void> {
       : '',
   ].filter(l => l !== undefined).join('\n');
 
-  await notifyCustom({ title: `${icon} Android Bug Hunt: ${result.passed}/${result.totalScenarios} passed`, content: textContent });
+  await notifyCustom(
+    `${icon} Android Bug Hunt: ${result.passed}/${result.totalScenarios} passed`,
+    textContent,
+    result.bugs.some(b => b.priority === 'p0') ? 'red' : result.bugs.length > 0 ? 'yellow' : 'green'
+  );
   console.log('  Lark notification sent.');
 }
 
@@ -403,7 +596,8 @@ async function main() {
   console.log('\n🐛 Android Online Bug Hunt');
   console.log(`   Mode     : ${DRY_RUN ? 'dry-run' : 'full'}`);
   console.log(`   Generate : ${NO_GENERATE ? 'skip (--no-generate)' : 'extended (~42 scenarios)'}`);
-  console.log(`   Model    : ${CLI_MODEL ?? 'default'}`);
+  console.log(`   Discover : ${DISCOVER ? '✅ AI path discovery enabled' : 'off (add --discover to enable)'}`);
+  console.log(`   Model    : ${CLI_MODEL ?? 'gpt-4o'}`);
   if (PRD_FILE) console.log(`   PRD file : ${PRD_FILE}`);
   console.log('');
 
@@ -411,6 +605,7 @@ async function main() {
 
   try {
     await stageValidate();
+    await stageDiscover();   // AI finds uncovered paths (only when --discover flag set)
     await stageGenerate();
     huntResult = await stageRun();
     stagAnalyzeBugs(huntResult);
@@ -420,10 +615,11 @@ async function main() {
     console.error(`\n❌ Bug hunt failed: ${msg}`);
 
     // Still send failure notification
-    await notifyCustom({
-      title: '❌ Android Bug Hunt FAILED',
-      content: `Bug hunt pipeline failed at ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n\nError: ${msg}`,
-    }).catch(() => {});
+    await notifyCustom(
+      '❌ Android Bug Hunt FAILED',
+      `Bug hunt pipeline failed at ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n\nError: ${msg}`,
+      'red'
+    ).catch(() => {});
 
     process.exit(1);
   }
