@@ -17,8 +17,8 @@ name: android-results-price-calendar
 # Step 2: Wait for the date flow widget to be visible
 - extendedWaitUntil:
     visible:
-      id: "widget_dateflow"  # [fix: Increased timeout to account for potential loading delays]
-    timeout: 20000
+      id: "widget_dateflow"
+    timeout: 10000
 
 # Step 3: Tap the calendar icon at the right end of the date flow row
 - tapOn:
@@ -28,7 +28,7 @@ name: android-results-price-calendar
 - extendedWaitUntil:
     visible:
       id: "calendar_navbar_close"
-    timeout: 15000  # [fix: Increased timeout to ensure the calendar dialog has enough time to load]
+    timeout: 10000
 
 # Step 5: Assert that the calendar dialog is visible
 - assertVisible:

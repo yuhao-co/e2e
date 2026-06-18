@@ -60,6 +60,8 @@ const PENDING_SCENARIOS_FILE = (() => {
   const idx = args.indexOf('--pending-scenarios');
   return idx !== -1 ? args[idx + 1] : null;
 })();
+/** --prioritize-pending: generate pending/discovered scenarios before base coverage */
+const PRIORITIZE_PENDING = args.includes('--prioritize-pending');
 /** --extended: generate extra SSR-V4 multi-filter / mini-tray / bug-hunt scenarios */
 const EXTENDED = args.includes('--extended');
 /** --combinatorial: generate random filter combination scenarios from source analysis (N=5) */
@@ -1607,14 +1609,26 @@ const PENDING_SCENARIOS: ScenarioDefinition[] = (() => {
   if (!sourceFile) return [];
   try {
     const raw = JSON.parse(fs.readFileSync(sourceFile, 'utf8')) as ScenarioDefinition[];
+    const deduped: ScenarioDefinition[] = [];
+    const seen = new Set<string>();
+    for (const s of raw) {
+      if (!s?.id || seen.has(s.id)) continue;
+      seen.add(s.id);
+      deduped.push(s);
+    }
+    const duplicateCount = raw.length - deduped.length;
+    if (duplicateCount > 0) {
+      console.log(`  🧹 Deduped ${duplicateCount} duplicate pending scenario entr${duplicateCount === 1 ? 'y' : 'ies'} from ${sourceFile}`);
+    }
+
     const existingIds = new Set([...SCENARIOS, ...EXTENDED_SCENARIOS].map(s => s.id));
-    const novel = raw.filter(s => !existingIds.has(s.id));
+    const novel = deduped.filter(s => !existingIds.has(s.id));
     if (novel.length) console.log(`  🔍 Merging ${novel.length} AI-discovered scenario(s) from ${sourceFile}`);
     // If resuming from remaining-scenarios.json, log that
     if (!PENDING_SCENARIOS_FILE && sourceFile.endsWith('remaining-scenarios.json')) {
-      console.log(`  ⏩ Resuming ${raw.length} scenario(s) left over from previous quota-hit run`);
+      console.log(`  ⏩ Resuming ${deduped.length} scenario(s) left over from previous quota-hit run`);
     }
-    return raw; // include all (even existing IDs) when resuming quota leftovers
+    return deduped; // keep existing IDs for resume semantics, but remove duplicates
   } catch { return []; }
 })();
 
@@ -1623,13 +1637,55 @@ const SOURCE_DRIVEN_SCENARIOS = generateScenarioDefinitionsForMissingFilters();
 
 const COMBINATORIAL_SCENARIOS = COMBINATORIAL ? generateCombinatorialScenarios(5) : [];
 
-const ACTIVE_SCENARIOS: ScenarioDefinition[] = [
-  ...(EXTENDED ? [...SCENARIOS, ...EXTENDED_SCENARIOS] : SCENARIOS),
-  ...SOURCE_DRIVEN_SCENARIOS,
-  ...COMBINATORIAL_SCENARIOS,
-  ...PENDING_SCENARIOS,
-];
-function buildSystemPrompt(prdContent?: string, scenario?: ScenarioDefinition): string {
+const ACTIVE_SCENARIOS: ScenarioDefinition[] = (() => {
+  const baseScenarios = EXTENDED ? [...SCENARIOS, ...EXTENDED_SCENARIOS] : SCENARIOS;
+  const ordered = PRIORITIZE_PENDING
+    ? [
+        ...PENDING_SCENARIOS,
+        ...SOURCE_DRIVEN_SCENARIOS,
+        ...COMBINATORIAL_SCENARIOS,
+        ...baseScenarios,
+      ]
+    : [
+        ...baseScenarios,
+        ...SOURCE_DRIVEN_SCENARIOS,
+        ...COMBINATORIAL_SCENARIOS,
+        ...PENDING_SCENARIOS,
+      ];
+
+  const deduped: ScenarioDefinition[] = [];
+  const seen = new Set<string>();
+  for (const scenario of ordered) {
+    if (!scenario?.id || seen.has(scenario.id)) continue;
+    seen.add(scenario.id);
+    deduped.push(scenario);
+  }
+
+  const duplicateCount = ordered.length - deduped.length;
+  if (duplicateCount > 0) {
+    console.log(`  🧹 Removed ${duplicateCount} duplicate scenario entr${duplicateCount === 1 ? 'y' : 'ies'} in active queue (by id)`);
+  }
+  if (PRIORITIZE_PENDING && PENDING_SCENARIOS.length > 0) {
+    console.log(`  🚀 Prioritizing ${PENDING_SCENARIOS.length} pending/discovered scenario(s) before base suite`);
+  }
+  return deduped;
+})();
+function buildSystemPrompt(prdContent?: string, scenario?: ScenarioDefinition, compact = false): string {
+  if (compact) {
+    return `You are an expert Android Maestro test author.
+Return ONLY valid Maestro YAML (no markdown fences, no explanation).
+
+Hard rules:
+1) All interactions (tapOn, longPressOn, scrollUntilVisible) must use id:, NEVER text: or label:.
+2) Prefer runtime-verified IDs and source-query IDs from prompt context; never invent IDs.
+3) Keep flow deterministic and minimal; avoid verbose comments.
+4) Include appId header and command separator:
+   appId: com.traveloka.android.staging
+   ---
+5) For results page scenarios, use extendedWaitUntil with id: card_result after filter/sort actions.
+6) For booking/payment scenarios, reuse established ID patterns from existing generated cases; do not invent payment IDs.`;
+  }
+
   const forbiddenIdList = FORBIDDEN_XML_IDS.map(id => {
     const replacement = COMPOSE_ID_MAP[id];
     return replacement ? `  "${id}" → use "${replacement}"` : `  "${id}" (no direct replacement)`;
@@ -2136,12 +2192,46 @@ function querySourceIdsForScenario(scenario: ScenarioDefinition): string {
   }
 }
 
-function buildUserPrompt(context: AndroidSourceContext, scenario: ScenarioDefinition): string {
+function buildUserPrompt(context: AndroidSourceContext, scenario: ScenarioDefinition, compact = false): string {
   // Query android-v3 source for scenario-specific IDs at generation time
   const sourceQueryIds = querySourceIdsForScenario(scenario);
   const accessibilityIdsList = Object.entries(context.accessibilityIds)
     .map(([name, id]) => `  ${name}: "${id}"`)
     .join('\n');
+
+  if (compact) {
+    return `Generate a Maestro YAML test case.
+
+AppId: ${context.appId}
+Screen: ${context.screen}
+
+Precondition:
+${context.precondition.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+Verified IDs (use id: only):
+${accessibilityIdsList}
+
+Source Query IDs:
+${sourceQueryIds || '(none)'}
+
+Scenario:
+ID: ${scenario.id}
+Priority: ${scenario.priority}
+Category: ${scenario.category}
+Name: ${scenario.name}
+Description: ${scenario.description}
+
+Steps:
+${scenario.stepOutline.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+Success Criteria:
+${scenario.successCriteria.map((c) => `- ${c}`).join('\n')}
+
+Output requirements:
+- Valid Maestro YAML only
+- Interaction commands must use id:
+- Include robust waits (extendedWaitUntil) for page transitions`;
+  }
 
   // ── INJECT EXISTING CASES AS REFERENCE EXAMPLES ──────────────────────────
   // Read up to 5 existing generated cases as ground-truth ID references.
@@ -2285,6 +2375,7 @@ async function generateYaml(
   prdContent?: string,
   retries = 3
 ): Promise<string> {
+  let compactPromptMode = false;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const controller = new AbortController();
@@ -2295,8 +2386,8 @@ async function generateYaml(
           model: MODEL,
           temperature: 0,
           messages: [
-            { role: 'system', content: buildSystemPrompt(prdContent, scenario) },
-            { role: 'user', content: buildUserPrompt(context, scenario) },
+            { role: 'system', content: buildSystemPrompt(prdContent, scenario, compactPromptMode) },
+            { role: 'user', content: buildUserPrompt(context, scenario, compactPromptMode) },
           ],
         }, { signal: controller.signal as AbortSignal });
       } finally {
@@ -2314,9 +2405,14 @@ async function generateYaml(
       if (/429|rate.?limit|quota/i.test(msg)) {
         throw new QuotaExhaustedError(msg);
       }
-      // 413 prompt too large — retrying with same prompt will never succeed; save for next run
+      // 413 prompt too large — retry once with compact prompts before giving up.
       if (/413|Request body too large/i.test(msg)) {
-        console.warn(`  [413] Prompt too large — saving scenario for next run (config/remaining-scenarios.json)`);
+        if (!compactPromptMode) {
+          compactPromptMode = true;
+          console.warn(`  [413] Prompt too large — retrying ${scenario.id} with compact prompt mode`);
+          continue;
+        }
+        console.warn(`  [413] Prompt still too large in compact mode — saving scenario for next run (config/remaining-scenarios.json)`);
         throw new QuotaExhaustedError(`PROMPT_TOO_LARGE: ${msg}`);
       }
       if (attempt < retries) {

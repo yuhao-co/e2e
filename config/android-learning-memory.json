@@ -1,9 +1,10 @@
 {
-  "lastUpdated": "2026-06-17T05:08:15.670Z",
-  "totalRuns": 16,
+  "lastUpdated": "2026-06-18T05:13:32.346Z",
+  "totalRuns": 17,
   "flakyScenarios": [
-    "android-results-select-flight",
-    "android-booking-payment"
+    "android-booking-payment",
+    "android-results-filter-one-stop",
+    "android-results-price-calendar"
   ],
   "stableScenarios": [
     "android-results-smoke",
@@ -20,18 +21,18 @@
     "android-results-scroll"
   ],
   "consecutivePasses": {
-    "android-results-smoke": 1,
-    "android-results-filter-direct": 1,
-    "android-results-select-flight": 0,
-    "android-results-sort-cheapest": 1,
-    "android-results-sort-fastest": 1,
-    "android-results-filter-one-stop": 1,
-    "android-results-airline-filter": 1,
-    "android-results-departure-time-filter": 1,
-    "android-results-reset-filters": 1,
-    "android-results-price-calendar": 1,
-    "android-results-back-to-search": 1,
-    "android-results-scroll": 1,
+    "android-results-smoke": 2,
+    "android-results-filter-direct": 2,
+    "android-results-select-flight": 1,
+    "android-results-sort-cheapest": 2,
+    "android-results-sort-fastest": 2,
+    "android-results-filter-one-stop": 0,
+    "android-results-airline-filter": 2,
+    "android-results-departure-time-filter": 2,
+    "android-results-reset-filters": 2,
+    "android-results-price-calendar": 0,
+    "android-results-back-to-search": 2,
+    "android-results-scroll": 2,
     "android-booking-payment": 0
   },
   "expansionQueue": [],
@@ -327,6 +328,24 @@
       "fixedAt": "2026-06-17T05:08:15.672Z",
       "failureReason": "FAILED\n\nAssertion is false: id: search_tab is visible",
       "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-filter-one-stop",
+      "fixedAt": "2026-06-18T05:13:32.347Z",
+      "failureReason": "unknown",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-results-price-calendar",
+      "fixedAt": "2026-06-18T05:13:32.347Z",
+      "failureReason": "FAILED\n\nAssertion is false: id: widget_dateflow is visible",
+      "fixApplied": false
+    },
+    {
+      "scenarioId": "android-booking-payment",
+      "fixedAt": "2026-06-18T05:13:32.347Z",
+      "failureReason": "unknown",
+      "fixApplied": false
     }
   ],
   "diffTriggers": [
@@ -425,6 +444,12 @@
       "changedFiles": [],
       "affectedScenarios": [],
       "passRate": "85%"
+    },
+    {
+      "date": "2026-06-18T05:13:32.347Z",
+      "changedFiles": [],
+      "affectedScenarios": [],
+      "passRate": "77%"
     }
   ]
 }

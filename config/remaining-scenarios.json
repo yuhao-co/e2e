@@ -1,5 +1,998 @@
 [
   {
+    "id": "android-results-combo-direct-morning-airline",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Direct flights with morning departure and specific airline",
+    "description": "Tests the combination of direct flights, morning departure, and a specific airline filter to ensure proper filtering logic.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_direct",
+      "tap id: button_departure_morning",
+      "tap id: layer_airline",
+      "tap id: check_box index: 0",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filtered results match direct flights, morning departure, and selected airline"
+    ]
+  },
+  {
+    "id": "android-results-combo-one-stop-afternoon-reset",
+    "priority": "p1",
+    "category": "filter",
+    "name": "One-stop flights with afternoon departure and reset filters",
+    "description": "Tests the combination of one-stop flights and afternoon departure, followed by resetting filters to ensure reset functionality works correctly.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_one_transit",
+      "tap id: button_departure_afternoon",
+      "tap id: tvReset",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filters are reset and all results are displayed"
+    ]
+  },
+  {
+    "id": "android-results-combo-two-transit-evening-airline",
+    "priority": "p2",
+    "category": "filter",
+    "name": "Two-transit flights with evening departure and specific airline",
+    "description": "Tests the combination of two-transit flights, evening departure, and a specific airline filter to ensure proper filtering logic.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_two_transit",
+      "tap id: button_departure_evening",
+      "tap id: layer_airline",
+      "tap id: check_box index: 1",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filtered results match two-transit flights, evening departure, and selected airline"
+    ]
+  },
+  {
+    "id": "android-results-combo-direct-early-morning-reset",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Direct flights with early morning arrival and reset filters",
+    "description": "Tests the combination of direct flights and early morning arrival, followed by resetting filters to ensure reset functionality works correctly.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_direct",
+      "tap id: button_arrival_early_morning",
+      "tap id: tvReset",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filters are reset and all results are displayed"
+    ]
+  },
+  {
+    "id": "android-results-combo-multi-filters",
+    "priority": "p0",
+    "category": "filter",
+    "name": "Combination of multiple filters: direct flights, morning departure, specific airline, and morning arrival",
+    "description": "Tests a complex combination of filters to ensure the system can handle multiple filters applied simultaneously.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_direct",
+      "tap id: button_departure_morning",
+      "tap id: layer_airline",
+      "tap id: check_box index: 2",
+      "tap id: button_arrival_morning",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filtered results match direct flights, morning departure, selected airline, and morning arrival"
+    ]
+  },
+  {
+    "id": "android-results-departure-morning",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter: Morning Departure",
+    "description": "Test applying Morning Departure filter on results page. Source: android-v3 time_departure layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_departure_morning (Morning Departure)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Morning Departure)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Morning Departure filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Morning Departure"
+    ]
+  },
+  {
+    "id": "android-results-departure-afternoon",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter: Afternoon Departure",
+    "description": "Test applying Afternoon Departure filter on results page. Source: android-v3 time_departure layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_departure_afternoon (Afternoon Departure)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Afternoon Departure)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Afternoon Departure filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Afternoon Departure"
+    ]
+  },
+  {
+    "id": "android-results-departure-evening",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter: Evening Departure",
+    "description": "Test applying Evening Departure filter on results page. Source: android-v3 time_departure layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_departure_evening (Evening Departure)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Evening Departure)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Evening Departure filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Evening Departure"
+    ]
+  },
+  {
+    "id": "android-results-arrival-morning",
+    "priority": "p2",
+    "category": "filter",
+    "name": "Filter: Morning Arrival",
+    "description": "Test applying Morning Arrival filter on results page. Source: android-v3 time_arrival layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_arrival_morning (Morning Arrival)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Morning Arrival)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Morning Arrival filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Morning Arrival"
+    ]
+  },
+  {
+    "id": "android-results-filter-baggage",
+    "priority": "p2",
+    "category": "filter",
+    "name": "Filter: Baggage Included",
+    "description": "Test applying Baggage Included filter on results page. Source: android-v3 facility layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_baggage_included (Baggage Included)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by Baggage Included)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "Baggage Included filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying Baggage Included"
+    ]
+  },
+  {
+    "id": "android-results-filter-meals",
+    "priority": "p2",
+    "category": "filter",
+    "name": "Filter: In-Flight Meals",
+    "description": "Test applying In-Flight Meals filter on results page. Source: android-v3 facility layer.",
+    "stepOutline": [
+      "Navigate to flight results page",
+      "Open filter dialog by tapping flight_result_filter_button_title",
+      "Wait for layout_filter_dialog to appear",
+      "Tap filter option: button_in_flight_meals (In-Flight Meals)",
+      "Tap dbwShow to apply filter",
+      "Verify card_result is visible (results filtered by In-Flight Meals)",
+      "Verify text_result_title appears (no empty state crash)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened without error",
+      "In-Flight Meals filter applied successfully",
+      "Results page reloaded with filtered content",
+      "No crash when applying In-Flight Meals"
+    ]
+  },
+  {
+    "id": "android-results-combo-two transit-evening-0",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter Combo: Two transit + Evening",
+    "description": "Auto-generated multi-filter combination test: apply two transit + evening filters together",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — open filter dialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "Tap id: button_two_transit",
+      "scrollUntilVisible id: button_departure_evening direction: DOWN timeout: 15000",
+      "Tap id: button_departure_evening",
+      "Tap id: dbwShow — apply filter",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible (results filtered by combination)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened successfully",
+      "All selected filters applied without error",
+      "Results updated after filter applied",
+      "card_result still visible (no empty-state crash)"
+    ]
+  },
+  {
+    "id": "android-results-combo-one transit-morning-1",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter Combo: One transit + Morning",
+    "description": "Auto-generated multi-filter combination test: apply one transit + morning filters together",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — open filter dialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "Tap id: button_one_transit",
+      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
+      "Tap id: button_departure_morning",
+      "Tap id: dbwShow — apply filter",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible (results filtered by combination)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened successfully",
+      "All selected filters applied without error",
+      "Results updated after filter applied",
+      "card_result still visible (no empty-state crash)"
+    ]
+  },
+  {
+    "id": "android-results-combo-morning-two transit-2",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter Combo: Morning + Two transit",
+    "description": "Auto-generated multi-filter combination test: apply morning + two transit filters together",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — open filter dialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
+      "Tap id: button_departure_morning",
+      "Tap id: button_two_transit",
+      "Tap id: dbwShow — apply filter",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible (results filtered by combination)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened successfully",
+      "All selected filters applied without error",
+      "Results updated after filter applied",
+      "card_result still visible (no empty-state crash)"
+    ]
+  },
+  {
+    "id": "android-results-combo-one transit-morning-3",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter Combo: One transit + Morning",
+    "description": "Auto-generated multi-filter combination test: apply one transit + morning filters together",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — open filter dialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "Tap id: button_one_transit",
+      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
+      "Tap id: button_departure_morning",
+      "Tap id: dbwShow — apply filter",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible (results filtered by combination)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened successfully",
+      "All selected filters applied without error",
+      "Results updated after filter applied",
+      "card_result still visible (no empty-state crash)"
+    ]
+  },
+  {
+    "id": "android-results-combo-two transit-evening-4",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Filter Combo: Two transit + Evening",
+    "description": "Auto-generated multi-filter combination test: apply two transit + evening filters together",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — open filter dialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "Tap id: button_two_transit",
+      "scrollUntilVisible id: button_departure_evening direction: DOWN timeout: 15000",
+      "Tap id: button_departure_evening",
+      "Tap id: dbwShow — apply filter",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible (results filtered by combination)"
+    ],
+    "successCriteria": [
+      "Filter dialog opened successfully",
+      "All selected filters applied without error",
+      "Results updated after filter applied",
+      "card_result still visible (no empty-state crash)"
+    ]
+  },
+  {
+    "id": "android-results-smoke",
+    "priority": "p0",
+    "category": "smoke",
+    "name": "Search Results Page Loads",
+    "description": "Deeplink directly to results page and verify flight cards appear",
+    "stepOutline": [
+      "stopApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil visible id: card_result timeout: 30000",
+      "assertVisible id: card_result (at least one card loaded)"
+    ],
+    "successCriteria": [
+      "text_result_title visible",
+      "card_result visible (at least one card)"
+    ]
+  },
+  {
+    "id": "android-results-filter-direct",
+    "priority": "p0",
+    "category": "filter",
+    "name": "Direct Flight Filter",
+    "description": "Deeplink to results, open full filter dialog via flight_result_filter_button_title, apply Direct filter",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — opens FlightResultRevampFilterDialog (Compose testTag, verified 2026-06-16)",
+      "Wait for id: layout_filter_dialog (timeout: 15000)",
+      "Tap id: button_direct — Direct flights toggle (flight_filter_transit_layer.xml verified)",
+      "Tap id: dbwShow — Apply button (NOT tvResult — tvResult is count label only)",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible"
+    ],
+    "successCriteria": [
+      "layout_filter_dialog opened then closed",
+      "card_result still visible after filter applied"
+    ]
+  },
+  {
+    "id": "android-results-sort-cheapest",
+    "priority": "p0",
+    "category": "sort",
+    "name": "Sort by Cheapest",
+    "description": "Deeplink to results, tap flight_result_sort_button_title to open Sort tray, select Cheapest (radio_button index 0)",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_sort_button_title — sort button (Compose testTag, verified 2026-06-16). NEVER use bm_button (removed) or flight_result_v4_sort_button (not rendered)",
+      "extendedWaitUntil id: layout_tray timeout: 10000 — sort tray root (XML android:id). NEVER use rbg_sort",
+      "Tap id: radio_button index 0 — Cheapest (sort order: 0=Cheapest, 1=Direct first, 2=Earliest dep, 3=Latest dep, 4=Earliest arr, 5=Latest arr, 6=Shortest duration)",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible"
+    ],
+    "successCriteria": [
+      "Sort tray opens via flight_result_sort_button_title",
+      "Flight cards still visible after sort applied"
+    ]
+  },
+  {
+    "id": "android-results-select-flight",
+    "priority": "p0",
+    "category": "interaction",
+    "name": "Select a Flight (View Fare Options)",
+    "description": "Deeplink to results, tap card_result to navigate to fare selection screen",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: card_result index: 0",
+      "extendedWaitUntil id: flight_summary_activity_ticket_option_section timeout: 15000 — fare selection screen",
+      "Assert id: flight_summary_activity_ticket_option_section visible"
+    ],
+    "successCriteria": [
+      "flight_summary_activity_ticket_option_section visible after tapping card"
+    ]
+  },
+  {
+    "id": "android-results-back-to-search",
+    "priority": "p0",
+    "category": "navigation",
+    "name": "Back to Search Form",
+    "description": "Deeplink to results, use system back gesture",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Execute system back: - back",
+      "Assert card_result no longer visible (left results page)"
+    ],
+    "successCriteria": [
+      "card_result no longer visible after back"
+    ]
+  },
+  {
+    "id": "android-results-filter-one-stop",
+    "priority": "p1",
+    "category": "filter",
+    "name": "1-Stop Filter",
+    "description": "Deeplink to results, open FULL filter dialog via flight_result_filter_button_title, tap button_one_transit",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — Compose testTag, opens FlightResultRevampFilterDialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "Tap id: button_one_transit — 1-stop toggle (flight_filter_transit_layer.xml verified)",
+      "Tap id: dbwShow — Apply button (NOT tvResult — tvResult is count label only)",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible"
+    ],
+    "successCriteria": [
+      "Filter dialog closed",
+      "Cards still visible after 1-stop filter"
+    ]
+  },
+  {
+    "id": "android-results-sort-fastest",
+    "priority": "p1",
+    "category": "sort",
+    "name": "Sort by Fastest (Shortest Duration)",
+    "description": "Deeplink to results, tap flight_result_sort_button_title, select radio_button index 6 (Shortest Duration)",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_sort_button_title — NEVER use bm_button (removed) or rbg_sort",
+      "extendedWaitUntil id: layout_tray timeout: 10000",
+      "Tap id: radio_button index 6 — Shortest Duration (sort order: 0=Cheapest, 6=Shortest duration)",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible"
+    ],
+    "successCriteria": [
+      "Sort by Shortest duration applied, no crash"
+    ]
+  },
+  {
+    "id": "android-results-airline-filter",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Airline Filter via Filter Dialog",
+    "description": "Deeplink to results, open filter dialog via flight_result_filter_button_title, scroll to airline section, select first airline",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — opens FlightResultRevampFilterDialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "- scroll — bare scroll only (exposes layer_airline below layer_transit)",
+      "extendedWaitUntil id: layer_airline timeout: 10000",
+      "Tap id: check_box index 0 — first airline checkbox",
+      "Tap id: dbwShow — Apply button (NOT tvResult)",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible"
+    ],
+    "successCriteria": [
+      "Airline filter applied, cards updated"
+    ]
+  },
+  {
+    "id": "android-results-departure-time-filter",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Departure Morning Filter",
+    "description": "Deeplink to results, open full filter dialog via flight_result_filter_button_title, scroll to time section, tap button_departure_morning",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — Compose testTag, opens FlightResultRevampFilterDialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000 — reaches time section inside dialog",
+      "Tap id: button_departure_morning",
+      "Tap id: dbwShow — Apply button (NOT tvResult)",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible"
+    ],
+    "successCriteria": [
+      "Morning departure filter applied, results updated"
+    ]
+  },
+  {
+    "id": "android-results-reset-filters",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Reset All Filters",
+    "description": "Deeplink to results, open full filter dialog, apply direct filter, tap tvReset to clear, apply with dbwShow",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — Compose testTag, opens FlightResultRevampFilterDialog",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "Tap id: button_direct — select direct filter first so tvReset has something to clear",
+      "Tap id: tvReset — Reset All button (flight_result_revamp_filter_dialog.xml verified)",
+      "Tap id: dbwShow — Apply button with no filters active (NOT tvResult)",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Assert id: card_result visible"
+    ],
+    "successCriteria": [
+      "All filters cleared, full result set restored"
+    ]
+  },
+  {
+    "id": "android-results-scroll",
+    "priority": "p1",
+    "category": "interaction",
+    "name": "Scroll Through Results",
+    "description": "Deeplink to results, scroll down with bare - scroll command to load more cards",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "- scroll (bare command, NO sub-keys — Maestro 2.x does not support scroll direction/duration)",
+      "- scroll",
+      "Assert id: card_result still visible"
+    ],
+    "successCriteria": [
+      "No crash after scrolling, cards still visible"
+    ]
+  },
+  {
+    "id": "android-results-price-calendar",
+    "priority": "p1",
+    "category": "interaction",
+    "name": "View Price Calendar",
+    "description": "Deeplink to results, tap image_calendar icon in widget_dateflow to open price calendar dialog",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "extendedWaitUntil id: widget_dateflow timeout: 10000 — date strip row (XML android:id, accessible). NEVER use flight_result_v4_date_flow_row (hallucinated)",
+      "Tap id: image_calendar — calendar icon in the date strip (flight_result_dateflow_widget.xml verified)",
+      "extendedWaitUntil id: calendar_navbar_close timeout: 10000 — FlightBloomCalendarDialog",
+      "Assert id: calendar_navbar_close visible"
+    ],
+    "successCriteria": [
+      "FlightBloomCalendarDialog opens (calendar_navbar_close visible)"
+    ]
+  },
+  {
+    "id": "android-booking-payment",
+    "priority": "p0",
+    "category": "booking",
+    "name": "Full Booking E2E: Home → Search → Results → Fare → Booking Form → Payment CC",
+    "description": "LOCKED blueprint — do NOT regenerate. Home → Flights product tile → search → results → fare selection → traveler/contact fill → booking form → enhance trip interstitial → payment CC form. Stops before Pay to avoid real orders.",
+    "stepOutline": [
+      "LOCKED — reuse existing android-booking-payment.yaml. Do not regenerate this case.",
+      "Phases: Home → image_view_product_icon[0] → search_tab → btn_search → card_result → fare → booking form → payment CC form",
+      "Success: frame_input_card_form visible; all CC fields fillable"
+    ],
+    "successCriteria": [
+      "frame_input_card_form visible on payment page",
+      "bm_text_field_credit_card_number fillable",
+      "button_payment_price_summary_pay visible (NOT tapped)"
+    ]
+  },
+  {
+    "id": "android-results-filter-multi-stop",
+    "priority": "p2",
+    "category": "filter",
+    "name": "2+ Stops Filter",
+    "description": "Deeplink to results, open filter dialog via flight_result_filter_button_title, tap button_two_transit, apply",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_filter_button_title — Compose testTag. NEVER use flight_result_v4_filter_button (hallucinated)",
+      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
+      "Tap id: button_two_transit — flight_result_revamp_filter_transit_layer.xml verified",
+      "Tap id: dbwShow — Apply button (NOT tvResult — tvResult is count label only)",
+      "extendedWaitUntil id: card_result timeout: 30000"
+    ],
+    "successCriteria": [
+      "2+ stop filter applied; results or empty-state visible"
+    ]
+  },
+  {
+    "id": "android-results-sort-best",
+    "priority": "p2",
+    "category": "sort",
+    "name": "Sort: Direct Flight First",
+    "description": "Deeplink to results, tap flight_result_sort_button_title, select radio_button index 1 (Direct flight first)",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_sort_button_title — NEVER use bm_button (removed from UI) or rbg_sort",
+      "extendedWaitUntil id: layout_tray timeout: 10000 — NEVER use rbg_sort",
+      "Tap id: radio_button index 1 — Direct flight first (sort order: 0=Cheapest, 1=Direct first, 2=Earliest dep, 3=Latest dep, 4=Earliest arr, 5=Latest arr, 6=Shortest duration)",
+      "extendedWaitUntil id: card_result timeout: 30000"
+    ],
+    "successCriteria": [
+      "Best sort applied, no crash"
+    ]
+  },
+  {
+    "id": "android-results-view-detail",
+    "priority": "p2",
+    "category": "interaction",
+    "name": "View Flight Fare Options (Card Tap)",
+    "description": "Deeplink to results, tap card_result, assert fare screen, back to results",
+    "stepOutline": [
+      "stopApp — use deeplink navigation, NOT home screen",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: card_result index: 0",
+      "extendedWaitUntil id: flight_summary_activity_ticket_option_section timeout: 15000",
+      "Assert id: flight_summary_activity_ticket_option_section visible",
+      "- back — return to results",
+      "extendedWaitUntil id: card_result timeout: 15000"
+    ],
+    "successCriteria": [
+      "Detail view opens and back navigation works"
+    ]
+  },
+  {
+    "id": "android-ssrv4-filter-tab-transit",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Transit Tab",
+    "description": "Open multi-filter dialog, navigate to Transit tab, apply Direct, verify",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "Wait for flight_result_filter_button_title (Compose testTag)",
+      "Tap flight_result_filter_button_title to open the new multi-filter dialog",
+      "Wait for filter dialog to appear",
+      "Tap the Transit tab inside the tabbed navigation (FilterTopTabBar)",
+      "Tap the Direct/Nonstop option inside the transit tab content",
+      "Tap Apply/Done button to submit filter",
+      "Wait for card_result to reload",
+      "Assert card_result still visible"
+    ],
+    "successCriteria": [
+      "Multi-filter dialog opens from flight_result_filter_button_title",
+      "Transit tab is navigable",
+      "Direct filter applied and results update"
+    ]
+  },
+  {
+    "id": "android-ssrv4-filter-tab-time",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Departure Time Tab",
+    "description": "Navigate to Time tab in multi-filter dialog, select morning departure",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
+      "Tap flight_result_filter_button_title",
+      "Wait for filter dialog",
+      "Tap the Time tab in FilterTopTabBar",
+      "Tap morning departure option (button_departure_morning or \"Morning\" chip)",
+      "Tap Apply button",
+      "Wait for card_result to reload",
+      "Assert card_result visible"
+    ],
+    "successCriteria": [
+      "Time tab navigable",
+      "Morning filter applied without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-filter-tab-airlines",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Airlines Tab",
+    "description": "Navigate to Airlines tab, select first airline, apply",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
+      "Tap flight_result_filter_button_title",
+      "Wait for filter dialog",
+      "Tap the Airlines tab in FilterTopTabBar",
+      "Tap first airline item in the airline list",
+      "Tap Apply button",
+      "Wait for card_result to reload"
+    ],
+    "successCriteria": [
+      "Airlines tab navigable",
+      "Airline filter applied, results visible"
+    ]
+  },
+  {
+    "id": "android-ssrv4-filter-tab-price",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Price Tab",
+    "description": "Open Price tab, interact with price range, apply",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
+      "Tap flight_result_filter_button_title",
+      "Wait for filter dialog",
+      "Tap the Price tab in FilterTopTabBar",
+      "Scroll or swipe price range slider handle slightly to adjust min price",
+      "Tap Apply button",
+      "Wait for card_result to reload"
+    ],
+    "successCriteria": [
+      "Price tab navigable",
+      "Price filter applied without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-filter-tab-duration",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Duration Tab",
+    "description": "Open Duration tab, set max duration, apply",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
+      "Tap flight_result_filter_button_title",
+      "Wait for filter dialog",
+      "Tap the Duration tab in FilterTopTabBar",
+      "Adjust the duration slider to a restrictive value",
+      "Tap Apply button",
+      "Wait for card_result or empty state to appear"
+    ],
+    "successCriteria": [
+      "Duration tab navigable",
+      "Duration filter applied; results or empty state shown"
+    ]
+  },
+  {
+    "id": "android-ssrv4-filter-tab-airports",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Airports Tab",
+    "description": "Open Airports tab, select an airport, apply",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
+      "Tap flight_result_filter_button_title",
+      "Wait for filter dialog",
+      "Tap the Airports tab in FilterTopTabBar",
+      "Tap first departure airport option in the airports list",
+      "Tap Apply button",
+      "Wait for card_result to reload"
+    ],
+    "successCriteria": [
+      "Airports tab navigable",
+      "Airport filter applied without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-filter-tab-facilities",
+    "priority": "p2",
+    "category": "filter",
+    "name": "SSR V4 Multi-Filter: Facilities Tab",
+    "description": "Open Facilities tab (e.g. meal, luggage), select option, apply",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
+      "Tap flight_result_filter_button_title",
+      "Wait for filter dialog",
+      "Scroll tab bar to find Facilities tab, tap it",
+      "Tap first facility option (meal/luggage) in the facilities list",
+      "Tap Apply button",
+      "Wait for card_result or empty state"
+    ],
+    "successCriteria": [
+      "Facilities tab navigable",
+      "Facility filter applied without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-mini-filter-tray-open",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Mini-Filter Tray Opens",
+    "description": "Tap flight_result_v4_quick_filter_cell nonstop chip to open mini-tray",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "Wait for flight_result_v4_quick_filter_cell (Compose testTag, quick filter chips)",
+      "Tap the \"Nonstop\" or first chip in flight_result_v4_quick_filter_cell",
+      "Wait for bottom mini-filter tray to appear (FlightResultV4MiniFilterTray)",
+      "Assert mini-filter tray visible (look for tray Apply/Done button)"
+    ],
+    "successCriteria": [
+      "Mini-filter tray appears on tapping nonstop chip"
+    ]
+  },
+  {
+    "id": "android-ssrv4-mini-filter-tray-apply",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Mini-Filter Tray Apply",
+    "description": "Open mini-filter tray, tap Apply, verify results reload",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "Wait for flight_result_v4_quick_filter_cell",
+      "Tap first chip in flight_result_v4_quick_filter_cell to open mini-tray",
+      "Wait for mini-filter tray (bottom sheet)",
+      "Tap Apply button in the mini-tray",
+      "Wait for card_result to reload",
+      "Assert card_result visible"
+    ],
+    "successCriteria": [
+      "Mini-tray Apply triggers results reload without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-mini-filter-tray-dismiss",
+    "priority": "p1",
+    "category": "filter",
+    "name": "SSR V4 Mini-Filter Tray Dismiss",
+    "description": "Open mini-filter tray and swipe down to dismiss without applying",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "Wait for flight_result_v4_quick_filter_cell",
+      "Tap first chip to open mini-tray",
+      "Wait for mini-filter tray",
+      "Swipe DOWN on the mini-filter tray to dismiss it",
+      "Assert tray is gone; card_result still visible"
+    ],
+    "successCriteria": [
+      "Mini-tray dismisses on swipe down; results unchanged"
+    ]
+  },
+  {
+    "id": "android-ssrv4-sort-duration",
+    "priority": "p0",
+    "category": "sort",
+    "name": "SSR V4 Sort by Duration (Shortest)",
+    "description": "Open sort tray, tap index 6 (Shortest Duration), verify reload",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_sort_button_title — opens sort tray (NEVER use bm_button: removed from UI)",
+      "extendedWaitUntil id: layout_tray timeout: 10000 — sort tray root (NEVER use rbg_sort)",
+      "Tap radio_button at index 6 (Shortest Duration) inside sort tray",
+      "Wait for card_result to reload",
+      "Assert card_result visible"
+    ],
+    "successCriteria": [
+      "Sort by Duration (index 6) applied; results reload without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-sort-arrival-earliest",
+    "priority": "p1",
+    "category": "sort",
+    "name": "SSR V4 Sort by Earliest Arrival",
+    "description": "Open sort tray, tap index 5 (Earliest Arrival), verify reload",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_sort_button_title — opens sort tray (NEVER use bm_button: removed from UI)",
+      "extendedWaitUntil id: layout_tray timeout: 10000",
+      "Tap radio_button at index 5 (Earliest Arrival)",
+      "Wait for card_result to reload"
+    ],
+    "successCriteria": [
+      "Earliest Arrival sort applied without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-sort-latest-departure",
+    "priority": "p1",
+    "category": "sort",
+    "name": "SSR V4 Sort by Latest Departure",
+    "description": "Open sort tray, tap index 4 (Latest Departure), verify reload",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_sort_button_title — opens sort tray (NEVER use bm_button: removed from UI)",
+      "extendedWaitUntil id: layout_tray timeout: 10000",
+      "Tap radio_button at index 4 (Latest Departure)",
+      "Wait for card_result to reload"
+    ],
+    "successCriteria": [
+      "Latest Departure sort applied without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-sort-direct-first",
+    "priority": "p1",
+    "category": "sort",
+    "name": "SSR V4 Sort: Direct Flight First",
+    "description": "Open sort tray, tap index 2 (Direct flight first), verify",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "Tap id: flight_result_sort_button_title — opens sort tray (NEVER use bm_button: removed from UI)",
+      "extendedWaitUntil id: layout_tray timeout: 10000",
+      "Tap radio_button at index 2 (Direct flight first)",
+      "Wait for card_result to reload"
+    ],
+    "successCriteria": [
+      "Direct flight first sort applied without crash"
+    ]
+  },
+  {
+    "id": "android-ssrv4-nonstop-chip",
+    "priority": "p0",
+    "category": "filter",
+    "name": "SSR V4 Nonstop Chip Quick Filter",
+    "description": "Tap Nonstop chip in flight_result_v4_quick_filter_cell, verify results",
+    "stepOutline": [
+      "stopApp — use deeplink navigation",
+      "Wait for flight_result_v4_quick_filter_cell",
+      "Scroll horizontally to find the Nonstop chip if needed",
+      "Tap the Nonstop chip (flight_result_v4_quick_filter_cell at index 0 or labelled Nonstop)",
+      "Wait for card_result to reload",
+      "Assert card_result visible"
+    ],
+    "successCriteria": [
+      "Nonstop chip applies direct filter; results reload; cards visible"
+    ]
+  },
+  {
     "id": "android-ssrv4-filter-empty-state",
     "priority": "p1",
     "category": "filter",
@@ -283,1456 +1276,6 @@
     "successCriteria": [
       "frame_input_card_form visible (payment page loaded)",
       "No crash during navigation through booking funnel"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-reset-all",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Reset All Filters",
-    "description": "Apply multiple filters, then tap Reset to clear all and restore full results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "On Transit tab: tap Direct",
-      "On Time tab: tap Morning",
-      "Tap Apply",
-      "Wait for results reload",
-      "Tap flight_result_filter_button_title again",
-      "Tap Reset/Clear all button inside the filter dialog (tvReset or equivalent)",
-      "Tap Apply button",
-      "Wait for card_result reload",
-      "Assert card_result visible (more results than before reset)"
-    ],
-    "successCriteria": [
-      "All filters cleared; full result set restored without crash"
-    ]
-  },
-  {
-    "id": "android-results-departure-morning",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Morning Departure",
-    "description": "Test applying Morning Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_morning (Morning Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Morning Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Morning Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Morning Departure"
-    ]
-  },
-  {
-    "id": "android-results-departure-afternoon",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Afternoon Departure",
-    "description": "Test applying Afternoon Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_afternoon (Afternoon Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Afternoon Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Afternoon Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Afternoon Departure"
-    ]
-  },
-  {
-    "id": "android-results-departure-evening",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Evening Departure",
-    "description": "Test applying Evening Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_evening (Evening Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Evening Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Evening Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Evening Departure"
-    ]
-  },
-  {
-    "id": "android-results-arrival-morning",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: Morning Arrival",
-    "description": "Test applying Morning Arrival filter on results page. Source: android-v3 time_arrival layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_arrival_morning (Morning Arrival)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Morning Arrival)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Morning Arrival filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Morning Arrival"
-    ]
-  },
-  {
-    "id": "android-results-filter-baggage",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: Baggage Included",
-    "description": "Test applying Baggage Included filter on results page. Source: android-v3 facility layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_baggage_included (Baggage Included)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Baggage Included)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Baggage Included filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Baggage Included"
-    ]
-  },
-  {
-    "id": "android-results-filter-meals",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: In-Flight Meals",
-    "description": "Test applying In-Flight Meals filter on results page. Source: android-v3 facility layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_in_flight_meals (In-Flight Meals)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by In-Flight Meals)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "In-Flight Meals filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying In-Flight Meals"
-    ]
-  },
-  {
-    "id": "android-results-combo-two transit-evening-0",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: Two transit + Evening",
-    "description": "Auto-generated multi-filter combination test: apply two transit + evening filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "Tap id: button_two_transit",
-      "scrollUntilVisible id: button_departure_evening direction: DOWN timeout: 15000",
-      "Tap id: button_departure_evening",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-combo-one transit-morning-1",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: One transit + Morning",
-    "description": "Auto-generated multi-filter combination test: apply one transit + morning filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "Tap id: button_one_transit",
-      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
-      "Tap id: button_departure_morning",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-combo-morning-two transit-2",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: Morning + Two transit",
-    "description": "Auto-generated multi-filter combination test: apply morning + two transit filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
-      "Tap id: button_departure_morning",
-      "Tap id: button_two_transit",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-combo-one transit-morning-3",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: One transit + Morning",
-    "description": "Auto-generated multi-filter combination test: apply one transit + morning filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "Tap id: button_one_transit",
-      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
-      "Tap id: button_departure_morning",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-combo-two transit-evening-4",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: Two transit + Evening",
-    "description": "Auto-generated multi-filter combination test: apply two transit + evening filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "Tap id: button_two_transit",
-      "scrollUntilVisible id: button_departure_evening direction: DOWN timeout: 15000",
-      "Tap id: button_departure_evening",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-departure-morning",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Morning Departure",
-    "description": "Test applying Morning Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_morning (Morning Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Morning Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Morning Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Morning Departure"
-    ]
-  },
-  {
-    "id": "android-results-departure-afternoon",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Afternoon Departure",
-    "description": "Test applying Afternoon Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_afternoon (Afternoon Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Afternoon Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Afternoon Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Afternoon Departure"
-    ]
-  },
-  {
-    "id": "android-results-departure-evening",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Evening Departure",
-    "description": "Test applying Evening Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_evening (Evening Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Evening Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Evening Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Evening Departure"
-    ]
-  },
-  {
-    "id": "android-results-arrival-morning",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: Morning Arrival",
-    "description": "Test applying Morning Arrival filter on results page. Source: android-v3 time_arrival layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_arrival_morning (Morning Arrival)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Morning Arrival)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Morning Arrival filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Morning Arrival"
-    ]
-  },
-  {
-    "id": "android-results-filter-baggage",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: Baggage Included",
-    "description": "Test applying Baggage Included filter on results page. Source: android-v3 facility layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_baggage_included (Baggage Included)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Baggage Included)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Baggage Included filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Baggage Included"
-    ]
-  },
-  {
-    "id": "android-results-filter-meals",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: In-Flight Meals",
-    "description": "Test applying In-Flight Meals filter on results page. Source: android-v3 facility layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_in_flight_meals (In-Flight Meals)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by In-Flight Meals)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "In-Flight Meals filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying In-Flight Meals"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-empty-state",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filtered Empty State",
-    "description": "Apply very restrictive filters (direct + specific airline + morning) to trigger empty state",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "On Transit tab: tap Direct",
-      "On Airlines tab: tap second and third airline (to be restrictive)",
-      "On Time tab: tap Morning departure only",
-      "Tap Apply button",
-      "Wait for either card_result or empty state UI",
-      "Take screenshot: test-results/android/android-ssrv4-filter-empty-state.png",
-      "Assert screen shows either results or an empty/no-result view (not a crash)"
-    ],
-    "successCriteria": [
-      "Empty state UI appears gracefully (no crash)",
-      "Empty state includes a \"Clear filters\" or \"Reset\" action button"
-    ]
-  },
-  {
-    "id": "android-ssrv4-empty-state-reset",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Empty State → Reset Filters",
-    "description": "Trigger filtered empty state, then tap Reset button to restore results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Apply restrictive filters to reach filtered empty state (reuse android-ssrv4-filter-empty-state precondition)",
-      "When empty state appears, tap \"Reset\" or \"Clear filters\" button in empty state",
-      "Wait for card_result to reload",
-      "Assert card_result visible (results restored)"
-    ],
-    "successCriteria": [
-      "Tapping Reset from empty state restores the full result set"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-afternoon-departure",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filter: Afternoon Departure",
-    "description": "Open filter dialog, select Afternoon departure time, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Afternoon departure option (button_departure_afternoon or \"Afternoon\" chip)",
-      "Tap Apply button",
-      "Wait for card_result to reload"
-    ],
-    "successCriteria": [
-      "Afternoon departure filter applied; results update without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-evening-departure",
-    "priority": "p2",
-    "category": "filter",
-    "name": "SSR V4 Filter: Evening Departure",
-    "description": "Open filter dialog, select Evening departure time, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Evening departure option (button_departure_evening or \"Evening\" chip)",
-      "Tap Apply button",
-      "Wait for card_result or empty state"
-    ],
-    "successCriteria": [
-      "Evening departure filter applied without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-arrival-morning",
-    "priority": "p2",
-    "category": "filter",
-    "name": "SSR V4 Filter: Morning Arrival",
-    "description": "Open filter Time tab, select Morning arrival, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Morning arrival option (button_arrival_morning or arrival morning chip)",
-      "Tap Apply button",
-      "Wait for card_result to reload"
-    ],
-    "successCriteria": [
-      "Arrival time filter applied; results update without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-reapply-previous",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filter: Re-open Shows Previous Selection",
-    "description": "Apply direct filter, re-open filter dialog, verify previous selection is retained",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "On Transit tab: tap Direct",
-      "Tap Apply button",
-      "Wait for card_result reload",
-      "Tap flight_result_filter_button_title again to reopen",
-      "Assert the Transit tab shows Direct as pre-selected (take screenshot)"
-    ],
-    "successCriteria": [
-      "Previously applied filters are pre-selected when filter dialog reopens"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-sort-combo",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Filter + Sort Combination",
-    "description": "Apply Direct filter AND sort by cheapest — verify combined behavior",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "On Transit tab: tap Direct",
-      "Tap dbwShow (Apply button)",
-      "Wait for card_result reload",
-      "Tap id: flight_result_sort_button_title — opens sort tray (NEVER use bm_button: removed from UI)",
-      "extendedWaitUntil id: layout_tray timeout: 10000",
-      "Wait for card_result reload",
-      "Assert card_result visible",
-      "Take screenshot: test-results/android/android-ssrv4-filter-sort-combo.png"
-    ],
-    "successCriteria": [
-      "Filter + sort combination works; results displayed without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-date-flow-navigation",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Date Flow: Tap Next Day",
-    "description": "Tap widget_dateflow to advance to the next day",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for widget_dateflow (Compose testTag)",
-      "Scroll left on the date flow row to find tomorrow's date cell",
-      "Tap the next-day date cell in widget_dateflow",
-      "Wait for card_result to reload",
-      "Assert card_result visible"
-    ],
-    "successCriteria": [
-      "Date navigation changes results; new results load without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-card-price-visible",
-    "priority": "p0",
-    "category": "interaction",
-    "name": "SSR V4 Flight Card: Price Section Visible",
-    "description": "Assert card_result_price_section is visible on each card",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Assert card_result_price_section is visible on first card",
-      "Assert card_result_connector_view is visible (duration/stops)",
-      "Take screenshot: test-results/android/android-ssrv4-card-price-visible.png"
-    ],
-    "successCriteria": [
-      "card_result_price_section visible",
-      "card_result_connector_view visible (duration/stops section)"
-    ]
-  },
-  {
-    "id": "android-ssrv4-card-tap-detail",
-    "priority": "p0",
-    "category": "interaction",
-    "name": "SSR V4 Flight Card Tap → Detail Screen",
-    "description": "Tap card_result to open detail; back to results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Tap card_result (first card)",
-      "Wait for detail screen to appear (new activity or bottom sheet)",
-      "Take screenshot: test-results/android/android-ssrv4-card-detail.png",
-      "Tap system back or back arrow to return",
-      "Assert card_result visible again"
-    ],
-    "successCriteria": [
-      "Card tap opens detail; back returns to results list without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-scroll-load-more",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Scroll to Load More Results",
-    "description": "Scroll down on results list multiple times to trigger pagination",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Scroll down on the results list",
-      "Scroll down again",
-      "Scroll down a third time",
-      "Assert card_result still visible after scrolling"
-    ],
-    "successCriteria": [
-      "No crash while scrolling; more cards appear or list end is reached gracefully"
-    ]
-  },
-  {
-    "id": "android-booking-fare-selection",
-    "priority": "p0",
-    "category": "booking",
-    "name": "Booking Flow: Fare Selection Screen",
-    "description": "Deeplink to results, tap first flight card, verify fare selection screen loads with ticket options",
-    "stepOutline": [
-      "stopApp → launchApp → openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: card_result index: 0",
-      "extendedWaitUntil id: flight_summary_activity_ticket_option_section timeout: 15000",
-      "Assert id: flight_summary_activity_ticket_option_section visible",
-      "Assert id: ticket_option_select_button visible (at least one fare option)"
-    ],
-    "successCriteria": [
-      "flight_summary_activity_ticket_option_section visible",
-      "ticket_option_select_button visible (fare options rendered)"
-    ]
-  },
-  {
-    "id": "android-booking-form-smoke",
-    "priority": "p0",
-    "category": "booking",
-    "name": "Booking Flow: Booking Form Loads",
-    "description": "Deeplink to results → tap card → select first fare → wait through turbulence-safe pattern → verify booking form loads",
-    "stepOutline": [
-      "stopApp → launchApp → openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: card_result index: 0",
-      "extendedWaitUntil id: flight_summary_activity_ticket_option_section timeout: 15000",
-      "Tap id: ticket_option_select_button index: 0",
-      "Turbulence-safe wait: extendedWaitUntil notVisible: flight_summary_activity_ticket_option_section timeout: 20000",
-      "runFlow when: error_button visible → tap error_button (turbulence recovery)",
-      "extendedWaitUntil id: flight_booking_page_viewpager timeout: 30000",
-      "Assert id: flight_booking_page_viewpager visible",
-      "Assert id: traveler_data_container visible"
-    ],
-    "successCriteria": [
-      "flight_booking_page_viewpager visible (booking form loaded)",
-      "traveler_data_container visible (passenger section rendered)"
-    ]
-  },
-  {
-    "id": "android-booking-payment-page-smoke",
-    "priority": "p0",
-    "category": "booking",
-    "name": "Booking Flow: Payment Page Loads",
-    "description": "Full navigation to payment page: deeplink → results → fare → booking form → Continue CTA → payment CC form. Based on android-booking-payment.yaml blueprint patterns.",
-    "stepOutline": [
-      "stopApp → launchApp → openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: card_result index: 0",
-      "extendedWaitUntil id: flight_summary_activity_ticket_option_section timeout: 15000",
-      "Tap id: ticket_option_select_button index: 0",
-      "Turbulence-safe pattern (notVisible → error_button runFlow → flight_booking_page_viewpager)",
-      "extendedWaitUntil id: traveler_data_container timeout: 15000",
-      "scroll × 2 to reveal bff_button_continue",
-      "extendedWaitUntil id: bff_button_continue timeout: 15000",
-      "Tap id: bff_button_continue",
-      "runFlow when: \"Enhance your trip\" visible → tap bff_button_continue",
-      "extendedWaitUntil id: frame_input_card_form timeout: 20000",
-      "Assert id: frame_input_card_form visible"
-    ],
-    "successCriteria": [
-      "frame_input_card_form visible (payment page loaded)",
-      "No crash during navigation through booking funnel"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-reset-all",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Reset All Filters",
-    "description": "Apply multiple filters, then tap Reset to clear all and restore full results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "On Transit tab: tap Direct",
-      "On Time tab: tap Morning",
-      "Tap Apply",
-      "Wait for results reload",
-      "Tap flight_result_filter_button_title again",
-      "Tap Reset/Clear all button inside the filter dialog (tvReset or equivalent)",
-      "Tap Apply button",
-      "Wait for card_result reload",
-      "Assert card_result visible (more results than before reset)"
-    ],
-    "successCriteria": [
-      "All filters cleared; full result set restored without crash"
-    ]
-  },
-  {
-    "id": "android-results-departure-morning",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Morning Departure",
-    "description": "Test applying Morning Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_morning (Morning Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Morning Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Morning Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Morning Departure"
-    ]
-  },
-  {
-    "id": "android-results-departure-afternoon",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Afternoon Departure",
-    "description": "Test applying Afternoon Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_afternoon (Afternoon Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Afternoon Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Afternoon Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Afternoon Departure"
-    ]
-  },
-  {
-    "id": "android-results-departure-evening",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter: Evening Departure",
-    "description": "Test applying Evening Departure filter on results page. Source: android-v3 time_departure layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_departure_evening (Evening Departure)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Evening Departure)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Evening Departure filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Evening Departure"
-    ]
-  },
-  {
-    "id": "android-results-arrival-morning",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: Morning Arrival",
-    "description": "Test applying Morning Arrival filter on results page. Source: android-v3 time_arrival layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_arrival_morning (Morning Arrival)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Morning Arrival)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Morning Arrival filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Morning Arrival"
-    ]
-  },
-  {
-    "id": "android-results-filter-baggage",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: Baggage Included",
-    "description": "Test applying Baggage Included filter on results page. Source: android-v3 facility layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_baggage_included (Baggage Included)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by Baggage Included)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "Baggage Included filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying Baggage Included"
-    ]
-  },
-  {
-    "id": "android-results-filter-meals",
-    "priority": "p2",
-    "category": "filter",
-    "name": "Filter: In-Flight Meals",
-    "description": "Test applying In-Flight Meals filter on results page. Source: android-v3 facility layer.",
-    "stepOutline": [
-      "Navigate to flight results page",
-      "Open filter dialog by tapping flight_result_filter_button_title",
-      "Wait for layout_filter_dialog to appear",
-      "Tap filter option: button_in_flight_meals (In-Flight Meals)",
-      "Tap dbwShow to apply filter",
-      "Verify card_result is visible (results filtered by In-Flight Meals)",
-      "Verify text_result_title appears (no empty state crash)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened without error",
-      "In-Flight Meals filter applied successfully",
-      "Results page reloaded with filtered content",
-      "No crash when applying In-Flight Meals"
-    ]
-  },
-  {
-    "id": "android-results-combo-two transit-evening-0",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: Two transit + Evening",
-    "description": "Auto-generated multi-filter combination test: apply two transit + evening filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "Tap id: button_two_transit",
-      "scrollUntilVisible id: button_departure_evening direction: DOWN timeout: 15000",
-      "Tap id: button_departure_evening",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-combo-one transit-morning-1",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: One transit + Morning",
-    "description": "Auto-generated multi-filter combination test: apply one transit + morning filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "Tap id: button_one_transit",
-      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
-      "Tap id: button_departure_morning",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-combo-morning-two transit-2",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: Morning + Two transit",
-    "description": "Auto-generated multi-filter combination test: apply morning + two transit filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
-      "Tap id: button_departure_morning",
-      "Tap id: button_two_transit",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-combo-one transit-morning-3",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: One transit + Morning",
-    "description": "Auto-generated multi-filter combination test: apply one transit + morning filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "Tap id: button_one_transit",
-      "scrollUntilVisible id: button_departure_morning direction: DOWN timeout: 15000",
-      "Tap id: button_departure_morning",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-results-combo-two transit-evening-4",
-    "priority": "p1",
-    "category": "filter",
-    "name": "Filter Combo: Two transit + Evening",
-    "description": "Auto-generated multi-filter combination test: apply two transit + evening filters together",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Tap id: flight_result_filter_button_title — open filter dialog",
-      "extendedWaitUntil id: layout_filter_dialog timeout: 15000",
-      "Tap id: button_two_transit",
-      "scrollUntilVisible id: button_departure_evening direction: DOWN timeout: 15000",
-      "Tap id: button_departure_evening",
-      "Tap id: dbwShow — apply filter",
-      "extendedWaitUntil id: card_result timeout: 30000",
-      "Assert id: card_result visible (results filtered by combination)"
-    ],
-    "successCriteria": [
-      "Filter dialog opened successfully",
-      "All selected filters applied without error",
-      "Results updated after filter applied",
-      "card_result still visible (no empty-state crash)"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-empty-state",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filtered Empty State",
-    "description": "Apply very restrictive filters (direct + specific airline + morning) to trigger empty state",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "On Transit tab: tap Direct",
-      "On Airlines tab: tap second and third airline (to be restrictive)",
-      "On Time tab: tap Morning departure only",
-      "Tap Apply button",
-      "Wait for either card_result or empty state UI",
-      "Take screenshot: test-results/android/android-ssrv4-filter-empty-state.png",
-      "Assert screen shows either results or an empty/no-result view (not a crash)"
-    ],
-    "successCriteria": [
-      "Empty state UI appears gracefully (no crash)",
-      "Empty state includes a \"Clear filters\" or \"Reset\" action button"
-    ]
-  },
-  {
-    "id": "android-ssrv4-empty-state-reset",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Empty State → Reset Filters",
-    "description": "Trigger filtered empty state, then tap Reset button to restore results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Apply restrictive filters to reach filtered empty state (reuse android-ssrv4-filter-empty-state precondition)",
-      "When empty state appears, tap \"Reset\" or \"Clear filters\" button in empty state",
-      "Wait for card_result to reload",
-      "Assert card_result visible (results restored)"
-    ],
-    "successCriteria": [
-      "Tapping Reset from empty state restores the full result set"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-afternoon-departure",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filter: Afternoon Departure",
-    "description": "Open filter dialog, select Afternoon departure time, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Afternoon departure option (button_departure_afternoon or \"Afternoon\" chip)",
-      "Tap Apply button",
-      "Wait for card_result to reload"
-    ],
-    "successCriteria": [
-      "Afternoon departure filter applied; results update without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-evening-departure",
-    "priority": "p2",
-    "category": "filter",
-    "name": "SSR V4 Filter: Evening Departure",
-    "description": "Open filter dialog, select Evening departure time, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Evening departure option (button_departure_evening or \"Evening\" chip)",
-      "Tap Apply button",
-      "Wait for card_result or empty state"
-    ],
-    "successCriteria": [
-      "Evening departure filter applied without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-arrival-morning",
-    "priority": "p2",
-    "category": "filter",
-    "name": "SSR V4 Filter: Morning Arrival",
-    "description": "Open filter Time tab, select Morning arrival, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Morning arrival option (button_arrival_morning or arrival morning chip)",
-      "Tap Apply button",
-      "Wait for card_result to reload"
-    ],
-    "successCriteria": [
-      "Arrival time filter applied; results update without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-reapply-previous",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filter: Re-open Shows Previous Selection",
-    "description": "Apply direct filter, re-open filter dialog, verify previous selection is retained",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "On Transit tab: tap Direct",
-      "Tap Apply button",
-      "Wait for card_result reload",
-      "Tap flight_result_filter_button_title again to reopen",
-      "Assert the Transit tab shows Direct as pre-selected (take screenshot)"
-    ],
-    "successCriteria": [
-      "Previously applied filters are pre-selected when filter dialog reopens"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-sort-combo",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Filter + Sort Combination",
-    "description": "Apply Direct filter AND sort by cheapest — verify combined behavior",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "On Transit tab: tap Direct",
-      "Tap dbwShow (Apply button)",
-      "Wait for card_result reload",
-      "Tap id: flight_result_sort_button_title — opens sort tray (NEVER use bm_button: removed from UI)",
-      "extendedWaitUntil id: layout_tray timeout: 10000",
-      "Wait for card_result reload",
-      "Assert card_result visible",
-      "Take screenshot: test-results/android/android-ssrv4-filter-sort-combo.png"
-    ],
-    "successCriteria": [
-      "Filter + sort combination works; results displayed without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-date-flow-navigation",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Date Flow: Tap Next Day",
-    "description": "Tap widget_dateflow to advance to the next day",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for widget_dateflow (Compose testTag)",
-      "Scroll left on the date flow row to find tomorrow's date cell",
-      "Tap the next-day date cell in widget_dateflow",
-      "Wait for card_result to reload",
-      "Assert card_result visible"
-    ],
-    "successCriteria": [
-      "Date navigation changes results; new results load without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-card-price-visible",
-    "priority": "p0",
-    "category": "interaction",
-    "name": "SSR V4 Flight Card: Price Section Visible",
-    "description": "Assert card_result_price_section is visible on each card",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Assert card_result_price_section is visible on first card",
-      "Assert card_result_connector_view is visible (duration/stops)",
-      "Take screenshot: test-results/android/android-ssrv4-card-price-visible.png"
-    ],
-    "successCriteria": [
-      "card_result_price_section visible",
-      "card_result_connector_view visible (duration/stops section)"
-    ]
-  },
-  {
-    "id": "android-ssrv4-card-tap-detail",
-    "priority": "p0",
-    "category": "interaction",
-    "name": "SSR V4 Flight Card Tap → Detail Screen",
-    "description": "Tap card_result to open detail; back to results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Tap card_result (first card)",
-      "Wait for detail screen to appear (new activity or bottom sheet)",
-      "Take screenshot: test-results/android/android-ssrv4-card-detail.png",
-      "Tap system back or back arrow to return",
-      "Assert card_result visible again"
-    ],
-    "successCriteria": [
-      "Card tap opens detail; back returns to results list without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-scroll-load-more",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Scroll to Load More Results",
-    "description": "Scroll down on results list multiple times to trigger pagination",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Scroll down on the results list",
-      "Scroll down again",
-      "Scroll down a third time",
-      "Assert card_result still visible after scrolling"
-    ],
-    "successCriteria": [
-      "No crash while scrolling; more cards appear or list end is reached gracefully"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-reset-all",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Reset All Filters",
-    "description": "Apply multiple filters, then tap Reset to clear all and restore full results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "On Transit tab: tap Direct",
-      "On Time tab: tap Morning",
-      "Tap Apply",
-      "Wait for results reload",
-      "Tap flight_result_filter_button_title again",
-      "Tap Reset/Clear all button inside the filter dialog (tvReset or equivalent)",
-      "Tap Apply button",
-      "Wait for card_result reload",
-      "Assert card_result visible (more results than before reset)"
-    ],
-    "successCriteria": [
-      "All filters cleared; full result set restored without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-empty-state",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filtered Empty State",
-    "description": "Apply very restrictive filters (direct + specific airline + morning) to trigger empty state",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "On Transit tab: tap Direct",
-      "On Airlines tab: tap second and third airline (to be restrictive)",
-      "On Time tab: tap Morning departure only",
-      "Tap Apply button",
-      "Wait for either card_result or empty state UI",
-      "Take screenshot: test-results/android/android-ssrv4-filter-empty-state.png",
-      "Assert screen shows either results or an empty/no-result view (not a crash)"
-    ],
-    "successCriteria": [
-      "Empty state UI appears gracefully (no crash)",
-      "Empty state includes a \"Clear filters\" or \"Reset\" action button"
-    ]
-  },
-  {
-    "id": "android-ssrv4-empty-state-reset",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Empty State → Reset Filters",
-    "description": "Trigger filtered empty state, then tap Reset button to restore results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Apply restrictive filters to reach filtered empty state (reuse android-ssrv4-filter-empty-state precondition)",
-      "When empty state appears, tap \"Reset\" or \"Clear filters\" button in empty state",
-      "Wait for card_result to reload",
-      "Assert card_result visible (results restored)"
-    ],
-    "successCriteria": [
-      "Tapping Reset from empty state restores the full result set"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-afternoon-departure",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filter: Afternoon Departure",
-    "description": "Open filter dialog, select Afternoon departure time, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Afternoon departure option (button_departure_afternoon or \"Afternoon\" chip)",
-      "Tap Apply button",
-      "Wait for card_result to reload"
-    ],
-    "successCriteria": [
-      "Afternoon departure filter applied; results update without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-evening-departure",
-    "priority": "p2",
-    "category": "filter",
-    "name": "SSR V4 Filter: Evening Departure",
-    "description": "Open filter dialog, select Evening departure time, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Evening departure option (button_departure_evening or \"Evening\" chip)",
-      "Tap Apply button",
-      "Wait for card_result or empty state"
-    ],
-    "successCriteria": [
-      "Evening departure filter applied without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-arrival-morning",
-    "priority": "p2",
-    "category": "filter",
-    "name": "SSR V4 Filter: Morning Arrival",
-    "description": "Open filter Time tab, select Morning arrival, apply",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "Tap the Time tab",
-      "Tap Morning arrival option (button_arrival_morning or arrival morning chip)",
-      "Tap Apply button",
-      "Wait for card_result to reload"
-    ],
-    "successCriteria": [
-      "Arrival time filter applied; results update without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-reapply-previous",
-    "priority": "p1",
-    "category": "filter",
-    "name": "SSR V4 Filter: Re-open Shows Previous Selection",
-    "description": "Apply direct filter, re-open filter dialog, verify previous selection is retained",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "Wait for filter dialog",
-      "On Transit tab: tap Direct",
-      "Tap Apply button",
-      "Wait for card_result reload",
-      "Tap flight_result_filter_button_title again to reopen",
-      "Assert the Transit tab shows Direct as pre-selected (take screenshot)"
-    ],
-    "successCriteria": [
-      "Previously applied filters are pre-selected when filter dialog reopens"
-    ]
-  },
-  {
-    "id": "android-ssrv4-filter-sort-combo",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Filter + Sort Combination",
-    "description": "Apply Direct filter AND sort by cheapest — verify combined behavior",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "extendedWaitUntil id: flight_result_filter_button_title timeout: 15000",
-      "Tap flight_result_filter_button_title",
-      "On Transit tab: tap Direct",
-      "Tap dbwShow (Apply button)",
-      "Wait for card_result reload",
-      "Tap id: flight_result_sort_button_title — opens sort tray (NEVER use bm_button: removed from UI)",
-      "extendedWaitUntil id: layout_tray timeout: 10000",
-      "Wait for card_result reload",
-      "Assert card_result visible",
-      "Take screenshot: test-results/android/android-ssrv4-filter-sort-combo.png"
-    ],
-    "successCriteria": [
-      "Filter + sort combination works; results displayed without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-date-flow-navigation",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Date Flow: Tap Next Day",
-    "description": "Tap widget_dateflow to advance to the next day",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for widget_dateflow (Compose testTag)",
-      "Scroll left on the date flow row to find tomorrow's date cell",
-      "Tap the next-day date cell in widget_dateflow",
-      "Wait for card_result to reload",
-      "Assert card_result visible"
-    ],
-    "successCriteria": [
-      "Date navigation changes results; new results load without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-card-price-visible",
-    "priority": "p0",
-    "category": "interaction",
-    "name": "SSR V4 Flight Card: Price Section Visible",
-    "description": "Assert card_result_price_section is visible on each card",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Assert card_result_price_section is visible on first card",
-      "Assert card_result_connector_view is visible (duration/stops)",
-      "Take screenshot: test-results/android/android-ssrv4-card-price-visible.png"
-    ],
-    "successCriteria": [
-      "card_result_price_section visible",
-      "card_result_connector_view visible (duration/stops section)"
-    ]
-  },
-  {
-    "id": "android-ssrv4-card-tap-detail",
-    "priority": "p0",
-    "category": "interaction",
-    "name": "SSR V4 Flight Card Tap → Detail Screen",
-    "description": "Tap card_result to open detail; back to results",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Tap card_result (first card)",
-      "Wait for detail screen to appear (new activity or bottom sheet)",
-      "Take screenshot: test-results/android/android-ssrv4-card-detail.png",
-      "Tap system back or back arrow to return",
-      "Assert card_result visible again"
-    ],
-    "successCriteria": [
-      "Card tap opens detail; back returns to results list without crash"
-    ]
-  },
-  {
-    "id": "android-ssrv4-scroll-load-more",
-    "priority": "p1",
-    "category": "interaction",
-    "name": "SSR V4 Scroll to Load More Results",
-    "description": "Scroll down on results list multiple times to trigger pagination",
-    "stepOutline": [
-      "stopApp — use deeplink navigation",
-      "Wait for card_result",
-      "Scroll down on the results list",
-      "Scroll down again",
-      "Scroll down a third time",
-      "Assert card_result still visible after scrolling"
-    ],
-    "successCriteria": [
-      "No crash while scrolling; more cards appear or list end is reached gracefully"
     ]
   },
   {

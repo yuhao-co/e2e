@@ -78,6 +78,70 @@ function shSafe(cmd: string): string {
 
 function elapsed(ms: number): string { return `${(ms / 1000).toFixed(1)}s`; }
 
+const ANDROID_V3_REPO = path.resolve('.cache/weekly-diff-repos/github.com_traveloka_android-v3');
+
+const DISCOVERY_ID_CANDIDATES: string[] = [
+  'card_result', 'text_result_title', 'widget_dateflow', 'image_calendar',
+  'flight_result_filter_button_title', 'flight_result_sort_button_title',
+  'layout_tray', 'radio_button', 'layout_filter_dialog', 'layer_transit',
+  'button_direct', 'button_one_transit', 'button_two_transit', 'dbwShow', 'tvReset',
+  'layer_airline', 'check_box', 'layer_time', 'button_departure_morning',
+  'button_departure_afternoon', 'button_departure_evening', 'button_departure_early_morning',
+  'button_arrival_morning', 'button_arrival_early_morning', 'calendar_navbar_close',
+  'flight_summary_activity_ticket_option_section', 'ticket_option_select_button',
+  'flight_booking_page_viewpager', 'traveler_data_container', 'search_box',
+  'label', 'primary_submit_button', 'bff_button_continue', 'icon_fill_in_details',
+  'error_button', 'frame_input_card_form', 'bm_text_field_credit_card_number',
+  'bm_text_field_credit_card_expiry', 'bm_text_field_credit_card_cvv',
+  'bm_text_field_credit_card_fullname', 'button_payment_price_summary_pay',
+];
+
+function walkFiles(root: string, accept: (file: string) => boolean): string[] {
+  const out: string[] = [];
+  if (!fs.existsSync(root)) return out;
+
+  const stack: string[] = [root];
+  while (stack.length > 0) {
+    const curr = stack.pop()!;
+    const entries = fs.readdirSync(curr, { withFileTypes: true });
+    for (const entry of entries) {
+      const abs = path.join(curr, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(abs);
+        continue;
+      }
+      if (accept(abs)) out.push(abs);
+    }
+  }
+  return out;
+}
+
+function extractSourceIdsFromAndroidRepo(repoRoot: string): Set<string> {
+  const ids = new Set<string>();
+  if (!fs.existsSync(repoRoot)) return ids;
+
+  const xmlRoot = path.join(repoRoot, 'flight/src/main/res/layout');
+  const codeRoot = path.join(repoRoot, 'flight/src/main/java');
+
+  const xmlFiles = walkFiles(xmlRoot, file => file.endsWith('.xml'));
+  for (const file of xmlFiles) {
+    const content = fs.readFileSync(file, 'utf8');
+    const matches = content.matchAll(/@\+?id\/([A-Za-z0-9_]+)/g);
+    for (const m of matches) ids.add(m[1]);
+  }
+
+  const codeFiles = walkFiles(codeRoot, file => file.endsWith('.kt') || file.endsWith('.kts') || file.endsWith('.java'));
+  for (const file of codeFiles) {
+    const content = fs.readFileSync(file, 'utf8');
+    const callMatches = content.matchAll(/testTag\(\s*"([A-Za-z0-9_]+)"\s*\)/g);
+    for (const m of callMatches) ids.add(m[1]);
+    const assignMatches = content.matchAll(/\btestTag\s*=\s*"([A-Za-z0-9_]+)"/g);
+    for (const m of assignMatches) ids.add(m[1]);
+  }
+
+  return ids;
+}
+
 /**
  * If no ADB device is online, auto-start Pixel7_API37 and wait for boot.
  * Throws if the emulator fails to boot within 3 minutes.
@@ -209,7 +273,29 @@ async function stageDiscover(): Promise<void> {
     } catch { /* ignore */ }
   }
 
-  // ── 3. Ask AI for uncovered scenario definitions ──────────────────────────
+  // ── 3. Build source-backed verified ID contract for discovery ─────────────
+  const sourceIds = extractSourceIdsFromAndroidRepo(ANDROID_V3_REPO);
+  if (sourceIds.size === 0) {
+    console.log(`  ❌ Source IDs unavailable. Discovery requires android-v3 source at: ${ANDROID_V3_REPO}`);
+    console.log('  Skipping discovery to avoid non-source-derived IDs.');
+    return;
+  }
+
+  const VERIFIED_IDS = new Set<string>(
+    DISCOVERY_ID_CANDIDATES.filter(id => sourceIds.has(id)),
+  );
+  const missingFromSource = DISCOVERY_ID_CANDIDATES.filter(id => !sourceIds.has(id));
+  if (missingFromSource.length > 0) {
+    console.log(`  ⚠️  ${missingFromSource.length} candidate IDs were not found in source and will not be used.`);
+  }
+  if (VERIFIED_IDS.size === 0) {
+    console.log('  ❌ No discovery IDs could be verified from source. Skipping discovery.');
+    return;
+  }
+
+  const verifiedIdListForPrompt = [...VERIFIED_IDS].sort().join(', ');
+
+  // ── 4. Ask AI for uncovered scenario definitions ──────────────────────────
   const openai = buildOpenAIClient();
 
   const systemPrompt = `You are an Android test coverage analyst for the Traveloka flight search results page.
@@ -238,30 +324,8 @@ FILTER COMBINATION IDEAS (pick any 2-3 to test together):
   ✓ Direct + Early morning + Reset then apply again
   ✓ Mix 3+ filters together (e.g., Direct + Morning + Airline X + Early arrival)
 
-VERIFIED IDs available (UIAutomator-confirmed):
-  RESULTS PAGE:
-    card_result, text_result_title, widget_dateflow, image_calendar,
-    flight_result_filter_button_title, flight_result_sort_button_title,
-    layout_tray, radio_button, layout_filter_dialog, layer_transit,
-    button_direct, button_one_transit, button_two_transit, dbwShow, tvReset,
-    layer_airline, check_box, layer_time, button_departure_morning,
-    button_departure_afternoon, button_departure_evening, button_departure_early_morning,
-    button_arrival_morning, button_arrival_early_morning,
-    calendar_navbar_close
-
-  FARE SELECTION PAGE (after tapping card_result):
-    flight_summary_activity_ticket_option_section,
-    ticket_option_select_button
-
-  BOOKING FORM (after ticket_option_select_button → turbulence-safe wait):
-    flight_booking_page_viewpager, traveler_data_container, search_box,
-    label, primary_submit_button, bff_button_continue, icon_fill_in_details,
-    error_button
-
-  PAYMENT PAGE (after bff_button_continue → Enhance Your Trip interstitial):
-    frame_input_card_form, bm_text_field_credit_card_number,
-    bm_text_field_credit_card_expiry, bm_text_field_credit_card_cvv,
-    bm_text_field_credit_card_fullname, button_payment_price_summary_pay
+VERIFIED IDs available (SOURCE-DERIVED from android-v3):
+  ${verifiedIdListForPrompt}
 
 BOOKING FLOW ENTRY (mandatory pattern — deeplink only):
   - stopApp → launchApp → openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY
@@ -300,10 +364,42 @@ IDs already used across all cases: ${[...usedIds].join(', ')}
 Based on the VERIFIED_IDS list, what interaction paths have NOT been tested yet?
 Consider: filter combinations, sort + filter together, edge cases, alternative navigation flows.
 Return JSON only.`;
+  // Strict discovery contract gates. Any discovered scenario failing these checks
+  // is rejected before reaching generator/pending-scenarios.
+  const ALLOWED_PRIORITIES = new Set(['p0', 'p1', 'p2']);
+  const ALLOWED_CATEGORIES = new Set(['filter', 'sort', 'navigation', 'interaction', 'booking']);
+  const SCENARIO_ID_PATTERN = /^android-(results|booking|payment)-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  const FORBIDDEN_STEP_PATTERNS: RegExp[] = [
+    /\bytapon\b/i,
+    /\bytapOn\b/i,
+    /\btext\s*:/i,
+    /\blabel\s*:/i,
+  ];
+
+  function extractExplicitIds(step: string): string[] {
+    const out: string[] = [];
+    const matches = step.matchAll(/\bid\s*:\s*["']?([a-zA-Z0-9_]+)["']?/g);
+    for (const m of matches) out.push(m[1]);
+    return out;
+  }
+
+  function stepMentionsVerifiedId(step: string): boolean {
+    for (const id of VERIFIED_IDS) {
+      const re = new RegExp(`\\b${id}\\b`);
+      if (re.test(step)) return true;
+    }
+    return false;
+  }
+
+  function stepRequiresIdReference(step: string): boolean {
+    if (/\b(stopApp|launchApp|openLink|deeplink|scroll|screenshot)\b/i.test(step)) return false;
+    return /\b(tap|wait|assert|visible|notVisible|runFlow|apply|select)\b/i.test(step);
+  }
 
   if (DRY_RUN) {
     console.log('  [dry-run] Would call AI for scenario discovery');
     console.log(`  Existing cases: ${existingFiles.length} | Covered IDs: ${usedIds.size}`);
+    console.log(`  Source-derived VERIFIED_IDS: ${VERIFIED_IDS.size}`);
     return;
   }
 
@@ -330,21 +426,69 @@ Return JSON only.`;
 
     if (!Array.isArray(discovered)) throw new Error('Response is not a JSON array');
 
-    // Filter out duplicates and validate structure
+    // Filter out duplicates and validate strict discovery contract.
+    const seenIds = new Set<string>();
     discovered = discovered.filter(s => {
-      if (!s.id || !s.stepOutline || !Array.isArray(s.stepOutline)) return false;
+      if (!s.id || !s.stepOutline || !Array.isArray(s.stepOutline)) {
+        console.log(`  ⚠️  Rejected (invalid structure): ${s?.id ?? 'unknown-id'}`);
+        return false;
+      }
+
+      if (!SCENARIO_ID_PATTERN.test(s.id)) {
+        console.log(`  ⚠️  Rejected (invalid scenario id format): ${s.id}`);
+        return false;
+      }
+
+      if (seenIds.has(s.id)) {
+        console.log(`  ⚠️  Rejected (duplicate in discovery batch): ${s.id}`);
+        return false;
+      }
+      seenIds.add(s.id);
+
+      if (!ALLOWED_PRIORITIES.has((s.priority ?? '').toLowerCase())) {
+        console.log(`  ⚠️  Rejected (invalid priority): ${s.id}`);
+        return false;
+      }
+
+      if (!ALLOWED_CATEGORIES.has((s.category ?? '').toLowerCase())) {
+        console.log(`  ⚠️  Rejected (invalid category): ${s.id}`);
+        return false;
+      }
+
       if (coveredCaseIds.has(s.id)) {
         console.log(`  ⚠️  Skipping duplicate: ${s.id}`);
         return false;
       }
-      // Reject any scenario that uses text: as interaction locator
-      const hasTextLocator = s.stepOutline.some(step =>
-        /tapOn.*text:|text:.*tapOn/i.test(step)
-      );
-      if (hasTextLocator) {
-        console.log(`  ⚠️  Rejected (text: locator): ${s.id}`);
+
+      for (const step of s.stepOutline) {
+        if (typeof step !== 'string' || !step.trim()) {
+          console.log(`  ⚠️  Rejected (empty/non-string step): ${s.id}`);
+          return false;
+        }
+
+        if (FORBIDDEN_STEP_PATTERNS.some(re => re.test(step))) {
+          console.log(`  ⚠️  Rejected (forbidden step token like ytapOn/text:/label:): ${s.id}`);
+          return false;
+        }
+
+        const explicitIds = extractExplicitIds(step);
+        const unknownExplicitIds = explicitIds.filter(id => !VERIFIED_IDS.has(id));
+        if (unknownExplicitIds.length > 0) {
+          console.log(`  ⚠️  Rejected (unknown explicit id ${unknownExplicitIds.join(', ')}): ${s.id}`);
+          return false;
+        }
+
+        if (stepRequiresIdReference(step) && !stepMentionsVerifiedId(step)) {
+          console.log(`  ⚠️  Rejected (step missing verified id reference): ${s.id}`);
+          return false;
+        }
+      }
+
+      if (!Array.isArray(s.successCriteria) || s.successCriteria.length === 0) {
+        console.log(`  ⚠️  Rejected (missing successCriteria): ${s.id}`);
         return false;
       }
+
       return true;
     }).slice(0, 5); // max 5
 
@@ -410,6 +554,7 @@ async function stageGenerate(): Promise<void> {
   const genArgs: string[] = [
     'npx', 'tsx', 'scripts/generate-maestro-android.ts',
     '--extended',
+    '--prioritize-pending',
     '--combinatorial',  // Auto-generate 5 random filter combo scenarios for exploration
     ...(DRY_RUN ? ['--dry-run'] : []),
     ...(CLI_MODEL ? ['--model', CLI_MODEL] : []),

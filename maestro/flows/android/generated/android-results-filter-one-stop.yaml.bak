@@ -3,7 +3,7 @@ name: android-results-filter-one-stop
 ---
 # Test case for applying 1-stop filter in flight search results
 # Scenario ID: android-results-filter-one-stop
-# Description: Open FULL filter dialog via flight_result_filter_button_title, tap button_one_transit, apply with dbwShow
+# Description: Open FULL filter dialog via flight_result_v4_filter_button, tap button_one_transit, apply with dbwShow
 
 # Step 1: Navigate to search results
 - stopApp
@@ -22,12 +22,7 @@ name: android-results-filter-one-stop
       id: "layout_filter_dialog"           # Wait for filter dialog to appear
     timeout: 15000
 
-# Step 3: Scroll to and apply the 1-stop filter
-- scrollUntilVisible:                      # Ensure the 1-stop filter toggle is visible
-    element:
-      id: "button_one_transit"
-    direction: DOWN
-    timeout: 15000  # [fix: Added scrollUntilVisible to ensure the button is reachable]
+# Step 3: Apply the 1-stop filter
 - tapOn:
     id: "button_one_transit"               # Tap the 1-stop toggle
 - tapOn:
@@ -36,8 +31,8 @@ name: android-results-filter-one-stop
 # Step 4: Wait for the results to update
 - extendedWaitUntil:
     visible:
-      id: "card_result"  # Wait for the results page to load
-    timeout: 30000  # [fix: Updated to wait for "card_result" instead of "text_result_title" as it is the correct ID]
+      id: "text_result_title"  # Wait for the results page to load
+    timeout: 30000
 
 # Step 5: Assert that the flight cards are still visible
 - assertVisible:

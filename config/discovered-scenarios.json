@@ -1,0 +1,121 @@
+[
+  {
+    "id": "android-results-combo-direct-morning-airline",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Direct flights with morning departure and specific airline",
+    "description": "Tests the combination of direct flights, morning departure, and a specific airline filter to ensure proper filtering logic.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_direct",
+      "tap id: button_departure_morning",
+      "tap id: layer_airline",
+      "tap id: check_box index: 0",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filtered results match direct flights, morning departure, and selected airline"
+    ]
+  },
+  {
+    "id": "android-results-combo-one-stop-afternoon-reset",
+    "priority": "p1",
+    "category": "filter",
+    "name": "One-stop flights with afternoon departure and reset filters",
+    "description": "Tests the combination of one-stop flights and afternoon departure, followed by resetting filters to ensure reset functionality works correctly.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_one_transit",
+      "tap id: button_departure_afternoon",
+      "tap id: tvReset",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filters are reset and all results are displayed"
+    ]
+  },
+  {
+    "id": "android-results-combo-two-transit-evening-airline",
+    "priority": "p2",
+    "category": "filter",
+    "name": "Two-transit flights with evening departure and specific airline",
+    "description": "Tests the combination of two-transit flights, evening departure, and a specific airline filter to ensure proper filtering logic.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_two_transit",
+      "tap id: button_departure_evening",
+      "tap id: layer_airline",
+      "tap id: check_box index: 1",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filtered results match two-transit flights, evening departure, and selected airline"
+    ]
+  },
+  {
+    "id": "android-results-combo-direct-early-morning-reset",
+    "priority": "p1",
+    "category": "filter",
+    "name": "Direct flights with early morning arrival and reset filters",
+    "description": "Tests the combination of direct flights and early morning arrival, followed by resetting filters to ensure reset functionality works correctly.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_direct",
+      "tap id: button_arrival_early_morning",
+      "tap id: tvReset",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filters are reset and all results are displayed"
+    ]
+  },
+  {
+    "id": "android-results-combo-multi-filters",
+    "priority": "p0",
+    "category": "filter",
+    "name": "Combination of multiple filters: direct flights, morning departure, specific airline, and morning arrival",
+    "description": "Tests a complex combination of filters to ensure the system can handle multiple filters applied simultaneously.",
+    "stepOutline": [
+      "stopApp — deeplink navigation only",
+      "launchApp",
+      "openLink: traveloka://flight/fullsearch?ap=SIN.JKTA&dt=20260617&ps=1.0.0&sc=ECONOMY",
+      "extendedWaitUntil id: card_result timeout: 30000",
+      "tap id: flight_result_filter_button_title",
+      "wait id: layout_filter_dialog",
+      "tap id: button_direct",
+      "tap id: button_departure_morning",
+      "tap id: layer_airline",
+      "tap id: check_box index: 2",
+      "tap id: button_arrival_morning",
+      "tap id: dbwShow"
+    ],
+    "successCriteria": [
+      "id: card_result visible",
+      "Filtered results match direct flights, morning departure, selected airline, and morning arrival"
+    ]
+  }
+]

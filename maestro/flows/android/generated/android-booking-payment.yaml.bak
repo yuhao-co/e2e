@@ -5,6 +5,9 @@ name: android-booking-payment
 # ╔══════════════════════════════════════════════════════════╗
 # ║       FULLY LOCKED — DO NOT MODIFY ANY STEP              ║
 # ║  All Phases 1-8 verified passing 2026-06-16              ║
+# ║  [fix 2026-06-17]: added overlay dismiss guards Phase 1  ║
+# ║  search_tab timeout 15s→30s; button_close_popup +        ║
+# ║  close_button runFlow blocks added after home load.      ║
 # ║  Full flow: Home → Search → Results → Fare Selection →   ║
 # ║  Traveler Picker → Contact Details → Booking Form →      ║
 # ║  Enhance Your Trip → Payment CC Form → Pay               ║
@@ -29,6 +32,37 @@ name: android-booking-payment
       id: "widget_highlighted_product"
     timeout: 30000
 
+# Dismiss new-user promo popup if visible before tapping product tile
+# button_close_popup: native_popup_new_user.xml
+- runFlow:
+    when:
+      visible:
+        id: "button_close_popup"
+    commands:
+      - tapOn:
+          id: "button_close_popup"
+
+# Dismiss push-notification permission widget if visible
+# close_button: push_notification_common_widget_layout.xml
+- runFlow:
+    when:
+      visible:
+        id: "close_button"
+    commands:
+      - tapOn:
+          id: "close_button"
+
+# Wait for product icons to finish rendering before tapping
+# widget_highlighted_product visible ≠ icons interactive; this prevents
+# a tap-landing-outside-app when icons are still animating in.
+- extendedWaitUntil:
+    visible:
+      id: "image_view_product_icon"
+    timeout: 15000
+
+# Kill Chrome one more time right before tap — prevents a 3DS payment-redirect
+# from a previous run re-launching Chrome and stealing focus mid-navigation.
+- stopApp: com.android.chrome
 
 # image_view_product_icon: testTag from HomeHighlightedProductIcon.kt
 # index 0 = first product tile (Flights), locale-independent
@@ -37,10 +71,11 @@ name: android-booking-payment
     index: 0
 
 # Wait for navigation to search screen (has animation/transition delay)
+# [fix 2026-06-17]: increased to 30s; overlay dismiss may add latency
 - extendedWaitUntil:
     visible:
       id: "search_tab"
-    timeout: 10000
+    timeout: 30000
 
 - tapOn:
     id: "search_tab"
@@ -64,14 +99,14 @@ name: android-booking-payment
 
 - tapOn:
     id: "card_result"
-    index: 0
+    index: 1  # [fix 2026-06-17]: index 0 can be a Flash Sale promo banner; use index 1 for first real flight card
 
 # --- PHASE 3: Fare Selection → Booking Form ---
 # flight_summary_activity_ticket_option_section: UIAutomator-verified
 - extendedWaitUntil:
     visible:
       id: "flight_summary_activity_ticket_option_section"
-    timeout: 15000
+    timeout: 30000  # [fix 2026-06-17]: increased to 30s; network call required to load fare options
 
 
 # ticket_option_select_button: from flight_ticket_option_slimming_down_widget.xml
@@ -97,12 +132,22 @@ name: android-booking-payment
       - tapOn:
           id: "error_button"
 
+# Step 2b — [fix 2026-06-17] second retry: network can stay down after first tap;
+# give it 5s then tap again if error_button is still visible.
+- runFlow:
+    when:
+      visible:
+        id: "error_button"
+    commands:
+      - tapOn:
+          id: "error_button"
+
 # Step 3 — now wait for the booking form (after clean load or after Refresh).
 # flight_booking_page_viewpager: root of booking form (flightbooking_impl module)
 - extendedWaitUntil:
     visible:
       id: "flight_booking_page_viewpager"
-    timeout: 30000
+    timeout: 45000
 
 
 # --- PHASE 4: Passenger — Select Existing Traveler ---
@@ -248,11 +293,20 @@ name: android-booking-payment
       - tapOn:
           id: "error_button"
 
+# Step 2b: [fix 2026-06-17] second retry for persistent network errors
+- runFlow:
+    when:
+      visible:
+        id: "error_button"
+    commands:
+      - tapOn:
+          id: "error_button"
+
 # Step 3: wait for booking form
 - extendedWaitUntil:
     visible:
       id: "flight_booking_page_viewpager"
-    timeout: 20000
+    timeout: 30000
 
 # Scroll to expose the price summary CTA at the bottom of the booking form
 - scroll
@@ -306,6 +360,10 @@ name: android-booking-payment
 - tapOn:
     id: "bm_text_field_credit_card_cvv"
 - inputText: "123"
+
+# Dismiss keyboard after CVV — name field is pushed below fold while keyboard is open
+- hideKeyboard
+- scroll
 
 # Name on card: bm_text_field_credit_card_fullname (inside text_field_full_name)
 - tapOn:

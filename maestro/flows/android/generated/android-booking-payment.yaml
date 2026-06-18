@@ -175,16 +175,17 @@ name: android-booking-payment
     index: 1
 
 # Scroll to reveal Save button (button is below fold)
-- scroll
+- scrollUntilVisible: # [fix: replaced bare scroll with scrollUntilVisible to ensure proper scrolling]
+    element:
+      id: "primary_submit_button"
+    direction: DOWN
+    timeout: 15000
 
 # primary_submit_button: Save/保留 CTA in flight_booking_form_widget.xml
 - extendedWaitUntil:
     visible:
       id: "primary_submit_button"
     timeout: 10000
-
-
-- scroll
 
 - tapOn:
     id: "primary_submit_button"
